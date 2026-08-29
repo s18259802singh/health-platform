@@ -50,13 +50,10 @@ const registerUser = async (req, res) => {
 
     // Generate the emergency QR code for this user.
     // The QR just encodes a URL that opens the PUBLIC emergency info page for this user id.
-    const emergencyUrl = `${process.env.CLIENT_URL}/emergency/${user._id}`;
-    const qrFolder = path.join(__dirname, '..', 'public', 'qrcodes');
-    if (!fs.existsSync(qrFolder)) fs.mkdirSync(qrFolder, { recursive: true });
-    const qrFilePath = path.join(qrFolder, `${user._id}.png`);
-    await QRCode.toFile(qrFilePath, emergencyUrl);
+        const emergencyUrl = `${process.env.CLIENT_URL}/emergency/${user._id}`;
+    const qrDataUrl = await QRCode.toDataURL(emergencyUrl);
 
-    user.qrCodePath = `/qrcodes/${user._id}.png`;
+    user.qrCodePath = qrDataUrl;
     await user.save();
 
     const token = generateToken(user);
