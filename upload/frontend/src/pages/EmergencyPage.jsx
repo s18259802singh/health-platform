@@ -14,7 +14,7 @@ export default function EmergencyPage() {
 
   useEffect(() => {
     axios
-      .get(`http://localhost:5000/api/emergency/${userId}`)
+      .get(`https://health-platform-brqp.onrender.com/api/emergency/${userId}`)
       .then((res) => setInfo(res.data))
       .catch(() => setError('No emergency record found for this QR code.'));
   }, [userId]);
