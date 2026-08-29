@@ -81,8 +81,8 @@ export default function Profile() {
       <div className="qr-box">
         <h3>Your Emergency QR Code</h3>
         <p>Anyone who scans this sees only your blood group, allergies, and emergency contact - no login needed.</p>
-        <img src={`http://localhost:5000${profile.qrCodePath}`} alt="Emergency QR Code" width="180" />
-        <p><a href={`http://localhost:5000${profile.qrCodePath}`} download>Download QR Code</a></p>
+        <img src={`https://health-platform-brqp.onrender.com${profile.qrCodePath}`} alt="Emergency QR Code" width="180" />
+        <p><a href={`https://health-platform-brqp.onrender.com${profile.qrCodePath}`} download>Download QR Code</a></p>
       </div>
     </div>
   );
