@@ -1097,3 +1097,53 @@ body {
   background-repeat: no-repeat;
   opacity: 0.35 !important;
 }
+/* ============================================
+   REVERT sky theme, restore dark cream + blood theme,
+   add a real illustrated centerpiece: cupped hands
+   offering a heart (line-art, matches brand colors)
+   ============================================ */
+
+body {
+  background:
+    linear-gradient(115deg, rgba(159, 18, 57, 0.05) 0%, transparent 30%),
+    linear-gradient(295deg, rgba(212, 162, 76, 0.08) 0%, transparent 35%),
+    radial-gradient(900px 500px at 8% 0%, rgba(159, 18, 57, 0.07) 0%, transparent 55%),
+    radial-gradient(700px 500px at 100% 15%, rgba(212, 162, 76, 0.10) 0%, transparent 55%),
+    var(--cream) !important;
+}
+
+.ribbon { display: none !important; }
+.bg-drops { display: block !important; }
+
+.floating-hearts .fheart {
+  font-size: 16px !important;
+  width: auto !important;
+  height: auto !important;
+  background-image: none !important;
+}
+
+/* ---- Signature illustration: cupped hands offering a heart ---- */
+.hands-illustration {
+  position: fixed;
+  bottom: -4%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(46vw, 420px);
+  height: min(30vw, 260px);
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.09;
+}
+.hands-illustration::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 420 260'%3E%3Cg fill='none' stroke='%239f1239' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 220 C 10 180, 20 130, 60 110 C 70 105, 85 108, 95 118 L 95 90 C 95 78, 105 70, 115 70 C 125 70, 133 78, 133 90 L 133 75 C 133 63, 143 55, 153 55 C 163 55, 171 63, 171 75 L 171 100 C 171 88, 181 80, 191 80 C 201 80, 208 88, 208 100 L 208 150 C 208 195, 175 225, 130 230 C 90 234, 45 228, 20 220 Z'/%3E%3Cpath d='M400 220 C 410 180, 400 130, 360 110 C 350 105, 335 108, 325 118 L 325 90 C 325 78, 315 70, 305 70 C 295 70, 287 78, 287 90 L 287 75 C 287 63, 277 55, 267 55 C 257 55, 249 63, 249 75 L 249 100 C 249 88, 239 80, 229 80 C 219 80, 212 88, 212 100 L 212 150 C 212 195, 245 225, 290 230 C 330 234, 375 228, 400 220 Z'/%3E%3C/g%3E%3Cpath d='M210 60 C 195 40, 165 32, 145 48 C 128 62, 128 88, 145 108 C 158 123, 180 138, 210 155 C 240 138, 262 123, 275 108 C 292 88, 292 62, 275 48 C 255 32, 225 40, 210 60 Z' fill='%23d4a24c' opacity='0.85'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-size: contain;
+  background-position: bottom center;
+}
+
+@media (max-width: 640px) {
+  .hands-illustration { opacity: 0.06; }
+}
