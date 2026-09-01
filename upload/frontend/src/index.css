@@ -357,3 +357,7 @@ h1, h2, h3, .brand {
   }
   .nav-links a:last-child, .nav-links button:last-child { border-bottom: none; }
 }
+/* ---------- Fix: dropdown menu stacking order ---------- */
+.navbar { position: relative; z-index: 100; }
+.nav-links.open { z-index: 100; }
+.container { position: relative; z-index: 1; }
