@@ -1050,3 +1050,50 @@ body {
 .bd4 { width: 26px; height: 34px; top: 40%; left: 84%; transform: rotate(-10deg); filter: blur(5px); opacity: 0.35 !important; }
 .bd5 { width: 34px; height: 44px; top: 80%; left: 92%; transform: rotate(3deg);  filter: blur(1px); opacity: 0.5 !important; }
 .bd6 { width: 22px; height: 29px; top: 90%; left: 46%; transform: rotate(-6deg); filter: blur(3px); opacity: 0.3 !important; }
+/* ============================================
+   BRIGHT SKY THEME — ribbons + outlined hearts
+   (overrides the dark cream background)
+   ============================================ */
+
+body {
+  background:
+    linear-gradient(180deg, #eaf6ff 0%, #f7fbff 40%, #fff5f5 100%) !important;
+}
+
+/* Turn off the old scattered blurred blood drops for this brighter look */
+.bg-drops { display: none !important; }
+
+/* ---- Red ribbon curves flowing in from the bottom corners ---- */
+.ribbon {
+  position: fixed;
+  bottom: -10%;
+  width: 60vw;
+  max-width: 520px;
+  height: 220px;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.9;
+}
+.ribbon-left {
+  left: -12%;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 500 220'%3E%3Cdefs%3E%3ClinearGradient id='rb1' x1='0' y1='0' x2='1' y2='0'%3E%3Cstop offset='0%25' stop-color='%237f1032'/%3E%3Cstop offset='100%25' stop-color='%23c81c44'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cpath d='M0,220 C120,220 160,120 260,110 C 340,102 380,60 420,0 L500,0 L500,220 Z' fill='url(%23rb1)'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-size: contain;
+}
+.ribbon-right {
+  right: -12%;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 500 220'%3E%3Cdefs%3E%3ClinearGradient id='rb2' x1='1' y1='0' x2='0' y2='0'%3E%3Cstop offset='0%25' stop-color='%237f1032'/%3E%3Cstop offset='100%25' stop-color='%23c81c44'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cpath d='M500,220 C380,220 340,120 240,110 C 160,102 120,60 80,0 L0,0 L0,220 Z' fill='url(%23rb2)'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-size: contain;
+}
+
+/* ---- Outlined floating hearts (replacing the solid emoji ones) ---- */
+.floating-hearts .fheart {
+  font-size: 0 !important; /* hide emoji glyph */
+  width: 26px;
+  height: 24px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 90'%3E%3Cpath d='M50,85 C15,60 2,38 2,22 C2,8 14,-1 28,-1 C 40,-1 48,7 50,16 C 52,7 60,-1 72,-1 C 86,-1 98,8 98,22 C 98,38 85,60 50,85 Z' fill='none' stroke='%23c81c44' stroke-width='5'/%3E%3C/svg%3E");
+  background-size: contain;
+  background-repeat: no-repeat;
+  opacity: 0.35 !important;
+}
