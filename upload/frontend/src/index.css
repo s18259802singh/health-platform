@@ -513,3 +513,68 @@ body::after {
 }
 
 .navbar { position: relative; z-index: 1; }
+/* ============================================
+   SIGNATURE BRAND MOMENT — living heartbeat identity
+   ============================================ */
+
+/* 1) The heart icon in the navbar actually beats (lub-dub rhythm) */
+@keyframes heartbeat {
+  0%   { transform: scale(1); }
+  14%  { transform: scale(1.3); }
+  28%  { transform: scale(1); }
+  42%  { transform: scale(1.22); }
+  56%  { transform: scale(1); }
+  100% { transform: scale(1); }
+}
+.navbar .brand::before {
+  display: inline-block;
+  animation: heartbeat 2.4s ease-in-out infinite;
+}
+
+/* 2) The gold pulse-line dividers slowly scroll, like a live ECG monitor */
+@keyframes scrollPulse {
+  from { background-position-x: 0; }
+  to   { background-position-x: 200px; }
+}
+.navbar::after {
+  animation: scrollPulse 6s linear infinite;
+}
+.emergency-card h2::after {
+  animation: scrollPulse 5s linear infinite;
+}
+
+/* 3) Remove the previous corner blob shapes... */
+body::before, body::after, .container::before {
+  content: none !important;
+}
+
+/* ...and replace with one elegant centerpiece: a heart traced by a
+   single continuous heartbeat line — the brand's signature mark,
+   placed once, large, very faint, behind the page content. */
+html::before {
+  content: "";
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  width: min(70vw, 640px);
+  height: min(70vw, 640px);
+  transform: translate(-50%, -50%);
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.05;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 180'%3E%3Cpath d='M100 170 C 40 130, 10 90, 10 55 C 10 25, 32 8, 58 8 C 78 8, 92 20, 100 35 C 100 35, 108 20, 30 55 H 70 L 82 30 L 100 90 L 112 55 L 122 70 H 190 C 190 90, 160 130, 100 170 Z' fill='none' stroke='%239f1239' stroke-width='2.2' stroke-linejoin='round' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-size: contain;
+  background-position: center;
+}
+
+/* soft ambient glows retained for depth */
+body {
+  background:
+    radial-gradient(900px 500px at 8% 0%, rgba(159, 18, 57, 0.06) 0%, transparent 55%),
+    radial-gradient(700px 500px at 100% 15%, rgba(212, 162, 76, 0.09) 0%, transparent 55%),
+    var(--cream);
+}
+
+.container { position: relative; z-index: 1; }
+.navbar { position: relative; z-index: 1; }
