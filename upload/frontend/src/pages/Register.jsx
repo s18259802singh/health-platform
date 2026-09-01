@@ -10,6 +10,7 @@ export default function Register() {
     allergies: '', emergencyContactName: '', emergencyContactNumber: '',
     isDonor: false, location: '',
   });
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const { register } = useAuth();
   const navigate = useNavigate();
@@ -42,7 +43,24 @@ export default function Register() {
         <input type="email" name="email" value={form.email} onChange={handleChange} required />
 
         <label>Password</label>
-        <input type="password" name="password" value={form.password} onChange={handleChange} required minLength={6} />
+        <div className="password-field">
+          <input
+            type={showPassword ? 'text' : 'password'}
+            name="password"
+            value={form.password}
+            onChange={handleChange}
+            required
+            minLength={6}
+          />
+          <button
+            type="button"
+            className="password-toggle"
+            onClick={() => setShowPassword(!showPassword)}
+            aria-label={showPassword ? 'Hide password' : 'Show password'}
+          >
+            {showPassword ? '🙈' : '👁'}
+          </button>
+        </div>
 
         <label>Phone</label>
         <input name="phone" value={form.phone} onChange={handleChange} required />
