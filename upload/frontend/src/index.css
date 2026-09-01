@@ -735,3 +735,157 @@ body {
   90%  { opacity: 0.12; }
   100% { transform: translate(0, -105vh) rotate(0deg); opacity: 0; }
 }
+/* ============================================
+   SPLIT-HEART INTRO — a real, shaded heart cracks
+   open down the middle, blood drops spill from the
+   seam, and the site is revealed underneath.
+   (Replaces the earlier plain-emoji version — the
+   old classes are no longer used, safe to leave in
+   place if still present further up the file.)
+   ============================================ */
+
+#splash-intro {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: none;
+  animation: introCleanup 0.1s forwards;
+  animation-delay: 2.3s;
+}
+
+.splash-veil {
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(circle at center, var(--garnet-dark) 0%, var(--garnet-deep) 70%, #3d0819 100%);
+  animation: veilFade 0.9s ease-in 1.05s forwards;
+}
+@keyframes veilFade {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}
+
+/* ---- The heart, built as a shaded SVG split into two halves ---- */
+.heart-stage {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  width: 140px;
+  height: 130px;
+  transform: translate(-50%, -50%) scale(0);
+  z-index: 2;
+  animation:
+    heartPop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.1s forwards,
+    heartBeat 0.55s ease-in-out 0.6s 2;
+}
+@keyframes heartPop {
+  from { transform: translate(-50%, -50%) scale(0); }
+  to   { transform: translate(-50%, -50%) scale(1); }
+}
+@keyframes heartBeat {
+  0%, 100% { transform: translate(-50%, -50%) scale(1); }
+  50%      { transform: translate(-50%, -50%) scale(1.18); }
+}
+
+.heart-half {
+  position: absolute;
+  top: 0;
+  width: 70px;
+  height: 130px;
+  overflow: hidden;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='130' viewBox='0 0 140 130'%3E%3Cdefs%3E%3ClinearGradient id='hg' x1='0' y1='0' x2='0' y2='1'%3E%3Cstop offset='0%25' stop-color='%23e6355a'/%3E%3Cstop offset='55%25' stop-color='%23b5123f'/%3E%3Cstop offset='100%25' stop-color='%237a0d2b'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cpath d='M70,122 C22,88 6,58 6,36 C6,16 21,3 41,3 C56,3 66,11 70,26 C74,11 84,3 99,3 C119,3 134,16 134,36 C134,58 118,88 70,122 Z' fill='url(%23hg)'/%3E%3Cellipse cx='45' cy='30' rx='14' ry='8' fill='%23ffffff' opacity='0.25'/%3E%3C/svg%3E");
+  background-size: 140px 130px;
+}
+.heart-left {
+  left: 0;
+  background-position: 0 0;
+  animation: splitLeft 0.85s ease-in 1.05s forwards;
+}
+.heart-right {
+  right: 0;
+  background-position: -70px 0;
+  animation: splitRight 0.85s ease-in 1.05s forwards;
+}
+@keyframes splitLeft {
+  from { transform: translate(0, 0) rotate(0deg); opacity: 1; }
+  to   { transform: translate(-70px, 60px) rotate(-18deg); opacity: 0; }
+}
+@keyframes splitRight {
+  from { transform: translate(0, 0) rotate(0deg); opacity: 1; }
+  to   { transform: translate(70px, 60px) rotate(18deg); opacity: 0; }
+}
+
+/* ---- Blood drops spilling from the seam as it splits ---- */
+.spill-drops {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  width: 1px;
+  height: 1px;
+  z-index: 3;
+}
+.drop {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 14px;
+  height: 18px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 130'%3E%3Cpath d='M50 5 C 20 55, 5 75, 5 95 C 5 115, 25 128, 50 128 C 75 128, 95 115, 95 95 C 95 75, 80 55, 50 5 Z' fill='%23b5123f'/%3E%3C/svg%3E");
+  background-size: contain;
+  background-repeat: no-repeat;
+  opacity: 0;
+  animation: dropFall 0.9s ease-in forwards;
+}
+.d1 { animation-delay: 1.05s; transform: translateX(-14px); }
+.d2 { animation-delay: 1.15s; transform: translateX(-4px);  width: 11px; height: 14px; }
+.d3 { animation-delay: 1.10s; transform: translateX(6px);   width: 16px; height: 20px; }
+.d4 { animation-delay: 1.25s; transform: translateX(16px);  width: 10px; height: 13px; }
+.d5 { animation-delay: 1.20s; transform: translateX(-24px); width: 12px; height: 15px; }
+
+@keyframes dropFall {
+  0%   { opacity: 0; transform: translate(var(--tx, 0), 0) scale(0.6); }
+  15%  { opacity: 1; }
+  100% { opacity: 0; transform: translate(var(--tx, 0), 140px) scale(1); }
+}
+.d1 { --tx: -14px; }
+.d2 { --tx: -4px; }
+.d3 { --tx: 6px; }
+.d4 { --tx: 16px; }
+.d5 { --tx: -24px; }
+
+@keyframes introCleanup {
+  to { visibility: hidden; opacity: 0; }
+}
+
+/* ============================================
+   FLOATING HEARTS — ambient butterfly-like drift
+   ============================================ */
+.floating-hearts {
+  position: fixed;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  overflow: hidden;
+}
+.fheart {
+  position: absolute;
+  bottom: -40px;
+  font-size: 16px;
+  opacity: 0;
+  animation: floatUp 14s linear infinite;
+}
+.f1 { left: 8%;  font-size: 14px; animation-delay: 0s;  animation-duration: 16s; }
+.f2 { left: 22%; font-size: 20px; animation-delay: 3s;  animation-duration: 19s; }
+.f3 { left: 40%; font-size: 12px; animation-delay: 6s;  animation-duration: 15s; }
+.f4 { left: 60%; font-size: 18px; animation-delay: 2s;  animation-duration: 20s; }
+.f5 { left: 78%; font-size: 14px; animation-delay: 8s;  animation-duration: 17s; }
+.f6 { left: 92%; font-size: 20px; animation-delay: 5s;  animation-duration: 18s; }
+
+@keyframes floatUp {
+  0%   { transform: translate(0, 0) rotate(0deg); opacity: 0; }
+  10%  { opacity: 0.12; }
+  25%  { transform: translate(18px, -25vh) rotate(8deg); }
+  50%  { transform: translate(-16px, -50vh) rotate(-6deg); }
+  75%  { transform: translate(14px, -75vh) rotate(8deg); }
+  90%  { opacity: 0.12; }
+  100% { transform: translate(0, -105vh) rotate(0deg); opacity: 0; }
+}
