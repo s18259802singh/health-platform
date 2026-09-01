@@ -889,3 +889,70 @@ body {
   90%  { opacity: 0.12; }
   100% { transform: translate(0, -105vh) rotate(0deg); opacity: 0; }
 }
+/* ============================================
+   INTRO v3 — bigger heart + outward blood splash
+   (overrides sizing/animation from the previous version)
+   ============================================ */
+
+.heart-stage {
+  width: 220px !important;
+  height: 205px !important;
+}
+.heart-half {
+  width: 110px !important;
+  height: 205px !important;
+  background-size: 220px 205px !important;
+}
+.heart-left  { background-position: 0 0 !important; }
+.heart-right { background-position: -110px 0 !important; }
+
+@keyframes splitLeft {
+  from { transform: translate(0, 0) rotate(0deg); opacity: 1; }
+  to   { transform: translate(-110px, 90px) rotate(-20deg); opacity: 0; }
+}
+@keyframes splitRight {
+  from { transform: translate(0, 0) rotate(0deg); opacity: 1; }
+  to   { transform: translate(110px, 90px) rotate(20deg); opacity: 0; }
+}
+
+/* ---- Splash drops: fling outward in a burst, then fall (gravity), then fade ---- */
+.drop {
+  width: 16px !important;
+  height: 20px !important;
+  animation: dropSplash 1.05s cubic-bezier(0.2, 0.7, 0.4, 1) forwards !important;
+}
+@keyframes dropSplash {
+  0%   { opacity: 0; transform: translate(0, 0) scale(0.5) rotate(0deg); }
+  12%  { opacity: 1; }
+  45%  { transform: translate(var(--mx), var(--my)) scale(1) rotate(var(--rot)); }
+  100% { opacity: 0; transform: translate(var(--fx), var(--fy)) scale(0.85) rotate(var(--rot)); }
+}
+
+.d1 { --mx: -95px; --my: -55px; --fx: -130px; --fy: 60px;  --rot: -35deg; animation-delay: 1.05s !important; }
+.d2 { --mx: -40px; --my: -85px; --fx: -55px;  --fy: 40px;  --rot: -15deg; animation-delay: 1.12s !important; }
+.d3 { --mx: 20px;  --my: -95px; --fx: 30px;   --fy: 30px;  --rot: 10deg;  animation-delay: 1.08s !important; }
+.d4 { --mx: 80px;  --my: -60px; --fx: 120px;  --fy: 65px;  --rot: 30deg;  animation-delay: 1.18s !important; }
+.d5 { --mx: -10px; --my: -110px; --fx: -10px; --fy: 20px;  --rot: 0deg;   animation-delay: 1.22s !important; }
+
+/* two extra drops for a fuller splash */
+.spill-drops::before,
+.spill-drops::after {
+  content: "";
+  position: absolute;
+  top: 0; left: 0;
+  width: 13px;
+  height: 17px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 130'%3E%3Cpath d='M50 5 C 20 55, 5 75, 5 95 C 5 115, 25 128, 50 128 C 75 128, 95 115, 95 95 C 95 75, 80 55, 50 5 Z' fill='%23b5123f'/%3E%3C/svg%3E");
+  background-size: contain;
+  background-repeat: no-repeat;
+  opacity: 0;
+  animation: dropSplash 1.05s cubic-bezier(0.2, 0.7, 0.4, 1) forwards;
+}
+.spill-drops::before {
+  --mx: -140px; --my: 10px; --fx: -170px; --fy: 95px; --rot: -40deg;
+  animation-delay: 1.15s;
+}
+.spill-drops::after {
+  --mx: 130px; --my: 5px; --fx: 165px; --fy: 90px; --rot: 40deg;
+  animation-delay: 1.10s;
+}
