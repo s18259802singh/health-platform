@@ -578,3 +578,64 @@ body {
 
 .container { position: relative; z-index: 1; }
 .navbar { position: relative; z-index: 1; }
+/* ============================================
+   RICHER BACKGROUND — bolder, offset, layered
+   (overrides the fainter centered version)
+   ============================================ */
+
+/* Turn off the centered faint mark from before */
+html::before { content: none !important; }
+
+/* Large heart mark, offset LEFT so it peeks beside the card, not hidden behind it */
+body::before {
+  content: "";
+  position: fixed;
+  top: 50%;
+  left: -6%;
+  width: min(46vw, 460px);
+  height: min(46vw, 460px);
+  transform: translateY(-50%) rotate(-6deg);
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.13;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 180'%3E%3Cpath d='M100 170 C 40 130, 10 90, 10 55 C 10 25, 32 8, 58 8 C 78 8, 92 20, 100 35 C 100 35, 108 20, 30 55 H 70 L 82 30 L 100 90 L 112 55 L 122 70 H 190 C 190 90, 160 130, 100 170 Z' fill='none' stroke='%239f1239' stroke-width='2.4' stroke-linejoin='round' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-size: contain;
+}
+
+/* Smaller mirrored echo, offset RIGHT, in gold, for balance */
+body::after {
+  content: "";
+  position: fixed;
+  bottom: -8%;
+  right: -8%;
+  width: min(34vw, 320px);
+  height: min(34vw, 320px);
+  transform: rotate(10deg);
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.14;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 180'%3E%3Cpath d='M100 170 C 40 130, 10 90, 10 55 C 10 25, 32 8, 58 8 C 78 8, 92 20, 100 35 C 100 35, 108 20, 30 55 H 70 L 82 30 L 100 90 L 112 55 L 122 70 H 190 C 190 90, 160 130, 100 170 Z' fill='none' stroke='%23d4a24c' stroke-width='2.6' stroke-linejoin='round' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-size: contain;
+}
+
+/* Subtle repeating texture of tiny pulse dots, adds richness without noise */
+html {
+  background-image: radial-gradient(rgba(159, 18, 57, 0.10) 1.4px, transparent 1.4px);
+  background-size: 28px 28px;
+  background-position: 0 0;
+}
+
+/* Warm diagonal color sweep for depth, sits behind everything */
+body {
+  background:
+    linear-gradient(115deg, rgba(159, 18, 57, 0.05) 0%, transparent 30%),
+    linear-gradient(295deg, rgba(212, 162, 76, 0.08) 0%, transparent 35%),
+    radial-gradient(900px 500px at 8% 0%, rgba(159, 18, 57, 0.07) 0%, transparent 55%),
+    radial-gradient(700px 500px at 100% 15%, rgba(212, 162, 76, 0.10) 0%, transparent 55%),
+    var(--cream);
+}
+
+.container { position: relative; z-index: 1; }
+.navbar { position: relative; z-index: 1; }
