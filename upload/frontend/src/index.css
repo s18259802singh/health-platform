@@ -639,3 +639,99 @@ body {
 
 .container { position: relative; z-index: 1; }
 .navbar { position: relative; z-index: 1; }
+
+/* ============================================
+   SPLASH INTRO — heart pops, doors open, reveals site
+   ============================================ */
+#splash-intro {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: none;
+  animation: splashCleanup 0.1s forwards;
+  animation-delay: 2.4s;
+}
+.splash-panel {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  width: 50%;
+  background: linear-gradient(135deg, var(--garnet) 0%, var(--garnet-deep) 100%);
+  z-index: 1;
+  animation: doorOpen 0.9s ease-in 0.9s forwards;
+}
+.splash-left  { left: 0; transform-origin: left; }
+.splash-right { right: 0; transform-origin: right; }
+.splash-right { animation-name: doorOpenRight; }
+
+@keyframes doorOpen {       /* left panel slides fully off-screen left */
+  from { transform: translateX(0); }
+  to   { transform: translateX(-100%); }
+}
+@keyframes doorOpenRight {  /* right panel slides fully off-screen right */
+  from { transform: translateX(0); }
+  to   { transform: translateX(100%); }
+}
+
+.splash-heart {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(0);
+  font-size: 64px;
+  z-index: 2;
+  animation:
+    heartPopIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.1s forwards,
+    heartBeatIntro 0.6s ease-in-out 0.6s 2,
+    heartFadeOut 0.5s ease-in 1.7s forwards;
+}
+@keyframes heartPopIn {
+  from { transform: translate(-50%, -50%) scale(0); opacity: 0; }
+  to   { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+}
+@keyframes heartBeatIntro {
+  0%, 100% { transform: translate(-50%, -50%) scale(1); }
+  50%      { transform: translate(-50%, -50%) scale(1.25); }
+}
+@keyframes heartFadeOut {
+  from { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  to   { opacity: 0; transform: translate(-50%, -50%) scale(1.4); }
+}
+
+@keyframes splashCleanup {
+  to { visibility: hidden; opacity: 0; }
+}
+
+/* ============================================
+   FLOATING HEARTS — ambient butterfly-like drift
+   ============================================ */
+.floating-hearts {
+  position: fixed;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  overflow: hidden;
+}
+.fheart {
+  position: absolute;
+  bottom: -40px;
+  font-size: 16px;
+  opacity: 0;
+  animation: floatUp 14s linear infinite;
+}
+.f1 { left: 8%;  font-size: 14px; animation-delay: 0s;  animation-duration: 16s; }
+.f2 { left: 22%; font-size: 20px; animation-delay: 3s;  animation-duration: 19s; }
+.f3 { left: 40%; font-size: 12px; animation-delay: 6s;  animation-duration: 15s; }
+.f4 { left: 60%; font-size: 18px; animation-delay: 2s;  animation-duration: 20s; }
+.f5 { left: 78%; font-size: 14px; animation-delay: 8s;  animation-duration: 17s; }
+.f6 { left: 92%; font-size: 20px; animation-delay: 5s;  animation-duration: 18s; }
+
+@keyframes floatUp {
+  0%   { transform: translate(0, 0) rotate(0deg); opacity: 0; }
+  10%  { opacity: 0.12; }
+  25%  { transform: translate(18px, -25vh) rotate(8deg); }
+  50%  { transform: translate(-16px, -50vh) rotate(-6deg); }
+  75%  { transform: translate(14px, -75vh) rotate(8deg); }
+  90%  { opacity: 0.12; }
+  100% { transform: translate(0, -105vh) rotate(0deg); opacity: 0; }
+}
