@@ -406,3 +406,44 @@ h1, h2, h3, .brand {
   background: none !important;
   transform: translateY(-50%) !important;
 }
+/* ---------- Creative decorative background ---------- */
+body {
+  position: relative;
+  min-height: 100vh;
+  background:
+    radial-gradient(900px 500px at 8% 0%, rgba(159, 18, 57, 0.07) 0%, transparent 55%),
+    radial-gradient(700px 500px at 100% 15%, rgba(212, 162, 76, 0.10) 0%, transparent 55%),
+    radial-gradient(800px 600px at 50% 100%, rgba(159, 18, 57, 0.06) 0%, transparent 60%),
+    var(--cream);
+  overflow-x: hidden;
+}
+
+/* Repeating faint heartbeat-line watermark across the whole page */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='120' viewBox='0 0 300 120'%3E%3Cpath d='M0 60 H90 L100 60 L110 20 L125 100 L135 60 L150 60 H240 L250 60 L260 20 L275 100 L285 60 L300 60' fill='none' stroke='%239f1239' stroke-width='1.4'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 300px 120px;
+  opacity: 0.035;
+}
+
+/* Soft floating color blobs for depth */
+body::after {
+  content: "";
+  position: fixed;
+  top: -120px;
+  right: -120px;
+  width: 380px;
+  height: 380px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(212, 162, 76, 0.16) 0%, transparent 70%);
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* Make sure real content sits above the decorative layers */
+.navbar, .container { position: relative; z-index: 1; }
