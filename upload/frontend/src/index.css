@@ -310,3 +310,50 @@ h1, h2, h3, .brand {
   .container { padding: 20px 16px 48px; }
   .form-card, .qr-box { padding: 22px; }
 }
+/* ---------- Mobile hamburger menu ---------- */
+.menu-toggle {
+  display: none;
+  flex-direction: column;
+  justify-content: center;
+  gap: 5px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 6px;
+  z-index: 20;
+}
+.menu-toggle span {
+  width: 24px;
+  height: 2.5px;
+  background: white;
+  border-radius: 2px;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+@media (max-width: 640px) {
+  .navbar { flex-wrap: nowrap; }
+  .menu-toggle { display: flex; }
+
+  .nav-links {
+    display: none;
+    flex-direction: column;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: linear-gradient(135deg, var(--garnet) 0%, var(--garnet-deep) 100%);
+    padding: 8px 24px 18px;
+    box-shadow: 0 10px 24px rgba(92, 12, 37, 0.3);
+    border-bottom-left-radius: 14px;
+    border-bottom-right-radius: 14px;
+  }
+  .nav-links.open { display: flex; }
+  .nav-links a, .nav-links button {
+    margin-left: 0;
+    padding: 12px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.15);
+    width: 100%;
+    text-align: left;
+  }
+  .nav-links a:last-child, .nav-links button:last-child { border-bottom: none; }
+}
