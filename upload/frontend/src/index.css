@@ -361,3 +361,27 @@ h1, h2, h3, .brand {
 .navbar { position: relative; z-index: 100; }
 .nav-links.open { z-index: 100; }
 .container { position: relative; z-index: 1; }
+/* ---------- Password show/hide toggle ---------- */
+.password-field {
+  position: relative;
+  margin-top: 6px;
+}
+.password-field input {
+  width: 100%;
+  margin-top: 0;
+  padding-right: 42px;
+}
+.password-toggle {
+  position: absolute;
+  right: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 17px;
+  padding: 6px 8px;
+  line-height: 1;
+  opacity: 0.75;
+}
+.password-toggle:hover { opacity: 1; }
