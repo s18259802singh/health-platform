@@ -1147,3 +1147,92 @@ body {
 @media (max-width: 640px) {
   .hands-illustration { opacity: 0.06; }
 }
+/* ============================================
+   FINAL CREATIVE BACKGROUND
+   A real composed scene: heart --ECG line--> blood bag,
+   bold blood-pool splashes in the corners with drip
+   fingers, and a light scattered medical-icon texture.
+   This overrides/hides earlier background attempts.
+   ============================================ */
+
+/* Turn off previous layers that don't fit this look */
+.ribbon, .hands-illustration, .bg-drops { display: none !important; }
+
+body {
+  background: #fdf8f0 !important;
+}
+
+/* ---- Light scattered texture: tiny crosses + dots ---- */
+html {
+  background-image:
+    radial-gradient(rgba(159, 18, 57, 0.07) 1.3px, transparent 1.3px);
+  background-size: 30px 30px;
+}
+
+/* ---- Bold blood-pool splash, bottom-LEFT corner, with drip fingers ---- */
+.blood-pool-left {
+  position: fixed;
+  bottom: -6%;
+  left: -6%;
+  width: min(30vw, 300px);
+  height: min(30vw, 300px);
+  z-index: 0;
+  pointer-events: none;
+}
+.blood-pool-left::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 300 300'%3E%3Cdefs%3E%3ClinearGradient id='bp1' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0%25' stop-color='%23c81c3f'/%3E%3Cstop offset='100%25' stop-color='%236b0d21'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cpath d='M0,300 L0,150 C 40,140 55,110 50,80 C 47,60 60,45 75,55 C 90,65 85,90 100,95 C 130,105 140,60 170,50 C 185,45 190,25 180,10 C 210,20 220,60 205,90 C 235,85 260,110 250,150 C 300,160 300,300 300,300 Z' fill='url(%23bp1)'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-size: contain;
+  background-position: bottom left;
+}
+
+/* ---- Bold blood-pool splash, bottom-RIGHT corner (mirrored) ---- */
+.blood-pool-right {
+  position: fixed;
+  bottom: -6%;
+  right: -6%;
+  width: min(26vw, 260px);
+  height: min(26vw, 260px);
+  z-index: 0;
+  pointer-events: none;
+  transform: scaleX(-1);
+}
+.blood-pool-right::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 300 300'%3E%3Cdefs%3E%3ClinearGradient id='bp2' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0%25' stop-color='%23c81c3f'/%3E%3Cstop offset='100%25' stop-color='%236b0d21'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cpath d='M0,300 L0,150 C 40,140 55,110 50,80 C 47,60 60,45 75,55 C 90,65 85,90 100,95 C 130,105 140,60 170,50 C 185,45 190,25 180,10 C 210,20 220,60 205,90 C 235,85 260,110 250,150 C 300,160 300,300 300,300 Z' fill='url(%23bp2)'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-size: contain;
+  background-position: bottom left;
+}
+
+/* ---- Signature scene: heart -> ECG line -> blood bag ---- */
+.med-scene {
+  position: fixed;
+  top: 14%;
+  right: -4%;
+  width: min(48vw, 560px);
+  height: min(28vw, 280px);
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.16;
+}
+.med-scene::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 600 300'%3E%3Cdefs%3E%3ClinearGradient id='hh' x1='0' y1='0' x2='0' y2='1'%3E%3Cstop offset='0%25' stop-color='%23c81c3f'/%3E%3Cstop offset='100%25' stop-color='%237a0d28'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cpath d='M90,205 C40,168 15,132 15,102 C15,75 34,55 60,55 C78,55 90,65 95,82 C100,65 112,55 130,55 C156,55 175,75 175,102 C175,132 150,168 100,205 C97,207 93,207 90,205 Z' fill='url(%23hh)'/%3E%3Crect x='80' y='105' width='30' height='10' fill='%23fdf8f0'/%3E%3Crect x='90' y='95' width='10' height='30' fill='%23fdf8f0'/%3E%3Cpath d='M175,105 H 230 L 245,60 L 262,150 L 278,105 L 292,130 L 305,105 H 400' fill='none' stroke='%239f1239' stroke-width='5' stroke-linejoin='round' stroke-linecap='round'/%3E%3Ccircle cx='465' cy='60' r='9' fill='none' stroke='%23a8a29a' stroke-width='4'/%3E%3Ccircle cx='505' cy='60' r='9' fill='none' stroke='%23a8a29a' stroke-width='4'/%3E%3Crect x='440' y='72' width='90' height='140' rx='16' fill='%23fdf8f0' stroke='%23a8a29a' stroke-width='4'/%3E%3Cpath d='M485,100 L485,145 M462,122 L508,122' stroke='%23c81c3f' stroke-width='6' stroke-linecap='round'/%3E%3Cline x1='485' y1='212' x2='485' y2='245' stroke='%23a8a29a' stroke-width='4'/%3E%3Ccircle cx='485' cy='252' r='7' fill='%23c81c3f'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-size: contain;
+}
+
+@media (max-width: 768px) {
+  .med-scene { display: none; } /* keep mobile clean and fast */
+  .blood-pool-left, .blood-pool-right { width: 34vw; height: 34vw; }
+}
+
+.container, .navbar { position: relative; z-index: 1; }
