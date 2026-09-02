@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import Navbar from './components/Navbar';
+import BottomNav from './components/BottomNav';
 import ProtectedRoute from './components/ProtectedRoute';
 
 import Login from './pages/Login';
@@ -33,6 +34,7 @@ export default function App() {
             <Route path="/appointments" element={<ProtectedRoute><Appointments /></ProtectedRoute>} />
           </Routes>
         </main>
+        <BottomNav />
       </BrowserRouter>
     </AuthProvider>
   );
