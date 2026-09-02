@@ -1405,3 +1405,30 @@ body { background: var(--pink-bg) !important; }
   .app-dashboard { padding-bottom: 70px; }
   .action-row { -webkit-overflow-scrolling: touch; }
 }
+/* ---------- Impact stats row ---------- */
+.stats-row {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 26px;
+}
+.stat-box {
+  flex: 1;
+  background: white;
+  border-radius: 18px;
+  padding: 16px 10px;
+  text-align: center;
+  box-shadow: 0 6px 18px rgba(200, 28, 63, 0.08);
+}
+.stat-box strong {
+  display: block;
+  font-family: 'Poppins', sans-serif;
+  font-size: 20px;
+  color: var(--red);
+}
+.stat-box span {
+  display: block;
+  font-size: 11.5px;
+  color: #8a6f74;
+  margin-top: 4px;
+  font-weight: 500;
+}
