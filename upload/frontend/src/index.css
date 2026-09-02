@@ -1237,27 +1237,171 @@ html {
 
 .container, .navbar { position: relative; z-index: 1; }
 
-import { NavLink } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
+/* ============================================
+   APP-STYLE REDESIGN — bold sans typography,
+   soft pink cards, pill buttons, bottom nav bar
+   ============================================ */
 
-export default function BottomNav() {
-  const { user } = useAuth();
-  if (!user) return null;
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap');
 
-  return (
-    <nav className="bottom-nav">
-      <NavLink to="/dashboard" className="bn-item">
-        <span>🏠</span>
-      </NavLink>
-      <NavLink to="/donors" className="bn-item">
-        <span>🔍</span>
-      </NavLink>
-      <NavLink to="/hospitals" className="bn-item">
-        <span>📍</span>
-      </NavLink>
-      <NavLink to="/profile" className="bn-item">
-        <span>👤</span>
-      </NavLink>
-    </nav>
-  );
+:root {
+  --pink-bg: #fff1ee;
+  --pink-card: #fff6f4;
+  --red: #c81c3f;
+  --red-dark: #8a1230;
+}
+
+h1, h2, h3, .brand, .app-heading, .banner-text h3 {
+  font-family: 'Poppins', 'Segoe UI', Arial, sans-serif !important;
+  letter-spacing: -0.01em;
+}
+
+body { background: var(--pink-bg) !important; }
+.med-scene, .blood-pool-left, .blood-pool-right { opacity: 0.10 !important; }
+
+/* ---- Cards, generally ---- */
+.form-card, .qr-box, .banner-card, .info-card, .emergency-card {
+  border-radius: 26px !important;
+  box-shadow: 0 10px 30px rgba(200, 28, 63, 0.10) !important;
+  border: none !important;
+}
+.form-card { background: white !important; }
+.form-card input, .form-card select {
+  background: var(--pink-card) !important;
+  border-radius: 14px !important;
+  border: 1.5px solid #f5dcd6 !important;
+}
+.form-card button[type="submit"], .banner-button, .btn-primary {
+  background: var(--red) !important;
+  border-radius: 999px !important;
+  font-family: 'Poppins', sans-serif;
+  font-weight: 700 !important;
+  box-shadow: 0 8px 20px rgba(200, 28, 63, 0.30) !important;
+}
+
+/* ---- Dashboard eyebrow / heading ---- */
+.app-eyebrow { color: var(--red); font-weight: 600; font-size: 13px; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 2px; }
+.app-heading { font-size: 26px; margin: 0 0 4px; color: #2a1a1e; }
+.app-subtext { color: #8a6f74; margin-top: 0; margin-bottom: 22px; }
+
+/* ---- Action badges row ---- */
+.action-row {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  padding-bottom: 6px;
+  margin-bottom: 26px;
+}
+.action-badge {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
+  color: #4a3a3d;
+  font-size: 12.5px;
+  font-weight: 600;
+  min-width: 78px;
+}
+.action-icon {
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  background: #ffe1da;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  box-shadow: 0 4px 12px rgba(200, 28, 63, 0.12);
+  transition: transform 0.15s ease;
+}
+.action-badge:hover .action-icon { transform: translateY(-3px); }
+
+/* ---- Big banner card ---- */
+.banner-card {
+  background: linear-gradient(135deg, var(--red) 0%, var(--red-dark) 100%);
+  border-radius: 26px;
+  padding: 26px;
+  color: white;
+  margin-bottom: 28px;
+  box-shadow: 0 14px 32px rgba(138, 18, 48, 0.28);
+}
+.banner-tag {
+  background: rgba(255,255,255,0.18);
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  display: inline-block;
+  margin-bottom: 10px;
+}
+.banner-text h3 { margin: 0 0 16px; font-size: 19px; line-height: 1.3; max-width: 320px; }
+.banner-button {
+  display: inline-block;
+  background: white;
+  color: var(--red-dark);
+  padding: 10px 22px;
+  border-radius: 999px;
+  font-weight: 700;
+  text-decoration: none;
+  font-size: 14px;
+}
+
+/* ---- Section headers + info cards ---- */
+.section-header { display: flex; justify-content: space-between; align-items: center; margin: 8px 0 12px; }
+.section-header h3 { margin: 0; font-size: 16px; color: #2a1a1e; }
+
+.info-card {
+  background: var(--pink-card);
+  border-radius: 20px;
+  padding: 16px 18px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 12px;
+}
+.info-card-icon {
+  width: 46px;
+  height: 46px;
+  border-radius: 14px;
+  background: #ffe1da;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  flex-shrink: 0;
+}
+.info-card strong { display: block; font-size: 14.5px; color: #2a1a1e; }
+.info-card p { margin: 2px 0 0; font-size: 12.5px; color: #8a6f74; }
+.info-card .small-button { margin-left: auto; flex-shrink: 0; }
+
+/* ---- Bottom mobile nav bar ---- */
+.bottom-nav {
+  display: none;
+}
+@media (max-width: 640px) {
+  .bottom-nav {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    position: fixed;
+    bottom: 14px;
+    left: 14px;
+    right: 14px;
+    background: linear-gradient(135deg, var(--red) 0%, var(--red-dark) 100%);
+    border-radius: 999px;
+    padding: 12px 0;
+    box-shadow: 0 12px 28px rgba(138, 18, 48, 0.35);
+    z-index: 50;
+  }
+  .bn-item {
+    color: rgba(255,255,255,0.75);
+    text-decoration: none;
+    font-size: 19px;
+    padding: 4px 14px;
+  }
+  .bn-item.active { color: white; }
+  .app-dashboard { padding-bottom: 70px; }
+  .action-row { -webkit-overflow-scrolling: touch; }
 }
