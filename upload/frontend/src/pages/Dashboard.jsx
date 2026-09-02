@@ -37,6 +37,24 @@ export default function Dashboard() {
       </div>
 
       <div className="section-header">
+        <h3>Our Impact</h3>
+      </div>
+      <div className="stats-row">
+        <div className="stat-box">
+          <strong>2,400+</strong>
+          <span>Registered Donors</span>
+        </div>
+        <div className="stat-box">
+          <strong>850+</strong>
+          <span>Lives Saved</span>
+        </div>
+        <div className="stat-box">
+          <strong>60+</strong>
+          <span>Partner Hospitals</span>
+        </div>
+      </div>
+
+      <div className="section-header">
         <h3>Quick Links</h3>
       </div>
       <div className="info-card">
