@@ -17,7 +17,7 @@ export default function Navbar() {
 
   return (
     <nav className="navbar">
-      <Link to="/" className="brand" onClick={closeMenu}>Health & Blood Donor Platform</Link>
+      <Link to="/" className="brand" onClick={closeMenu}><span className="brand-mark" aria-hidden="true"></span>LifeLink</Link>
 
       <button
         className="menu-toggle"

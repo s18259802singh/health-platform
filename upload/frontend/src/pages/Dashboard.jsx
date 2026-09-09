@@ -4,12 +4,12 @@ import api from '../api/axios';
 import { useAuth } from '../context/AuthContext';
 
 const ACTIONS = [
-  { to: '/donors', icon: '🔍', label: 'Find Donor' },
-  { to: '/appointments', icon: '🩸', label: 'Appointments' },
-  { to: '/hospitals', icon: '🏥', label: 'Hospitals' },
-  { to: '/requests', icon: '🆘', label: 'Blood Requests' },
-  { to: '/blogs', icon: '📰', label: 'Health Blog' },
-  { to: '/profile', icon: '👤', label: 'My Profile' },
+  { to: '/donors', label: 'Find a donor' },
+  { to: '/requests', label: 'Blood requests' },
+  { to: '/appointments', label: 'Book a doctor' },
+  { to: '/hospitals', label: 'Hospitals & blood banks' },
+  { to: '/blogs', label: 'Health blog' },
+  { to: '/profile', label: 'My profile & QR' },
 ];
 
 export default function Dashboard() {
@@ -34,26 +34,25 @@ export default function Dashboard() {
 
   return (
     <div className="page app-dashboard">
-      <p className="app-eyebrow">Welcome back</p>
-      <h2 className="app-heading">{user?.name} 👋</h2>
+      <p className="app-eyebrow">Signed in</p>
+      <h2 className="app-heading">{user?.name}</h2>
       <p className="app-subtext">
-        {user?.role === 'admin' ? 'Administrator' : 'Every donation you make could save a life.'}
+        {user?.role === 'admin' ? 'Administrator account' : 'One donation can save up to three lives.'}
       </p>
 
       <div className="action-row">
         {ACTIONS.map((a) => (
           <Link to={a.to} key={a.to} className="action-badge">
-            <span className="action-icon">{a.icon}</span>
-            <span>{a.label}</span>
+            {a.label}
           </Link>
         ))}
       </div>
 
       <div className="banner-card">
         <div className="banner-text">
-          <span className="banner-tag">Blood Donation Drive</span>
-          <h3>15 minutes is all it takes to save someone's life.</h3>
-          <Link to="/appointments" className="banner-button">Book a slot</Link>
+          <span className="banner-tag">Give blood</span>
+          <h3>Fifteen minutes of your day can save someone's life.</h3>
+          <Link to="/appointments" className="banner-button">Book an appointment</Link>
         </div>
       </div>
 
@@ -79,7 +78,7 @@ export default function Dashboard() {
         <h3>Quick Links</h3>
       </div>
       <div className="info-card">
-        <div className="info-card-icon">🏥</div>
+        <div className="info-card-icon" aria-hidden="true"></div>
         <div>
           <strong>Find nearby hospitals & blood banks</strong>
           <p>Check availability before you head out.</p>
@@ -87,7 +86,7 @@ export default function Dashboard() {
         <Link to="/hospitals" className="small-button">Open</Link>
       </div>
       <div className="info-card">
-        <div className="info-card-icon">🩸</div>
+        <div className="info-card-icon" aria-hidden="true"></div>
         <div>
           <strong>Search for compatible donors</strong>
           <p>Filter by blood group and city.</p>
@@ -99,7 +98,7 @@ export default function Dashboard() {
         <>
           <div className="section-header"><h3>Admin</h3></div>
           <div className="info-card">
-            <div className="info-card-icon">⚙️</div>
+            <div className="info-card-icon" aria-hidden="true"></div>
             <div>
               <strong>Manage hospitals</strong>
               <p>Add, edit, or remove hospital listings.</p>
@@ -107,7 +106,7 @@ export default function Dashboard() {
             <Link to="/hospitals" className="small-button">Manage</Link>
           </div>
           <div className="info-card">
-            <div className="info-card-icon">🗄️</div>
+            <div className="info-card-icon" aria-hidden="true"></div>
             <div>
               <strong>Load sample data</strong>
               <p>Fills the app with 150 donors, 110 hospitals, doctors and blog articles. Resets existing sample data.</p>
