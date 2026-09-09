@@ -16,6 +16,9 @@ export default function BottomNav() {
       <NavLink to="/hospitals" className="bn-item">
         <span>📍</span>
       </NavLink>
+      <NavLink to="/blogs" className="bn-item">
+        <span>📰</span>
+      </NavLink>
       <NavLink to="/profile" className="bn-item">
         <span>👤</span>
       </NavLink>

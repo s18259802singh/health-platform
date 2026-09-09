@@ -36,6 +36,8 @@ export default function Navbar() {
             <Link to="/donors" onClick={closeMenu}>Find Donors</Link>
             <Link to="/hospitals" onClick={closeMenu}>Hospitals</Link>
             <Link to="/appointments" onClick={closeMenu}>Appointments</Link>
+            <Link to="/requests" onClick={closeMenu}>Blood Requests</Link>
+            <Link to="/blogs" onClick={closeMenu}>Blog</Link>
             <Link to="/profile" onClick={closeMenu}>My Profile</Link>
             <button onClick={handleLogout} className="link-button">Logout</button>
           </>
@@ -43,6 +45,7 @@ export default function Navbar() {
           <>
             <Link to="/login" onClick={closeMenu}>Login</Link>
             <Link to="/register" onClick={closeMenu}>Register</Link>
+            <Link to="/blogs" onClick={closeMenu}>Blog</Link>
           </>
         )}
       </div>

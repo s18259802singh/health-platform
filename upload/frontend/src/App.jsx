@@ -12,6 +12,9 @@ import DonorSearch from './pages/DonorSearch';
 import Hospitals from './pages/Hospitals';
 import Appointments from './pages/Appointments';
 import EmergencyPage from './pages/EmergencyPage';
+import Blogs from './pages/Blogs';
+import BlogPost from './pages/BlogPost';
+import DonationRequests from './pages/DonationRequests';
 
 export default function App() {
   return (
@@ -24,6 +27,8 @@ export default function App() {
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
             <Route path="/emergency/:userId" element={<EmergencyPage />} />
+            <Route path="/blogs" element={<Blogs />} />
+            <Route path="/blogs/:id" element={<BlogPost />} />
             <Route path="/" element={<Login />} />
 
             {/* Protected routes - login required */}
@@ -32,6 +37,7 @@ export default function App() {
             <Route path="/donors" element={<ProtectedRoute><DonorSearch /></ProtectedRoute>} />
             <Route path="/hospitals" element={<ProtectedRoute><Hospitals /></ProtectedRoute>} />
             <Route path="/appointments" element={<ProtectedRoute><Appointments /></ProtectedRoute>} />
+            <Route path="/requests" element={<ProtectedRoute><DonationRequests /></ProtectedRoute>} />
           </Routes>
         </main>
         <BottomNav />

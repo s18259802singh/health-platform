@@ -1,11 +1,11 @@
 // This page is PUBLIC - it is what opens when someone scans a user's QR code.
-// It does NOT use the shared `api` instance's protected pages logic in any special way,
-// but note there is no login check anywhere on this route - matching the backend,
-// which also leaves this one route unprotected on purpose.
+// It uses the shared `api` instance only for its base URL (localhost in dev,
+// VITE_API_URL on Vercel). The backend route itself has no JWT check on
+// purpose - a stranger scanning the QR has no account.
 
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import axios from 'axios';
+import api from '../api/axios';
 
 export default function EmergencyPage() {
   const { userId } = useParams();
@@ -13,8 +13,8 @@ export default function EmergencyPage() {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    axios
-      .get(`https://health-platform-brqp.onrender.com/api/emergency/${userId}`)
+    api
+      .get(`/emergency/${userId}`)
       .then((res) => setInfo(res.data))
       .catch(() => setError('No emergency record found for this QR code.'));
   }, [userId]);

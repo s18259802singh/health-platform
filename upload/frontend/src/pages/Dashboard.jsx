@@ -5,6 +5,8 @@ const ACTIONS = [
   { to: '/donors', icon: '🔍', label: 'Find Donor' },
   { to: '/appointments', icon: '🩸', label: 'Appointments' },
   { to: '/hospitals', icon: '🏥', label: 'Hospitals' },
+  { to: '/requests', icon: '🆘', label: 'Blood Requests' },
+  { to: '/blogs', icon: '📰', label: 'Health Blog' },
   { to: '/profile', icon: '👤', label: 'My Profile' },
 ];
 

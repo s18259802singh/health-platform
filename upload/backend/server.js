@@ -13,7 +13,8 @@ const app = express();
 
 // Middleware
 app.use(cors({ origin: process.env.CLIENT_URL || 'http://localhost:3000' }));
-app.use(express.json()); // lets us read JSON from req.body
+// limit raised to 5mb because blog cover images are sent as base64 data URLs
+app.use(express.json({ limit: '5mb' }));
 
 // Serve generated QR code images as static files (e.g. /qrcodes/<userId>.png)
 app.use('/qrcodes', express.static(path.join(__dirname, 'public', 'qrcodes')));
@@ -26,6 +27,8 @@ app.use('/api/donors', require('./routes/donorRoutes'));
 app.use('/api/hospitals', require('./routes/hospitalRoutes'));
 app.use('/api/doctors', require('./routes/doctorRoutes'));
 app.use('/api/appointments', require('./routes/appointmentRoutes'));
+app.use('/api/donation-requests', require('./routes/donationRequestRoutes'));
+app.use('/api/blogs', require('./routes/blogRoutes')); // reading is public, writing is admin-only
 
 // Simple health check route, useful to confirm the server is running
 app.get('/', (req, res) => {

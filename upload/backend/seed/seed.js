@@ -11,9 +11,11 @@ const connectDB = require('../config/db');
 const User = require('../models/User');
 const Hospital = require('../models/Hospital');
 const Doctor = require('../models/Doctor');
+const Blog = require('../models/Blog');
 
 const hospitalData = require('./hospitalData');
 const donorData = require('./donorData');
+const blogData = require('./blogData');
 
 const doctorFirstNames = ['Ansari', 'Mehta', 'Patel', 'Shah', 'Desai', 'Trivedi', 'Joshi', 'Rao', 'Iyer', 'Kapoor'];
 const specializations = ['Cardiologist', 'General Physician', 'Orthopedic', 'Dermatologist', 'Pediatrician', 'ENT Specialist', 'Gynecologist', 'Neurologist'];
@@ -37,6 +39,7 @@ const run = async () => {
   await User.deleteMany({});
   await Hospital.deleteMany({});
   await Doctor.deleteMany({});
+  await Blog.deleteMany({});
 
   const hashedPassword = await bcrypt.hash('password123', 10);
 
@@ -98,6 +101,10 @@ const run = async () => {
   });
   const createdDoctors = await Doctor.insertMany(doctors);
   console.log(`Created ${createdDoctors.length} doctors.`);
+
+  console.log('Creating blog articles...');
+  const blogs = await Blog.insertMany(blogData);
+  console.log(`Created ${blogs.length} blog articles.`);
 
   console.log('Sample data created successfully.');
   await mongoose.connection.close();
