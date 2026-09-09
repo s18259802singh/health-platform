@@ -1,6 +1,7 @@
 // Handles: viewing and editing the logged-in user's own profile.
 // req.user.id comes from the JWT middleware (auth.js) - so a user can only edit THEIR OWN data.
 
+const QRCode = require('qrcode');
 const User = require('../models/User');
 
 // GET /api/profile
@@ -8,6 +9,15 @@ const getProfile = async (req, res) => {
   try {
     const user = await User.findById(req.user.id).select('-password');
     if (!user) return res.status(404).json({ message: 'User not found' });
+
+    // SELF-HEALING QR: users created by the seed script (or older accounts)
+    // have no QR yet - generate it on first profile visit and save it.
+    if (!user.qrCodePath) {
+      const emergencyUrl = `${process.env.CLIENT_URL}/emergency/${user._id}`;
+      user.qrCodePath = await QRCode.toDataURL(emergencyUrl);
+      await user.save();
+    }
+
     res.json(user);
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
