@@ -1,4 +1,6 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import api from '../api/axios';
 import { useAuth } from '../context/AuthContext';
 
 const ACTIONS = [
@@ -12,6 +14,23 @@ const ACTIONS = [
 
 export default function Dashboard() {
   const { user } = useAuth();
+  const [seeding, setSeeding] = useState(false);
+  const [seedMessage, setSeedMessage] = useState('');
+
+  // One-click sample data loader (admin only) - replaces `npm run seed`.
+  const handleLoadSampleData = async () => {
+    if (!confirm('This will RESET all sample data (donors, hospitals, doctors, blogs, appointments, requests). Your admin account stays. Continue?')) return;
+    setSeeding(true);
+    setSeedMessage('Loading sample data... this can take up to a minute.');
+    try {
+      const { data } = await api.post('/admin/seed');
+      setSeedMessage(`Done! Loaded ${data.donors} donors, ${data.hospitals} hospitals, ${data.doctors} doctors and ${data.blogs} blog articles.`);
+    } catch (err) {
+      setSeedMessage(err.response?.data?.message || 'Loading sample data failed.');
+    } finally {
+      setSeeding(false);
+    }
+  };
 
   return (
     <div className="page app-dashboard">
@@ -86,6 +105,17 @@ export default function Dashboard() {
               <p>Add, edit, or remove hospital listings.</p>
             </div>
             <Link to="/hospitals" className="small-button">Manage</Link>
+          </div>
+          <div className="info-card">
+            <div className="info-card-icon">🗄️</div>
+            <div>
+              <strong>Load sample data</strong>
+              <p>Fills the app with 150 donors, 110 hospitals, doctors and blog articles. Resets existing sample data.</p>
+              {seedMessage && <p className="hint">{seedMessage}</p>}
+            </div>
+            <button className="small-button" onClick={handleLoadSampleData} disabled={seeding}>
+              {seeding ? 'Loading...' : 'Load'}
+            </button>
           </div>
         </>
       )}

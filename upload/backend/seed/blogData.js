@@ -1,6 +1,6 @@
-// Sample health articles so the blog isn't empty on a fresh demo.
-// Images use picsum.photos (a free placeholder image service) - the admin
-// can publish real articles with uploaded images from the Blog page.
+// Sample health articles so the blog is full on a fresh demo (16 articles).
+// Images use picsum.photos (a free placeholder image service). The admin can
+// also publish real articles with uploaded images from the Blog page.
 
 module.exports = [
   {
@@ -40,6 +40,175 @@ First, keep yourself safe and call for help immediately. In India, dial 112 for 
 
 For heavy bleeding, press firmly on the wound with a clean cloth and do not let go, even when the cloth soaks through - add more cloth on top. Raise the injured limb if you can. For a suspected fracture, do not try to straighten anything; keep the person still.
 
-If the person is unconscious but breathing, roll them gently onto their side (the recovery position) so their airway stays clear. If they are wearing or carrying an Emergency QR code from this platform, scan it - their blood group, allergies and emergency contact will be on your screen in seconds, and that information can be passed straight to the paramedics.`,
+If the person is unconscious but breathing, roll them gently onto their side (the recovery position) so their airway stays clear. If they are carrying an Emergency QR code from this platform, scan it - their blood group, allergies and emergency contact will be on your screen in seconds, and that information can be passed straight to the paramedics.`,
+  },
+  {
+    title: 'Seven Myths About Blood Donation That Stop People From Giving',
+    excerpt: 'It does not make you weak, it does not hurt much, and no, you cannot catch anything. Time to retire the excuses.',
+    author: 'Admin',
+    imageUrl: 'https://picsum.photos/seed/donation-myths/900/450',
+    content: `Ask people why they have never donated blood and you hear the same handful of reasons. Almost all of them are myths.
+
+"It will make me weak." Your body replaces the fluid within a day or two, and most donors go back to work the same day. "It is painful." There is a single needle prick, comparable to any blood test, and the donation itself is painless. "I might catch an infection." Every needle and bag is sterile, sealed and used exactly once - there is no route for infection to reach you.
+
+"Vegetarians cannot donate" - completely false; what matters is your haemoglobin level, which is checked before every donation. "I take medicines, so I cannot donate" - many common medicines are perfectly fine; the staff will tell you at the screening. "I am too old or too young" - the actual window is wide: 18 to 65 for most donors.
+
+The most stubborn myth of all is "someone else will do it." Blood cannot be manufactured. Every unit in every hospital fridge came from a person who decided not to leave it to someone else.`,
+  },
+  {
+    title: 'Are You Eligible to Donate? A Simple Checklist',
+    excerpt: 'Age, weight, haemoglobin, recent illness, tattoos - run through this two-minute checklist before you head to the blood bank.',
+    author: 'Admin',
+    imageUrl: 'https://picsum.photos/seed/eligibility/900/450',
+    content: `The basic requirements are straightforward: age between 18 and 65, weight at least 50 kg, and haemoglobin of at least 12.5 g/dl (tested on the spot with a finger-prick). You should be feeling generally well on the day.
+
+Some things mean waiting, not never. Had a fever, cold or antibiotics recently? Wait until two weeks after full recovery. A new tattoo or piercing usually means a wait of six to twelve months. After malaria, dengue or typhoid there are specific deferral periods the blood bank staff will explain. Women are asked not to donate during pregnancy and for a period after childbirth.
+
+A few conditions do rule out donation permanently - certain heart conditions, epilepsy, and some infections. If you are unsure, simply go and ask: the pre-donation screening exists exactly for this, and the staff would much rather answer questions than turn people away.
+
+Eat a proper meal and drink plenty of water before donating, avoid alcohol the previous night, and carry an ID. That is the whole preparation.`,
+  },
+  {
+    title: 'Whole Blood, Plasma, Platelets: What Actually Happens to Your Donation',
+    excerpt: 'Your one bag of blood is split into components that go to three very different patients. Here is the journey it takes.',
+    author: 'Admin',
+    imageUrl: 'https://picsum.photos/seed/plasma-platelets/900/450',
+    content: `Most donations are "whole blood" - but almost no patient receives whole blood any more. Within hours of your donation, the bag is spun in a centrifuge and separated into red cells, plasma and platelets, because different patients need different parts.
+
+Red cells carry oxygen and go to accident victims, surgical patients and people with severe anaemia. They can be stored for about 35 to 42 days. Plasma - the straw-coloured liquid - carries clotting factors and proteins, and is often used for burn victims and liver patients. Frozen, it keeps for up to a year.
+
+Platelets are the fragments that stop bleeding. Cancer patients on chemotherapy often cannot make their own, so they depend entirely on donors. Platelets survive only about five days, which is why blood banks need a constant stream of donations rather than occasional drives.
+
+So when we say one donation can save three lives, it is not a slogan - it is literally how the bag is processed. Your red cells may reach a road accident victim, your plasma a burns ward, and your platelets a child on chemotherapy, all in the same week.`,
+  },
+  {
+    title: 'Thalassemia: Why Some Children Need Blood Every Three Weeks',
+    excerpt: 'For thousands of families, blood transfusion is not an emergency - it is a monthly routine. Regular donors are their lifeline.',
+    author: 'Admin',
+    imageUrl: 'https://picsum.photos/seed/thalassemia/900/450',
+    content: `Thalassemia major is an inherited condition in which the body cannot make enough healthy haemoglobin. Children born with it typically need a blood transfusion every two to four weeks - for life. India has one of the largest thalassemia populations in the world, and Gujarat is among the states with a higher carrier rate.
+
+For these families, the blood bank is not a place they visit after an accident; it is part of the monthly calendar. A single child may need well over 300 units of blood by adulthood. That demand can only be met by repeat donors who give regularly, not just during emergencies or donation drives.
+
+There is also a prevention side: a simple blood test can tell whether you are a thalassemia carrier. When two carriers marry, each child has a one-in-four chance of being born with thalassemia major - so carrier screening before marriage or early in pregnancy matters enormously.
+
+If you want your donations to have a predictable, repeated impact, ask your local blood bank about becoming a regular donor for thalassemia patients. Many banks pair donors with specific children - few things you do this year will matter more to one family.`,
+  },
+  {
+    title: 'Iron and Haemoglobin: Eating Your Way to Being a Better Donor',
+    excerpt: 'Low haemoglobin is the number one reason donors get turned away. The fix is usually on your plate.',
+    author: 'Admin',
+    imageUrl: 'https://picsum.photos/seed/iron-diet/900/450',
+    content: `Every donor is tested for haemoglobin before donating, and low haemoglobin is the most common reason people are deferred. The good news: for most people it is a diet issue, and it responds well to simple changes.
+
+Iron-rich foods are the foundation. Good vegetarian sources include spinach and other leafy greens, beetroot, dates, jaggery, ragi, whole pulses, sesame and pumpkin seeds. Non-vegetarians can add eggs and lean meat. Cooking in an iron kadhai genuinely adds a small amount of iron to food too.
+
+Absorption matters as much as intake. Vitamin C dramatically improves iron absorption - a squeeze of lemon over your dal or a glass of orange juice with a meal helps more than people realise. On the other hand, tea and coffee taken with meals block iron absorption, so keep them an hour away from food.
+
+If your haemoglobin stays low despite eating well, see a doctor rather than pushing harder with diet - persistent anaemia can have causes that need proper checking. And once your levels are healthy, come back: blood banks are always happy to see a deferred donor return.`,
+  },
+  {
+    title: 'The Rare Ones: Bombay Blood Group and Other Types You Have Never Heard Of',
+    excerpt: 'Beyond the familiar eight groups lies a world of rare blood types - and for those patients, finding a donor is a race.',
+    author: 'Admin',
+    imageUrl: 'https://picsum.photos/seed/rare-blood/900/450',
+    content: `Most people know the eight standard groups. Far fewer know about the Bombay blood group (hh), first discovered in Mumbai in 1952. People with this group are often mistyped as O - but they can receive blood only from another Bombay group donor. Fewer than one in ten thousand Indians has it.
+
+When a Bombay group patient needs surgery, the search for a donor can span states. Registries of rare donors exist precisely for this. If you have ever been told your blood group is unusual, get it confirmed and register - you may be one of a handful of people in your region who can save a particular patient.
+
+There are other rare patterns too - Rh-null ("golden blood"), found in fewer than fifty known people worldwide, and minor antigen combinations that matter for patients who receive many transfusions, like thalassemia patients.
+
+The lesson for everyone else: rare-group patients depend on wide, searchable donor databases. Keeping your profile on this platform accurate - correct blood group, correct city, donor status ticked - is a tiny act that makes those searches faster.`,
+  },
+  {
+    title: 'CPR: The Skill That Doubles Survival, Explained Simply',
+    excerpt: 'When the heart stops, brain damage begins in minutes. Hands-only CPR is simple enough for anyone to learn today.',
+    author: 'Admin',
+    imageUrl: 'https://picsum.photos/seed/cpr-basics/900/450',
+    content: `When someone collapses and stops breathing normally, their survival is decided in the next few minutes - long before an ambulance can arrive. Bystander CPR can double or triple the chance of survival, yet most people have never been shown how.
+
+Hands-only CPR removes the intimidating parts. If an adult collapses, is unresponsive and not breathing normally: call 108, then place the heel of one hand on the centre of the chest, your other hand on top, lock your elbows, and push hard and fast - about twice per second, pressing roughly five centimetres deep. Do not stop until help arrives or the person responds.
+
+You cannot really make things worse. A cracked rib heals; a brain starved of oxygen does not. Hesitation, not imperfect technique, is what costs lives.
+
+A two-hour CPR workshop - offered by many hospitals, the Red Cross and St John Ambulance - turns this from something you have read about into something your hands remember. If your college or office has never hosted one, be the person who arranges it.`,
+  },
+  {
+    title: 'Monsoon Alert: Recognising Dengue and Malaria Before They Turn Serious',
+    excerpt: 'High fever in the rainy season is never just a viral. Know the warning signs that mean hospital, now.',
+    author: 'Admin',
+    imageUrl: 'https://picsum.photos/seed/dengue-malaria/900/450',
+    content: `Every monsoon, hospitals across Gujarat fill with fever cases - and every year, lives are lost to dengue and malaria that were treated as "just a viral fever" for too long at home.
+
+Dengue typically brings sudden high fever, severe headache, pain behind the eyes, and intense body ache. The dangerous phase often comes when the fever drops - around day three to five - when platelet counts can crash. Warning signs that demand immediate hospital care: bleeding gums or nose, black stools, persistent vomiting, severe stomach pain, or unusual drowsiness. Dengue patients with very low platelets often need platelet transfusions - another reason blood banks matter.
+
+Malaria brings fever that classically comes in cycles with chills and sweating. It is diagnosed with a simple blood test and treated effectively when caught early; untreated, some strains can be fatal.
+
+Prevention is unglamorous but works: no stagnant water in coolers, pots and tyres; full-sleeve clothing at dawn and dusk; repellents and nets. And a simple rule for the season: any fever lasting more than 48 hours deserves a blood test, not another day of guessing.`,
+  },
+  {
+    title: 'Silent and Common: Getting Ahead of High Blood Pressure',
+    excerpt: 'Hypertension damages the heart, brain and kidneys for years before showing a single symptom. One reading can start changing that.',
+    author: 'Admin',
+    imageUrl: 'https://picsum.photos/seed/blood-pressure/900/450',
+    content: `High blood pressure is called the silent killer for a boring, terrifying reason: it usually has no symptoms at all. Roughly one in four Indian adults has it, and a large share of them have no idea, because they feel completely fine while it quietly damages arteries, heart, brain and kidneys.
+
+The only way to know is to measure. A normal reading is around 120/80. Consistently above 140/90 needs a doctor's attention. Since machines are now in every pharmacy and most homes, there is no excuse not to know your number - check it a few times, at rest, and note it down.
+
+If your numbers are creeping up, the first prescriptions are lifestyle ones: cut down salt, walk briskly for thirty minutes most days, keep weight in check, limit alcohol, and stop smoking. These are not vague wellness tips - each one measurably lowers blood pressure.
+
+When medicines are prescribed, take them daily, not "when you feel pressure is high" - you cannot feel it, which is the whole problem. Well-controlled blood pressure means a dramatically lower risk of heart attack, stroke and kidney failure.`,
+  },
+  {
+    title: 'Diabetes Basics: The Sugar Test Everyone Over 30 Should Take',
+    excerpt: 'India has more than 100 million people with diabetes - and a large share do not know it. Early detection changes everything.',
+    author: 'Admin',
+    imageUrl: 'https://picsum.photos/seed/diabetes-check/900/450',
+    content: `Diabetes rarely announces itself. Increased thirst, frequent urination, unexplained weight loss and slow-healing wounds are classic signs, but many people have none of them until complications appear. That is why screening matters: a simple fasting blood sugar or HbA1c test, once a year after the age of 30 - earlier if diabetes runs in your family.
+
+A fasting sugar below 100 mg/dl is normal; 100 to 125 is prediabetes, the warning zone where the disease can still be turned back; 126 and above on repeated tests means diabetes. HbA1c gives a three-month average and is even harder to fool with one careful day of eating.
+
+Prediabetes is genuinely reversible for many people. Losing even five to seven percent of body weight, walking daily, replacing refined carbohydrates with whole grains, and cutting sugary drinks can bring numbers back to normal.
+
+For those with diabetes, good control is a long game of medicines, diet, movement and regular checks of eyes, kidneys and feet. It is entirely possible to live a full, long life with diabetes - the people who do are the ones who found out early and took it seriously.`,
+  },
+  {
+    title: 'Beating the Gujarat Summer: Heat Stroke Is a Medical Emergency',
+    excerpt: 'When body temperature crosses a threshold, sweating stops and organs start failing. Learn the signs and the first response.',
+    author: 'Admin',
+    imageUrl: 'https://picsum.photos/seed/heat-stroke/900/450',
+    content: `In peak summer, temperatures across Gujarat regularly cross 43 degrees, and every year people die of heat stroke - most of them outdoor workers, the elderly, and people who ignored the early warnings.
+
+Heat exhaustion comes first: heavy sweating, weakness, dizziness, nausea, headache, cramps. At this stage the fix is simple - shade, rest, water with a pinch of salt and sugar (or ORS), and cooling the body with wet cloths.
+
+Heat stroke is the emergency. The body's cooling system fails: the skin becomes hot and dry, sweating may stop, temperature soars above 40 degrees, and the person becomes confused, staggering, or unconscious. Call 108, move the person to shade, and cool them aggressively - wet sheets, water poured over the body, ice packs at the neck, armpits and groin - while you wait.
+
+Prevention is common sense applied consistently: avoid the 12 to 4 pm sun, drink water before you feel thirsty, wear light cotton, never leave anyone in a parked car, and check on elderly neighbours during heat waves.`,
+  },
+  {
+    title: 'Organ Donation in India: One Decision, Up to Eight Lives',
+    excerpt: 'A single organ donor can save up to eight people and improve dozens of lives. Here is how pledging actually works.',
+    author: 'Admin',
+    imageUrl: 'https://picsum.photos/seed/organ-donation/900/450',
+    content: `Blood donation saves lives in units; organ donation saves them in whole futures. One donor can give a heart, two lungs, a liver (which can be split), two kidneys, a pancreas and intestines - up to eight lives - plus corneas that restore sight and tissue that helps many more.
+
+India's organ donation rate remains among the lowest in the world, while lakhs of patients wait for kidneys and livers. The gap is not medical - it is awareness and family consent. Donation after death typically happens in cases of brain death in a hospital ICU, and doctors will always ask the family. Families say yes far more often when they already know it was the person's wish.
+
+Pledging is easy: register online with NOTTO (the National Organ and Tissue Transplant Organisation) and, more importantly, tell your family clearly that this is what you want. The card matters less than the conversation.
+
+The myths deserve retiring: donation does not disfigure the body, funeral arrangements are not meaningfully delayed, and every major religion in India has voices supporting it as an act of charity.`,
+  },
+  {
+    title: 'Your Mind Matters Too: Recognising Stress Before It Breaks Something',
+    excerpt: 'Sleep, appetite, focus, temper - mental strain shows up in the body long before we call it a problem. Small habits help.',
+    author: 'Admin',
+    imageUrl: 'https://picsum.photos/seed/mental-wellness/900/450',
+    content: `Health platforms talk about blood pressure and sugar, but chronic stress quietly feeds both - and it deserves the same practical attention. Stress is not a character flaw; it is a physiological state, and it leaves fingerprints: poor sleep, changed appetite, irritability, difficulty concentrating, headaches, and that constant background tiredness no amount of chai fixes.
+
+The basics genuinely work, which is why every doctor repeats them. A consistent sleep schedule of seven to eight hours does more for mood than almost anything else. Thirty minutes of walking or exercise most days measurably reduces anxiety. Screens out of the bedroom, and a fixed cut-off time for work messages, protect the boundary between work and rest.
+
+Talking helps in a way that scrolling does not. A daily conversation with someone you trust is protective. So is doing one thing regularly that has nothing to do with productivity: gardening, cricket, music, cooking.
+
+And there is a line where self-care is not enough: if low mood or anxiety persists for weeks and disturbs your work or relationships, that is the point to speak to a doctor or counsellor, exactly as you would for chest pain. Seeking help early is the strong move, not the weak one.`,
   },
 ];
