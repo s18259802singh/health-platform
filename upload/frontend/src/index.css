@@ -27,6 +27,17 @@
 
 * { box-sizing: border-box; }
 
+::selection { background: rgba(255, 59, 78, 0.4); color: #fff; }
+
+::-webkit-scrollbar { width: 11px; }
+::-webkit-scrollbar-track { background: var(--night); }
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, var(--pulse-deep), #4a1520);
+  border-radius: 8px;
+  border: 2px solid var(--night);
+}
+::-webkit-scrollbar-thumb:hover { background: var(--pulse-deep); }
+
 html, body {
   margin: 0;
   padding: 0;
@@ -47,6 +58,25 @@ body::before {
     radial-gradient(600px 400px at 85% -5%, rgba(255, 59, 78, 0.13), transparent 70%),
     radial-gradient(700px 500px at -10% 100%, rgba(163, 23, 43, 0.18), transparent 70%),
     var(--night);
+}
+
+/* a drifting red cell floating through the background */
+body::after {
+  content: '';
+  position: fixed;
+  z-index: -1;
+  width: 420px;
+  height: 420px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, rgba(255, 91, 107, 0.16), rgba(163, 23, 43, 0.06) 55%, transparent 72%);
+  top: 30%;
+  left: 55%;
+  filter: blur(6px);
+  animation: drift 26s ease-in-out infinite alternate;
+}
+@keyframes drift {
+  from { transform: translate(-160px, -60px) scale(0.9); }
+  to   { transform: translate(120px, 90px) scale(1.15); }
 }
 
 h1, h2, h3 {
@@ -94,21 +124,25 @@ a { color: var(--ivory); }
   border-bottom: 1px solid var(--line);
 }
 
-/* the heartbeat: a glowing trace racing along the nav's lower edge */
+/* the heartbeat: a live ECG waveform scrolling along the nav's lower edge */
 .navbar::after {
   content: '';
   position: absolute;
   left: 0;
-  bottom: -1px;
-  height: 2px;
-  width: 130px;
-  background: linear-gradient(90deg, transparent, var(--pulse) 45%, #ffd7db 55%, transparent);
-  filter: drop-shadow(0 0 6px var(--glow));
-  animation: ecg-run 5.5s linear infinite;
+  right: 0;
+  bottom: -13px;
+  height: 26px;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='26' viewBox='0 0 150 26'%3E%3Cpath d='M0,13 L26,13 L33,13 L37,6 L41,20 L45,2 L50,24 L55,13 L78,13 L86,9 L94,13 L150,13' fill='none' stroke='%23ff3b4e' stroke-width='1.8' stroke-linejoin='round' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: repeat-x;
+  background-size: 150px 26px;
+  filter: drop-shadow(0 0 5px var(--glow));
+  opacity: 0.9;
+  animation: ecg-scroll 2.6s linear infinite;
 }
-@keyframes ecg-run {
-  from { transform: translateX(-140px); }
-  to   { transform: translateX(100vw); }
+@keyframes ecg-scroll {
+  from { background-position-x: 0; }
+  to   { background-position-x: -150px; }
 }
 
 .brand {
@@ -276,15 +310,28 @@ textarea { resize: vertical; line-height: 1.65; }
 
 /* ---------- Panels & tables ---------- */
 
+@property --spin {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+
 .form-card {
-  background: var(--panel);
-  border: 1px solid var(--line);
+  background:
+    linear-gradient(var(--panel-solid), var(--panel-solid)) padding-box,
+    conic-gradient(from var(--spin),
+      rgba(255, 59, 78, 0.55), rgba(255, 176, 184, 0.12) 30%,
+      rgba(255, 59, 78, 0.08) 55%, rgba(255, 91, 107, 0.5) 80%,
+      rgba(255, 59, 78, 0.55)) border-box;
+  border: 1px solid transparent;
+  animation: border-spin 9s linear infinite;
   border-radius: var(--r-lg);
   padding: 26px 26px 28px;
   max-width: 580px;
   margin: 20px 0 30px;
   backdrop-filter: blur(8px);
 }
+@keyframes border-spin { to { --spin: 360deg; } }
 
 .search-bar {
   display: flex;
@@ -383,6 +430,18 @@ textarea { resize: vertical; line-height: 1.65; }
   padding: 34px 34px 32px;
   margin-bottom: 34px;
 }
+.banner-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='26' viewBox='0 0 150 26'%3E%3Cpath d='M0,13 L26,13 L33,13 L37,6 L41,20 L45,2 L50,24 L55,13 L78,13 L86,9 L94,13 L150,13' fill='none' stroke='%23ff3b4e' stroke-width='1.8' stroke-linejoin='round' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: repeat-x;
+  background-position: 0 68%;
+  background-size: 300px 52px;
+  opacity: 0.14;
+}
+
 .banner-tag {
   color: #ffb0b8;
   font-weight: 800;
@@ -397,7 +456,19 @@ textarea { resize: vertical; line-height: 1.65; }
 }
 
 .section-header { margin: 36px 0 14px; }
-.section-header h3 { margin: 0; }
+.section-header h3 {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.section-header h3::before {
+  content: '';
+  width: 34px;
+  height: 16px;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='34' height='16' viewBox='0 0 34 16'%3E%3Cpath d='M0,8 L8,8 L11,3 L14,13 L17,1 L21,15 L24,8 L34,8' fill='none' stroke='%23ff3b4e' stroke-width='2' stroke-linejoin='round' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat center / contain;
+  filter: drop-shadow(0 0 4px var(--glow));
+}
 
 .stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
 .stat-box {
@@ -521,7 +592,10 @@ textarea { resize: vertical; line-height: 1.65; }
   height: 172px;
   object-fit: cover;
   display: block;
+  transition: transform 0.5s ease;
 }
+.blog-card:hover .blog-card-image { transform: scale(1.06); }
+.blog-card > a { overflow: hidden; display: block; }
 .blog-card-body { padding: 17px 19px 19px; display: flex; flex-direction: column; flex: 1; }
 .blog-card-body h3 { font-size: 0.98rem; margin: 6px 0 8px; }
 .blog-card-body h3 a { text-decoration: none; }
@@ -640,7 +714,7 @@ textarea { resize: vertical; line-height: 1.65; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  *, .navbar::after, .brand-mark, .emergency-card {
+  *, *::before, *::after {
     transition: none !important;
     animation: none !important;
   }
