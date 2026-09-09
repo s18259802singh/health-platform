@@ -7,7 +7,23 @@ const path = require('path');
 const connectDB = require('./config/db');
 
 // Connect to MongoDB before anything else
-connectDB();
+connectDB().then(async () => {
+  // AUTO-SEED: if the database has no blog articles yet (fresh/empty database),
+  // load all sample data automatically on startup - no button or cmd needed.
+  // Once articles exist, this never runs again, so data is NOT reset on restarts.
+  try {
+    const Blog = require('./models/Blog');
+    const blogCount = await Blog.countDocuments();
+    if (blogCount === 0) {
+      console.log('Empty database detected - loading sample data automatically...');
+      const runSeed = require('./seed/seedRunner');
+      const counts = await runSeed();
+      console.log(`Auto-seed done: ${counts.donors} donors, ${counts.hospitals} hospitals, ${counts.doctors} doctors, ${counts.blogs} blogs.`);
+    }
+  } catch (e) {
+    console.error('Auto-seed failed:', e.message);
+  }
+});
 
 const app = express();
 
