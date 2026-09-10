@@ -1007,3 +1007,14 @@ textarea { resize: vertical; line-height: 1.65; }
   font-size: 0.9rem;
   letter-spacing: 0.08em;
 }
+
+/* ---------- Profile two-column inputs + beacon condition line ---------- */
+
+.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.beacon-cond {
+  color: rgba(255, 255, 255, 0.85);
+  font-weight: 600;
+  font-size: clamp(0.95rem, 3.5vw, 1.5rem);
+  max-width: 84vw;
+  text-align: center;
+}

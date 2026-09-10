@@ -43,6 +43,17 @@ export default function EmergencyPage() {
       <div className="emergency-row"><span>Name</span><strong>{info.name}</strong></div>
       <div className="emergency-row"><span>Blood Group</span><strong className="blood-badge">{info.bloodGroup}</strong></div>
       <div className="emergency-row"><span>Allergies</span><strong>{info.allergies}</strong></div>
+      {info.medicalConditions && (
+        <div className="emergency-row"><span>Conditions</span><strong>{info.medicalConditions}</strong></div>
+      )}
+      {info.medications && (
+        <div className="emergency-row"><span>Medications</span><strong>{info.medications}</strong></div>
+      )}
+      {(info.heightCm || info.weightKg) && (
+        <div className="emergency-row"><span>Height / Weight</span>
+          <strong>{[info.heightCm ? `${info.heightCm} cm` : null, info.weightKg ? `${info.weightKg} kg` : null].filter(Boolean).join(' · ')}</strong>
+        </div>
+      )}
       <div className="emergency-row"><span>Emergency Contact</span><strong>{info.emergencyContact.name} - {info.emergencyContact.number}</strong></div>
       <div className="emergency-row">
         <a className="call-button solo" href={`tel:${info.emergencyContact.number}`}>Call Emergency Contact</a>
@@ -58,6 +69,7 @@ export default function EmergencyPage() {
           <span className="beacon-label">NEEDS HELP</span>
           <span className="beacon-group">{info.bloodGroup}</span>
           <span className="beacon-name">{info.name}</span>
+          {info.medicalConditions && <span className="beacon-cond">{info.medicalConditions}</span>}
           <span className="beacon-exit">tap anywhere to exit</span>
         </div>
       )}

@@ -29,6 +29,8 @@ export default function Profile() {
       const payload = {
         name: profile.name, phone: profile.phone, bloodGroup: profile.bloodGroup,
         allergies: profile.allergies, location: profile.location, isDonor: profile.isDonor,
+        heightCm: profile.heightCm ?? '', weightKg: profile.weightKg ?? '',
+        medicalConditions: profile.medicalConditions || '', medications: profile.medications || '',
         emergencyContactName: profile.emergencyContact.name,
         emergencyContactNumber: profile.emergencyContact.number,
       };
@@ -104,9 +106,11 @@ export default function Profile() {
       ctx.fillText(String(value || '-').slice(0, 30), 290, y + 32);
     };
     row('Name', profile.name, 205);
-    row('Allergies', profile.allergies || 'None', 285);
-    row('Emergency contact', `${profile.emergencyContact?.name || '-'} · ${profile.emergencyContact?.number || ''}`, 365);
-    row('Location', profile.location, 445);
+    row('Allergies', profile.allergies || 'None', 275);
+    row('Conditions', profile.medicalConditions || 'None declared', 345);
+    row('Emergency contact', `${profile.emergencyContact?.name || '-'} · ${profile.emergencyContact?.number || ''}`, 415);
+    const hw = [profile.heightCm ? `${profile.heightCm} cm` : null, profile.weightKg ? `${profile.weightKg} kg` : null].filter(Boolean).join(' · ');
+    row('Height / Weight', hw || '-', 485);
 
     ctx.fillStyle = '#c9a8ad'; ctx.font = '16px Arial';
     ctx.fillText('Scan the QR code for live emergency details', 40, 555);
@@ -180,10 +184,15 @@ export default function Profile() {
     ctx.fillStyle = '#f7edeb'; ctx.font = 'bold 58px Arial';
     ctx.fillText(String(profile.name).slice(0, 22), 540, 1530);
     ctx.fillStyle = '#c9a8ad'; ctx.font = '42px Arial';
-    ctx.fillText(`Allergies: ${(profile.allergies || 'None').slice(0, 26)}`, 540, 1605);
+    ctx.fillText(`Allergies: ${(profile.allergies || 'None').slice(0, 26)}`, 540, 1600);
+    if (profile.medicalConditions) {
+      ctx.fillText(String(profile.medicalConditions).slice(0, 34), 540, 1665);
+    }
+    const hw2 = [profile.heightCm ? `${profile.heightCm} cm` : null, profile.weightKg ? `${profile.weightKg} kg` : null].filter(Boolean).join('  ·  ');
+    if (hw2) ctx.fillText(hw2, 540, profile.medicalConditions ? 1725 : 1665);
     ctx.fillText(
       `${profile.emergencyContact?.name || ''}  ·  ${profile.emergencyContact?.number || ''}`.slice(0, 34),
-      540, 1675
+      540, 1780
     );
 
     const finish = () => {
@@ -229,6 +238,25 @@ export default function Profile() {
 
         <label>Allergies</label>
         <input name="allergies" value={profile.allergies} onChange={handleChange} />
+
+        <label>Medical Conditions (optional - shown on your emergency page)</label>
+        <input name="medicalConditions" value={profile.medicalConditions || ''} onChange={handleChange}
+               placeholder="e.g. Diabetes (type 2), High BP, Thyroid, Asthma" />
+
+        <label>Current Medications (optional)</label>
+        <input name="medications" value={profile.medications || ''} onChange={handleChange}
+               placeholder="e.g. Metformin, Amlodipine" />
+
+        <div className="two-col">
+          <div>
+            <label>Height (cm, optional)</label>
+            <input name="heightCm" type="number" min="0" value={profile.heightCm ?? ''} onChange={handleChange} placeholder="172" />
+          </div>
+          <div>
+            <label>Weight (kg, optional)</label>
+            <input name="weightKg" type="number" min="0" value={profile.weightKg ?? ''} onChange={handleChange} placeholder="68" />
+          </div>
+        </div>
 
         <label>City / Location</label>
         <input name="location" value={profile.location} onChange={handleChange} />
