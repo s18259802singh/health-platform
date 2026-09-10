@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { LanguageProvider } from './i18n';
 import Navbar from './components/Navbar';
+import DemoTour from './components/DemoTour';
 import BottomNav from './components/BottomNav';
 import ProtectedRoute from './components/ProtectedRoute';
 
@@ -23,6 +24,7 @@ export default function App() {
     <AuthProvider>
       <BrowserRouter>
         <Navbar />
+        <DemoTour />
         <main className="container">
           <Routes>
             {/* Public routes - no login needed */}

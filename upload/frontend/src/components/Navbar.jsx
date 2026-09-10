@@ -41,6 +41,7 @@ export default function Navbar() {
             <Link to="/hospitals" onClick={closeMenu}>{t('hospitals')}</Link>
             <Link to="/appointments" onClick={closeMenu}>{t('appointments')}</Link>
             <Link to="/requests" onClick={closeMenu}>{t('bloodRequests')}</Link>
+            <button type="button" className="link-button demo-link" onClick={() => { closeMenu(); window.location.hash = '#demo'; window.dispatchEvent(new HashChangeEvent('hashchange')); }}>{t('liveDemo')}</button>
             <Link to="/blogs" onClick={closeMenu}>{t('blog')}</Link>
             <Link to="/profile" onClick={closeMenu}>{t('myProfile')}</Link>
             <button onClick={handleLogout} className="link-button">{t('logout')}</button>
@@ -49,6 +50,7 @@ export default function Navbar() {
           <>
             <Link to="/login" onClick={closeMenu}>{t('login')}</Link>
             <Link to="/register" onClick={closeMenu}>{t('register')}</Link>
+            <button type="button" className="link-button demo-link" onClick={() => { closeMenu(); window.location.hash = '#demo'; window.dispatchEvent(new HashChangeEvent('hashchange')); }}>{t('liveDemo')}</button>
             <Link to="/blogs" onClick={closeMenu}>{t('blog')}</Link>
           </>
         )}
