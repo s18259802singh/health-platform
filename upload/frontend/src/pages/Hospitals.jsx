@@ -2,11 +2,13 @@
 
 import { useEffect, useState } from 'react';
 import api from '../api/axios';
+import { useLang } from '../i18n';
 import { useAuth } from '../context/AuthContext';
 
 const empty = { name: '', address: '', contactNumber: '', type: 'hospital' };
 
 export default function Hospitals() {
+  const { t } = useLang();
   const { user } = useAuth();
   const [hospitals, setHospitals] = useState([]);
   const [search, setSearch] = useState('');
@@ -50,7 +52,7 @@ export default function Hospitals() {
 
   return (
     <div className="page">
-      <h2>Hospitals & Blood Banks</h2>
+      <h2>{t('hospitalsTitle')}</h2>
       <input
         className="search-bar"
         placeholder="Search by name or address..."

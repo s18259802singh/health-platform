@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import api from '../api/axios';
+import { useLang } from '../i18n';
 
 const BLOOD_GROUPS = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
 
 export default function Profile() {
+  const { t } = useLang();
   const [profile, setProfile] = useState(null);
   const [message, setMessage] = useState('');
 
@@ -294,7 +296,7 @@ export default function Profile() {
 
   return (
     <div className="form-card">
-      <h2>My Profile</h2>
+      <h2>{t('profileTitle')}</h2>
       {message && <p className="hint">{message}</p>}
       <form onSubmit={handleSave}>
         <label>Full Name</label>

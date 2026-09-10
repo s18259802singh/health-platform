@@ -2,8 +2,10 @@
 
 import { useEffect, useState } from 'react';
 import api from '../api/axios';
+import { useLang } from '../i18n';
 
 export default function Appointments() {
+  const { t } = useLang();
   const [hospitals, setHospitals] = useState([]);
   const [doctors, setDoctors] = useState([]);
   const [myAppointments, setMyAppointments] = useState([]);
@@ -55,7 +57,7 @@ export default function Appointments() {
 
   return (
     <div className="page">
-      <h2>Book a Doctor Appointment</h2>
+      <h2>{t('apptTitle')}</h2>
       {message && <p className="hint">{message}</p>}
 
       <div className="form-card">

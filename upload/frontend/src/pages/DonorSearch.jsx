@@ -4,6 +4,7 @@
 
 import { useEffect, useState } from 'react';
 import api from '../api/axios';
+import { useLang } from '../i18n';
 
 const BLOOD_GROUPS = ['', 'A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
 
@@ -22,6 +23,7 @@ const canDonateTo = (g) =>
   Object.keys(CAN_RECEIVE_FROM).filter((r) => CAN_RECEIVE_FROM[r].includes(g));
 
 export default function DonorSearch() {
+  const { t } = useLang();
   const [bloodGroup, setBloodGroup] = useState('');
   const [location, setLocation] = useState('');
   const [donors, setDonors] = useState([]);
@@ -45,7 +47,7 @@ export default function DonorSearch() {
 
   return (
     <div className="page">
-      <h2>Find Blood Donors</h2>
+      <h2>{t('findBloodDonors')}</h2>
       <div className="search-bar">
         <select value={bloodGroup} onChange={(e) => setBloodGroup(e.target.value)}>
           {BLOOD_GROUPS.map((bg) => <option key={bg} value={bg}>{bg || 'Any Blood Group'}</option>)}

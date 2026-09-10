@@ -5,11 +5,13 @@
 
 import { useEffect, useRef, useState } from 'react';
 import api from '../api/axios';
+import { useLang } from '../i18n';
 import { useAuth } from '../context/AuthContext';
 
 const BLOOD_GROUPS = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
 
 export default function DonationRequests() {
+  const { t } = useLang();
   const { user } = useAuth();
   const [requests, setRequests] = useState([]);
   const [filterGroup, setFilterGroup] = useState('');
@@ -119,7 +121,7 @@ export default function DonationRequests() {
 
   return (
     <div className="page">
-      <h2>Blood Donation Requests</h2>
+      <h2>{t('requestsTitle')}</h2>
       {message && <p className="hint">{message}</p>}
 
       <div className="form-card">

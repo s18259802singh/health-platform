@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { LanguageToggle, useLang } from '../i18n';
 
 export default function Navbar() {
   const { user, logout } = useAuth();
+  const { t } = useLang();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
 
@@ -19,6 +21,8 @@ export default function Navbar() {
     <nav className="navbar">
       <Link to="/" className="brand" onClick={closeMenu}><span className="brand-mark" aria-hidden="true"></span>LifeLink</Link>
 
+      <LanguageToggle />
+
       <button
         className="menu-toggle"
         onClick={() => setOpen(!open)}
@@ -32,20 +36,20 @@ export default function Navbar() {
       <div className={`nav-links ${open ? 'open' : ''}`}>
         {user ? (
           <>
-            <Link to="/dashboard" onClick={closeMenu}>Dashboard</Link>
-            <Link to="/donors" onClick={closeMenu}>Find Donors</Link>
-            <Link to="/hospitals" onClick={closeMenu}>Hospitals</Link>
-            <Link to="/appointments" onClick={closeMenu}>Appointments</Link>
-            <Link to="/requests" onClick={closeMenu}>Blood Requests</Link>
-            <Link to="/blogs" onClick={closeMenu}>Blog</Link>
-            <Link to="/profile" onClick={closeMenu}>My Profile</Link>
-            <button onClick={handleLogout} className="link-button">Logout</button>
+            <Link to="/dashboard" onClick={closeMenu}>{t('dashboard')}</Link>
+            <Link to="/donors" onClick={closeMenu}>{t('findDonors')}</Link>
+            <Link to="/hospitals" onClick={closeMenu}>{t('hospitals')}</Link>
+            <Link to="/appointments" onClick={closeMenu}>{t('appointments')}</Link>
+            <Link to="/requests" onClick={closeMenu}>{t('bloodRequests')}</Link>
+            <Link to="/blogs" onClick={closeMenu}>{t('blog')}</Link>
+            <Link to="/profile" onClick={closeMenu}>{t('myProfile')}</Link>
+            <button onClick={handleLogout} className="link-button">{t('logout')}</button>
           </>
         ) : (
           <>
-            <Link to="/login" onClick={closeMenu}>Login</Link>
-            <Link to="/register" onClick={closeMenu}>Register</Link>
-            <Link to="/blogs" onClick={closeMenu}>Blog</Link>
+            <Link to="/login" onClick={closeMenu}>{t('login')}</Link>
+            <Link to="/register" onClick={closeMenu}>{t('register')}</Link>
+            <Link to="/blogs" onClick={closeMenu}>{t('blog')}</Link>
           </>
         )}
       </div>
