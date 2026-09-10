@@ -28,7 +28,7 @@ const getProfile = async (req, res) => {
 const updateProfile = async (req, res) => {
   try {
     const { name, phone, bloodGroup, allergies, emergencyContactName, emergencyContactNumber, isDonor, location,
-            heightCm, weightKg, medicalConditions, medications } = req.body;
+            heightCm, weightKg, medicalConditions, medications, lastDonationDate } = req.body;
 
     const user = await User.findById(req.user.id);
     if (!user) return res.status(404).json({ message: 'User not found' });
@@ -43,6 +43,7 @@ const updateProfile = async (req, res) => {
     if (weightKg !== undefined) user.weightKg = weightKg === '' ? null : Number(weightKg);
     if (medicalConditions !== undefined) user.medicalConditions = medicalConditions;
     if (medications !== undefined) user.medications = medications;
+    if (lastDonationDate !== undefined) user.lastDonationDate = lastDonationDate ? new Date(lastDonationDate) : null;
     if (emergencyContactName) user.emergencyContact.name = emergencyContactName;
     if (emergencyContactNumber) user.emergencyContact.number = emergencyContactNumber;
 

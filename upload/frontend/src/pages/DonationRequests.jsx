@@ -106,6 +106,17 @@ export default function DonationRequests() {
     loadRequests();
   };
 
+  const handleRespond = async (id) => {
+    setMessage('');
+    try {
+      await api.put(`/donation-requests/${id}/respond`);
+      setMessage('Thank you! The requester can now see your name and number.');
+      loadRequests();
+    } catch (err) {
+      setMessage(err.response?.data?.message || 'Could not respond.');
+    }
+  };
+
   return (
     <div className="page">
       <h2>Blood Donation Requests</h2>
@@ -144,7 +155,7 @@ export default function DonationRequests() {
 
       <table className="data-table">
         <thead>
-          <tr><th>Blood Group</th><th>Location</th><th>Requested By</th><th>Contact</th><th>Date</th><th>Status</th><th></th></tr>
+          <tr><th>Blood Group</th><th>Location</th><th>Requested By</th><th>Contact</th><th>Date</th><th>Status</th><th>Responses</th><th></th></tr>
         </thead>
         <tbody>
           {requests.map((r) => (
@@ -156,6 +167,25 @@ export default function DonationRequests() {
               <td>{new Date(r.createdAt).toLocaleDateString('en-GB')}</td>
               <td>{r.status}</td>
               <td>
+                {(r.responders?.length || 0) === 0 ? '—' : (
+                  r.requesterId?._id === user?.id ? (
+                    <details className="responders">
+                      <summary>{r.responders.length} donor{r.responders.length > 1 ? 's' : ''} ▾</summary>
+                      <ul>
+                        {r.responders.map((p, i) => (
+                          <li key={i}>{p.name} ({p.bloodGroup}) · {p.phone}</li>
+                        ))}
+                      </ul>
+                    </details>
+                  ) : (
+                    `${r.responders.length} donor${r.responders.length > 1 ? 's' : ''}`
+                  )
+                )}
+              </td>
+              <td>
+                {r.status === 'pending' && r.requesterId?._id !== user?.id && (
+                  <button className="small-button" onClick={() => handleRespond(r._id)}>I can donate</button>
+                )}
                 {r.status === 'pending' && (
                   <button className="small-button" onClick={() => downloadPoster(r)}>Poster</button>
                 )}
@@ -165,7 +195,7 @@ export default function DonationRequests() {
               </td>
             </tr>
           ))}
-          {requests.length === 0 && <tr><td colSpan={7}>No requests yet.</td></tr>}
+          {requests.length === 0 && <tr><td colSpan={8}>No requests yet.</td></tr>}
         </tbody>
       </table>
       <canvas ref={posterRef} style={{ display: 'none' }} />

@@ -1054,3 +1054,39 @@ textarea { resize: vertical; line-height: 1.65; }
   box-shadow: 0 0 8px var(--glow);
 }
 .scan-list li:last-child { border-bottom: none; }
+
+/* ---------- Donation tracker ring ---------- */
+
+.donation-tracker { margin-top: 30px; padding-top: 24px; border-top: 1px solid var(--line); }
+.tracker-row { display: flex; align-items: center; gap: 22px; flex-wrap: wrap; }
+.tracker-ring { width: 128px; height: 128px; flex-shrink: 0; }
+.ring-bg { fill: none; stroke: rgba(255, 180, 190, 0.15); stroke-width: 9; }
+.ring-fg {
+  fill: none;
+  stroke: url(#none);
+  stroke: var(--pulse);
+  stroke-width: 9;
+  stroke-linecap: round;
+  transform: rotate(-90deg);
+  transform-origin: center;
+  filter: drop-shadow(0 0 6px var(--glow));
+  transition: stroke-dashoffset 1s ease;
+}
+.ring-num {
+  fill: #f7edeb;
+  font-family: 'Unbounded', sans-serif;
+  font-size: 26px;
+  font-weight: 700;
+  text-anchor: middle;
+}
+.ring-sub { fill: #c9a8ad; font-size: 11px; text-anchor: middle; letter-spacing: 0.08em; }
+.tracker-text { margin: 0 0 12px; font-size: 0.93rem; max-width: 46ch; }
+
+/* ---------- Responders + directions ---------- */
+
+.responders summary { cursor: pointer; color: var(--pulse); font-weight: 700; list-style: none; }
+.responders ul { margin: 8px 0 0; padding: 0; list-style: none; }
+.responders li { padding: 4px 0; color: var(--ivory); font-size: 0.86rem; white-space: nowrap; }
+
+.dir-link { color: var(--pulse); font-weight: 700; font-size: 0.84rem; text-decoration: none; white-space: nowrap; }
+.dir-link:hover { text-decoration: underline; }

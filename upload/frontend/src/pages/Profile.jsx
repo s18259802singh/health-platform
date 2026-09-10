@@ -234,6 +234,62 @@ export default function Profile() {
   };
   const scans = (profile?.qrScans || []).slice().reverse();
 
+  // ---- DONATION TRACKER ----
+  // Standard gap between whole-blood donations: 90 days.
+  const GAP_DAYS = 90;
+  const last = profile?.lastDonationDate ? new Date(profile.lastDonationDate) : null;
+  const daysSince = last ? Math.floor((Date.now() - last.getTime()) / 86400000) : null;
+  const daysLeft = last ? Math.max(0, GAP_DAYS - daysSince) : null;
+  const progress = last ? Math.min(1, daysSince / GAP_DAYS) : 0;
+  const RING = 2 * Math.PI * 52; // circumference for r=52
+
+  const markDonated = async () => {
+    if (!confirm('Record that you donated blood today?')) return;
+    const { data } = await api.put('/profile', { lastDonationDate: new Date().toISOString() });
+    setProfile(data);
+  };
+
+  const downloadCertificate = () => {
+    const canvas = cardRef.current;
+    const ctx = canvas.getContext('2d');
+    const W = 1200, H = 850;
+    canvas.width = W; canvas.height = H;
+    const bg = ctx.createLinearGradient(0, 0, W, H);
+    bg.addColorStop(0, '#241017'); bg.addColorStop(1, '#130a0d');
+    ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+    ctx.strokeStyle = 'rgba(255,59,78,0.7)'; ctx.lineWidth = 4;
+    ctx.strokeRect(28, 28, W - 56, H - 56);
+    ctx.strokeStyle = 'rgba(255,180,190,0.25)'; ctx.lineWidth = 1.5;
+    ctx.strokeRect(44, 44, W - 88, H - 88);
+
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#ff3b4e';
+    ctx.beginPath(); ctx.arc(600, 140, 26, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#f7edeb'; ctx.font = 'bold 30px Arial';
+    ctx.fillText('LIFELINK', 600, 210);
+    ctx.fillStyle = '#c9a8ad'; ctx.font = '24px Arial';
+    ctx.fillText('CERTIFICATE OF APPRECIATION', 600, 252);
+
+    ctx.fillStyle = '#c9a8ad'; ctx.font = '26px Arial';
+    ctx.fillText('This certifies that', 600, 350);
+    ctx.fillStyle = '#f7edeb'; ctx.font = 'bold 64px Arial';
+    ctx.fillText(String(profile.name).slice(0, 24), 600, 435);
+    ctx.fillStyle = '#c9a8ad'; ctx.font = '26px Arial';
+    ctx.fillText(`(blood group ${profile.bloodGroup}) donated blood on`, 600, 495);
+    ctx.fillStyle = '#ff3b4e'; ctx.font = 'bold 34px Arial';
+    ctx.fillText(last ? last.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) : '', 600, 550);
+    ctx.fillStyle = '#f7edeb'; ctx.font = 'italic 24px Arial';
+    ctx.fillText('One donation can save up to three lives.', 600, 640);
+    ctx.fillStyle = '#c9a8ad'; ctx.font = '20px Arial';
+    ctx.fillText('LifeLink - Health Emergency & Blood Donor Platform', 600, 760);
+    ctx.textAlign = 'left';
+
+    const a = document.createElement('a');
+    a.download = 'lifelink-donor-certificate.png';
+    a.href = canvas.toDataURL('image/png');
+    a.click();
+  };
+
   if (!profile) return <p>Loading profile...</p>;
 
   return (
@@ -307,6 +363,40 @@ export default function Profile() {
         </div>
         <p className="card-note">The ID card fits a wallet. The wallpaper is for your phone's LOCK SCREEN - responders can see your blood group and scan your QR even while your phone is locked.</p>
         <canvas ref={cardRef} style={{ display: 'none' }} />
+
+        <div className="donation-tracker">
+          <h3>Donation Tracker</h3>
+          {!last ? (
+            <>
+              <p className="card-note">Donated recently? Record it and we'll count down the 90 days until you can safely donate again.</p>
+              <button type="button" className="card-button" onClick={markDonated}>I donated today</button>
+            </>
+          ) : (
+            <div className="tracker-row">
+              <svg viewBox="0 0 120 120" className="tracker-ring" role="img" aria-label="Donation countdown">
+                <circle cx="60" cy="60" r="52" className="ring-bg" />
+                <circle
+                  cx="60" cy="60" r="52" className="ring-fg"
+                  strokeDasharray={RING}
+                  strokeDashoffset={RING * (1 - progress)}
+                />
+                <text x="60" y="56" className="ring-num">{daysLeft === 0 ? '✓' : daysLeft}</text>
+                <text x="60" y="76" className="ring-sub">{daysLeft === 0 ? 'eligible' : 'days left'}</text>
+              </svg>
+              <div>
+                <p className="tracker-text">
+                  {daysLeft === 0
+                    ? 'You are eligible to donate again - find a request that needs you!'
+                    : `Last donation: ${last.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}. You can donate again in ${daysLeft} days.`}
+                </p>
+                <div className="download-row">
+                  <button type="button" className="small-button" onClick={downloadCertificate}>Download Certificate</button>
+                  <button type="button" className="small-button" onClick={markDonated}>I donated again today</button>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
 
         <div className="scan-alerts">
           <h3>Scan Alerts</h3>

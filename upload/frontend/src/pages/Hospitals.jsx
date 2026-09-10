@@ -66,7 +66,14 @@ export default function Hospitals() {
           {hospitals.map((h) => (
             <tr key={h._id}>
               <td>{h.name}</td>
-              <td>{h.address}</td>
+              <td>
+                {h.address}{' '}
+                <a
+                  className="dir-link"
+                  href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(h.name + ', ' + h.address)}`}
+                  target="_blank" rel="noreferrer"
+                >Directions →</a>
+              </td>
               <td>{h.contactNumber}</td>
               <td>{h.type === 'blood_bank' ? 'Blood Bank' : 'Hospital'}</td>
               {user?.role === 'admin' && (

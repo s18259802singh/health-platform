@@ -26,6 +26,9 @@ const userSchema = new mongoose.Schema(
     weightKg: { type: Number, default: null },   // matters for drug dosing
     medicalConditions: { type: String, default: '' }, // e.g. "Diabetes (type 2), High BP, Thyroid"
     medications: { type: String, default: '' },       // e.g. "Metformin, Amlodipine"
+    // When the user last donated blood - powers the 90-day eligibility
+    // countdown ring and the donor certificate on the profile page.
+    lastDonationDate: { type: Date, default: null },
 
     location: { type: String, default: '' }, // city/area, used for donor search
     role: { type: String, enum: ['user', 'admin'], default: 'user' },
