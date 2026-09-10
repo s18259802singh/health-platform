@@ -802,3 +802,125 @@ textarea { resize: vertical; line-height: 1.65; }
   box-shadow: none;
 }
 .compat-results .small-button { align-self: flex-start; }
+
+/* ---------- Live Blood Supply Monitor ---------- */
+
+.supply-caption { color: var(--dim); font-size: 0.86rem; margin: 0 0 18px; max-width: 62ch; }
+
+.supply-row {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 12px;
+  margin-bottom: 34px;
+}
+.blood-bag { text-align: center; position: relative; }
+.bag-body {
+  position: relative;
+  height: 110px;
+  border: 2px solid var(--line-strong);
+  border-radius: 10px 10px 14px 14px;
+  overflow: hidden;
+  background: rgba(0, 0, 0, 0.25);
+}
+.bag-body::before {
+  content: '';
+  position: absolute;
+  top: -7px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 26px;
+  height: 7px;
+  background: var(--line-strong);
+  border-radius: 3px;
+}
+.bag-fill {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(180deg, #ff5b6b, var(--pulse-deep));
+  transition: height 1.1s cubic-bezier(0.2, 0.8, 0.3, 1);
+  animation: liquid 3.4s ease-in-out infinite alternate;
+}
+@keyframes liquid {
+  from { border-radius: 45% 55% 0 0 / 14px 10px 0 0; }
+  to   { border-radius: 55% 45% 0 0 / 10px 14px 0 0; }
+}
+.bag-group {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 0.95rem;
+  color: #fff;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.6);
+}
+.bag-count {
+  display: block;
+  margin-top: 7px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+.bag-alert {
+  display: block;
+  color: var(--pulse);
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.blood-bag.shortage .bag-body {
+  border-color: var(--pulse);
+  animation: alarm 1.8s ease-out infinite;
+}
+
+/* ---------- Voice search ---------- */
+
+.mic-button {
+  background: var(--panel);
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  color: var(--ivory);
+  font-weight: 700;
+  font-size: 0.88rem;
+  padding: 10px 20px;
+  white-space: nowrap;
+}
+.mic-button:hover { border-color: var(--pulse); }
+.mic-button.listening {
+  background: linear-gradient(135deg, #ff5b6b, var(--pulse-deep));
+  border-color: transparent;
+  color: #fff;
+  animation: alarm 1.4s ease-out infinite;
+}
+.voice-heard { color: var(--dim); font-size: 0.88rem; margin: -8px 0 16px; }
+
+/* ---------- Emergency page actions ---------- */
+
+.speak-button, .call-button {
+  flex: 1;
+  text-align: center;
+  padding: 13px 10px;
+  border-radius: 999px;
+  font-weight: 800;
+  font-size: 0.95rem;
+  text-decoration: none;
+  border: none;
+}
+.speak-button {
+  background: linear-gradient(135deg, #ff5b6b, var(--pulse-deep));
+  color: #fff;
+  box-shadow: 0 4px 18px var(--glow);
+}
+.speak-button.speaking { animation: alarm 1.6s ease-out infinite; }
+.call-button {
+  border: 1.5px solid var(--pulse);
+  color: #ffb0b8;
+}
+.call-button:hover { background: rgba(255, 59, 78, 0.12); }
+
+@media (max-width: 880px) {
+  .supply-row { grid-template-columns: repeat(4, 1fr); }
+}

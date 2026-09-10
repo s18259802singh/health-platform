@@ -44,7 +44,8 @@ app.use('/api/hospitals', require('./routes/hospitalRoutes'));
 app.use('/api/doctors', require('./routes/doctorRoutes'));
 app.use('/api/appointments', require('./routes/appointmentRoutes'));
 app.use('/api/donation-requests', require('./routes/donationRequestRoutes'));
-app.use('/api/blogs', require('./routes/blogRoutes')); // reading is public, writing is admin-only
+app.use('/api/blogs', require('./routes/blogRoutes'));
+app.use('/api/stats', require('./routes/statsRoutes')); // live dashboard stats // reading is public, writing is admin-only
 app.use('/api/admin', require('./routes/adminRoutes')); // admin-only utilities (reload sample data)
 
 // Simple health check route, useful to confirm the server is running

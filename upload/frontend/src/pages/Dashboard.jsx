@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../api/axios';
 import { useAuth } from '../context/AuthContext';
@@ -14,6 +14,13 @@ const ACTIONS = [
 
 export default function Dashboard() {
   const { user } = useAuth();
+  const [supply, setSupply] = useState([]);
+  useEffect(() => {
+    // live blood availability - real counts from the database
+    api.get('/stats/blood-supply').then((res) => setSupply(res.data)).catch(() => {});
+  }, []);
+  const maxDonors = Math.max(1, ...supply.map((s) => s.donors));
+
   const [seeding, setSeeding] = useState(false);
   const [seedMessage, setSeedMessage] = useState('');
 
@@ -55,6 +62,31 @@ export default function Dashboard() {
           <Link to="/appointments" className="banner-button">Book an appointment</Link>
         </div>
       </div>
+
+      {supply.length > 0 && (
+        <>
+          <div className="section-header">
+            <h3>Live Blood Supply</h3>
+          </div>
+          <p className="supply-caption">Willing donors registered per blood group, live from the database. A pulsing bag means open requests outnumber donors - a shortage.</p>
+          <div className="supply-row">
+            {supply.map((s) => {
+              const shortage = s.pendingRequests > s.donors;
+              const fill = Math.max(14, Math.round((s.donors / maxDonors) * 100));
+              return (
+                <div key={s.group} className={`blood-bag ${shortage ? 'shortage' : ''}`} title={`${s.donors} donors · ${s.pendingRequests} open requests`}>
+                  <div className="bag-body">
+                    <div className="bag-fill" style={{ height: `${fill}%` }} />
+                    <span className="bag-group">{s.group}</span>
+                  </div>
+                  <span className="bag-count">{s.donors}</span>
+                  {shortage && <span className="bag-alert">needed</span>}
+                </div>
+              );
+            })}
+          </div>
+        </>
+      )}
 
       <div className="section-header">
         <h3>Our Impact</h3>
