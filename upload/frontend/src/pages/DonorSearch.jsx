@@ -7,11 +7,26 @@ import api from '../api/axios';
 
 const BLOOD_GROUPS = ['', 'A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
 
+// Who can RECEIVE from whom - standard ABO/Rh compatibility.
+const CAN_RECEIVE_FROM = {
+  'A+':  ['A+', 'A-', 'O+', 'O-'],
+  'A-':  ['A-', 'O-'],
+  'B+':  ['B+', 'B-', 'O+', 'O-'],
+  'B-':  ['B-', 'O-'],
+  'AB+': ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'],
+  'AB-': ['A-', 'B-', 'AB-', 'O-'],
+  'O+':  ['O+', 'O-'],
+  'O-':  ['O-'],
+};
+const canDonateTo = (g) =>
+  Object.keys(CAN_RECEIVE_FROM).filter((r) => CAN_RECEIVE_FROM[r].includes(g));
+
 export default function DonorSearch() {
   const [bloodGroup, setBloodGroup] = useState('');
   const [location, setLocation] = useState('');
   const [donors, setDonors] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [myGroup, setMyGroup] = useState(''); // compatibility checker selection
 
   useEffect(() => {
     setLoading(true);
@@ -41,6 +56,47 @@ export default function DonorSearch() {
           value={location}
           onChange={(e) => setLocation(e.target.value)}
         />
+      </div>
+
+      {/* ---- BLOOD COMPATIBILITY CHECKER ---- */}
+      <div className="compat-card">
+        <h3>Blood Compatibility Checker</h3>
+        <p className="compat-hint">Tap a blood group to see who it can give to and receive from.</p>
+        <div className="compat-groups">
+          {BLOOD_GROUPS.slice(1).map((bg) => (
+            <button
+              key={bg}
+              type="button"
+              className={`compat-chip ${myGroup === bg ? 'selected' : ''}`}
+              onClick={() => setMyGroup(myGroup === bg ? '' : bg)}
+            >
+              {bg}
+            </button>
+          ))}
+        </div>
+        {myGroup && (
+          <div className="compat-results">
+            <div>
+              <span className="compat-label">{myGroup} can donate to</span>
+              <div className="compat-badges">
+                {canDonateTo(myGroup).map((bg) => <span key={bg} className="blood-badge">{bg}</span>)}
+              </div>
+            </div>
+            <div>
+              <span className="compat-label">{myGroup} can receive from</span>
+              <div className="compat-badges">
+                {CAN_RECEIVE_FROM[myGroup].map((bg) => <span key={bg} className="blood-badge alt">{bg}</span>)}
+              </div>
+            </div>
+            <button
+              type="button"
+              className="small-button"
+              onClick={() => setBloodGroup(myGroup)}
+            >
+              Show {myGroup} donors above
+            </button>
+          </div>
+        )}
       </div>
 
       {loading && <p>Searching...</p>}

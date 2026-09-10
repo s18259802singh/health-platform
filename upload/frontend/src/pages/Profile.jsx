@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import api from '../api/axios';
 
 const BLOOD_GROUPS = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
@@ -37,6 +37,100 @@ export default function Profile() {
       setMessage('Profile updated successfully.');
     } catch (err) {
       setMessage(err.response?.data?.message || 'Update failed.');
+    }
+  };
+
+  // ---- EMERGENCY ID CARD ----
+  // Draws a wallet-style emergency card on a hidden <canvas> (Pulse design:
+  // dark maroon, glowing blood badge, ECG line, the user's QR) and downloads
+  // it as a PNG. Everything happens in the browser - no backend involved.
+  const cardRef = useRef(null);
+
+  const downloadCard = () => {
+    const canvas = cardRef.current;
+    const ctx = canvas.getContext('2d');
+    const W = 1000, H = 600;
+    canvas.width = W; canvas.height = H;
+
+    // background
+    const bg = ctx.createLinearGradient(0, 0, W, H);
+    bg.addColorStop(0, '#241017'); bg.addColorStop(1, '#130a0d');
+    ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+
+    // soft red halo
+    const halo = ctx.createRadialGradient(780, 140, 20, 780, 140, 330);
+    halo.addColorStop(0, 'rgba(255,59,78,0.25)'); halo.addColorStop(1, 'rgba(255,59,78,0)');
+    ctx.fillStyle = halo; ctx.fillRect(0, 0, W, H);
+
+    // border
+    ctx.strokeStyle = 'rgba(255,59,78,0.6)'; ctx.lineWidth = 3;
+    ctx.strokeRect(10, 10, W - 20, H - 20);
+
+    // brand
+    ctx.fillStyle = '#ff3b4e';
+    ctx.beginPath(); ctx.arc(58, 62, 13, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#f7edeb'; ctx.font = 'bold 34px Arial';
+    ctx.fillText('LifeLink', 84, 74);
+    ctx.fillStyle = '#c9a8ad'; ctx.font = '20px Arial';
+    ctx.fillText('EMERGENCY MEDICAL CARD', 84, 102);
+
+    // ECG divider
+    ctx.strokeStyle = 'rgba(255,59,78,0.7)'; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(40, 150);
+    let x = 40;
+    const seg = [[70,0],[10,-16],[8,34],[8,-44],[10,40],[8,-14],[80,0]];
+    while (x < W - 300) {
+      let y = 150;
+      for (const [dx, dy] of seg) { x += dx; y += dy; ctx.lineTo(x, y); if (x > W - 300) break; }
+    }
+    ctx.lineTo(W - 300, 150); ctx.stroke();
+
+    // blood group roundel
+    const grad = ctx.createLinearGradient(120, 220, 220, 330);
+    grad.addColorStop(0, '#ff5b6b'); grad.addColorStop(1, '#a3172b');
+    ctx.fillStyle = grad;
+    ctx.shadowColor = 'rgba(255,59,78,0.8)'; ctx.shadowBlur = 40;
+    ctx.beginPath(); ctx.arc(165, 280, 78, 0, Math.PI * 2); ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = '#fff'; ctx.font = 'bold 58px Arial'; ctx.textAlign = 'center';
+    ctx.fillText(profile.bloodGroup, 165, 300);
+    ctx.textAlign = 'left';
+
+    // details
+    const row = (label, value, y) => {
+      ctx.fillStyle = '#c9a8ad'; ctx.font = 'bold 17px Arial';
+      ctx.fillText(label.toUpperCase(), 290, y);
+      ctx.fillStyle = '#f7edeb'; ctx.font = '26px Arial';
+      ctx.fillText(String(value || '-').slice(0, 30), 290, y + 32);
+    };
+    row('Name', profile.name, 205);
+    row('Allergies', profile.allergies || 'None', 285);
+    row('Emergency contact', `${profile.emergencyContact?.name || '-'} · ${profile.emergencyContact?.number || ''}`, 365);
+    row('Location', profile.location, 445);
+
+    ctx.fillStyle = '#c9a8ad'; ctx.font = '16px Arial';
+    ctx.fillText('Scan the QR code for live emergency details', 40, 555);
+
+    const finish = () => {
+      const a = document.createElement('a');
+      a.download = 'lifelink-emergency-card.png';
+      a.href = canvas.toDataURL('image/png');
+      a.click();
+    };
+
+    // QR (white plate so any scanner reads it)
+    if (profile.qrCodePath) {
+      const img = new Image();
+      img.onload = () => {
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(742, 208, 216, 216);
+        ctx.drawImage(img, 750, 216, 200, 200);
+        finish();
+      };
+      img.onerror = finish;
+      img.src = profile.qrCodePath;
+    } else {
+      finish();
     }
   };
 
@@ -83,6 +177,12 @@ export default function Profile() {
         <p>Anyone who scans this sees only your blood group, allergies, and emergency contact - no login needed.</p>
                 <img src={profile.qrCodePath} alt="Emergency QR Code" width="180" />
         <p><a href={profile.qrCodePath} download="emergency-qr.png">Download QR Code</a></p>
+
+        <button type="button" className="card-button" onClick={downloadCard}>
+          Download Emergency ID Card
+        </button>
+        <p className="card-note">A wallet-size card with your blood group, allergies, contact and QR - print it and keep it with you.</p>
+        <canvas ref={cardRef} style={{ display: 'none' }} />
       </div>
     </div>
   );

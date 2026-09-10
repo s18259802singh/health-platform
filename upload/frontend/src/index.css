@@ -719,3 +719,86 @@ textarea { resize: vertical; line-height: 1.65; }
     animation: none !important;
   }
 }
+
+/* ---------- Emergency ID Card button ---------- */
+
+.card-button {
+  display: inline-block;
+  margin-top: 14px;
+  background: none;
+  border: 1px solid var(--pulse);
+  color: var(--pulse);
+  border-radius: 999px;
+  padding: 12px 24px;
+  font-weight: 700;
+  font-size: 0.92rem;
+}
+.card-button:hover {
+  background: rgba(255, 59, 78, 0.12);
+  box-shadow: 0 0 20px rgba(255, 59, 78, 0.25);
+}
+.card-note { color: var(--dim); font-size: 0.84rem; margin-top: 8px; }
+
+/* ---------- Compatibility checker ---------- */
+
+.compat-card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  padding: 22px 24px 24px;
+  margin: 0 0 24px;
+  backdrop-filter: blur(8px);
+}
+.compat-card h3 { margin-bottom: 4px; }
+.compat-hint { color: var(--dim); font-size: 0.88rem; margin: 0 0 16px; }
+
+.compat-groups { display: flex; flex-wrap: wrap; gap: 9px; }
+.compat-chip {
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid var(--line-strong);
+  color: var(--ivory);
+  border-radius: 999px;
+  padding: 9px 18px;
+  font-weight: 800;
+  font-size: 0.95rem;
+  transition: all 0.18s ease;
+}
+.compat-chip:hover { border-color: var(--pulse); }
+.compat-chip.selected {
+  background: linear-gradient(135deg, #ff5b6b, var(--pulse-deep));
+  border-color: transparent;
+  color: #fff;
+  box-shadow: 0 0 20px rgba(255, 59, 78, 0.45);
+  transform: scale(1.08);
+}
+
+.compat-results {
+  margin-top: 20px;
+  padding-top: 18px;
+  border-top: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  animation: compat-in 0.35s ease;
+}
+@keyframes compat-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.compat-label {
+  display: block;
+  color: var(--dim);
+  font-size: 0.82rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+.compat-badges { display: flex; flex-wrap: wrap; gap: 8px; }
+.blood-badge.alt {
+  background: none;
+  border: 1.5px solid var(--pulse);
+  color: #ffb0b8;
+  box-shadow: none;
+}
+.compat-results .small-button { align-self: flex-start; }
