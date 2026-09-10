@@ -218,6 +218,22 @@ export default function Profile() {
     } else finish();
   };
 
+  // ---- SCAN ALERTS ----
+  // The backend logs a timestamp every time this user's public emergency page
+  // is opened (i.e. their QR is scanned). Here we show it to the owner:
+  // "know when your medical info was accessed".
+  const formatScan = (d) => {
+    const t = new Date(d);
+    const now = new Date();
+    const sameDay = t.toDateString() === now.toDateString();
+    const yest = new Date(now); yest.setDate(now.getDate() - 1);
+    const time = t.toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit' });
+    if (sameDay) return `Today · ${time}`;
+    if (t.toDateString() === yest.toDateString()) return `Yesterday · ${time}`;
+    return `${t.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })} · ${time}`;
+  };
+  const scans = (profile?.qrScans || []).slice().reverse();
+
   if (!profile) return <p>Loading profile...</p>;
 
   return (
@@ -291,6 +307,22 @@ export default function Profile() {
         </div>
         <p className="card-note">The ID card fits a wallet. The wallpaper is for your phone's LOCK SCREEN - responders can see your blood group and scan your QR even while your phone is locked.</p>
         <canvas ref={cardRef} style={{ display: 'none' }} />
+
+        <div className="scan-alerts">
+          <h3>Scan Alerts</h3>
+          {scans.length === 0 ? (
+            <p className="card-note">No one has scanned your QR yet. Every scan of your emergency page is logged here, so you always know when your medical info was accessed.</p>
+          ) : (
+            <>
+              <p className="scan-summary">
+                Your emergency info was accessed <strong>{scans.length}{scans.length === 20 ? '+' : ''} time{scans.length === 1 ? '' : 's'}</strong> — last: <strong>{formatScan(scans[0])}</strong>
+              </p>
+              <ul className="scan-list">
+                {scans.slice(0, 5).map((d, i) => <li key={i}>{formatScan(d)}</li>)}
+              </ul>
+            </>
+          )}
+        </div>
       </div>
     </div>
   );
