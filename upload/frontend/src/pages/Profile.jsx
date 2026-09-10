@@ -134,6 +134,81 @@ export default function Profile() {
     }
   };
 
+  // ---- EMERGENCY LOCK-SCREEN WALLPAPER ----
+  // Generates a phone wallpaper (1080x2340). Set it as your LOCK SCREEN and
+  // your blood group, allergies and QR are visible to responders even while
+  // the phone is locked. The top third is left clear for the clock.
+  const downloadWallpaper = () => {
+    const canvas = cardRef.current;
+    const ctx = canvas.getContext('2d');
+    const W = 1080, H = 2340;
+    canvas.width = W; canvas.height = H;
+
+    const bg = ctx.createLinearGradient(0, 0, W, H);
+    bg.addColorStop(0, '#1d0e12'); bg.addColorStop(1, '#0e0709');
+    ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+
+    const halo = ctx.createRadialGradient(540, 1500, 60, 540, 1500, 700);
+    halo.addColorStop(0, 'rgba(255,59,78,0.22)'); halo.addColorStop(1, 'rgba(255,59,78,0)');
+    ctx.fillStyle = halo; ctx.fillRect(0, 0, W, H);
+
+    // ECG divider under the clock zone
+    ctx.strokeStyle = 'rgba(255,59,78,0.75)'; ctx.lineWidth = 5;
+    ctx.beginPath(); ctx.moveTo(60, 860);
+    let x = 60;
+    const seg = [[110,0],[16,-26],[13,54],[13,-70],[16,62],[13,-20],[130,0]];
+    while (x < W - 60) {
+      let y = 860;
+      for (const [dx, dy] of seg) { x += dx; y += dy; if (x > W - 60) break; ctx.lineTo(x, y); }
+    }
+    ctx.stroke();
+
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#c9a8ad'; ctx.font = 'bold 40px Arial';
+    ctx.fillText('E M E R G E N C Y   M E D I C A L   I N F O', 540, 960);
+
+    // giant blood roundel
+    const grad = ctx.createLinearGradient(380, 1050, 700, 1400);
+    grad.addColorStop(0, '#ff5b6b'); grad.addColorStop(1, '#a3172b');
+    ctx.fillStyle = grad;
+    ctx.shadowColor = 'rgba(255,59,78,0.85)'; ctx.shadowBlur = 90;
+    ctx.beginPath(); ctx.arc(540, 1230, 190, 0, Math.PI * 2); ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = '#fff'; ctx.font = 'bold 150px Arial';
+    ctx.fillText(profile.bloodGroup, 540, 1285);
+
+    ctx.fillStyle = '#f7edeb'; ctx.font = 'bold 58px Arial';
+    ctx.fillText(String(profile.name).slice(0, 22), 540, 1530);
+    ctx.fillStyle = '#c9a8ad'; ctx.font = '42px Arial';
+    ctx.fillText(`Allergies: ${(profile.allergies || 'None').slice(0, 26)}`, 540, 1605);
+    ctx.fillText(
+      `${profile.emergencyContact?.name || ''}  ·  ${profile.emergencyContact?.number || ''}`.slice(0, 34),
+      540, 1675
+    );
+
+    const finish = () => {
+      ctx.fillStyle = '#c9a8ad'; ctx.font = '34px Arial';
+      ctx.fillText('Scan for live emergency details', 540, 2180);
+      ctx.textAlign = 'left';
+      const a = document.createElement('a');
+      a.download = 'lifelink-lockscreen.png';
+      a.href = canvas.toDataURL('image/png');
+      a.click();
+    };
+
+    if (profile.qrCodePath) {
+      const img = new Image();
+      img.onload = () => {
+        ctx.fillStyle = '#fff';
+        ctx.fillRect(390, 1790, 300, 300);
+        ctx.drawImage(img, 402, 1802, 276, 276);
+        finish();
+      };
+      img.onerror = finish;
+      img.src = profile.qrCodePath;
+    } else finish();
+  };
+
   if (!profile) return <p>Loading profile...</p>;
 
   return (
@@ -178,10 +253,15 @@ export default function Profile() {
                 <img src={profile.qrCodePath} alt="Emergency QR Code" width="180" />
         <p><a href={profile.qrCodePath} download="emergency-qr.png">Download QR Code</a></p>
 
-        <button type="button" className="card-button" onClick={downloadCard}>
-          Download Emergency ID Card
-        </button>
-        <p className="card-note">A wallet-size card with your blood group, allergies, contact and QR - print it and keep it with you.</p>
+        <div className="download-row">
+          <button type="button" className="card-button" onClick={downloadCard}>
+            Download Emergency ID Card
+          </button>
+          <button type="button" className="card-button" onClick={downloadWallpaper}>
+            Download Lock-Screen Wallpaper
+          </button>
+        </div>
+        <p className="card-note">The ID card fits a wallet. The wallpaper is for your phone's LOCK SCREEN - responders can see your blood group and scan your QR even while your phone is locked.</p>
         <canvas ref={cardRef} style={{ display: 'none' }} />
       </div>
     </div>

@@ -19,6 +19,20 @@ export default function EmergencyPage() {
       .catch(() => setError('No emergency record found for this QR code.'));
   }, [userId]);
 
+  // ---- BEACON MODE ----
+  // Turns the phone into a pulsing red beacon with the blood group readable
+  // from across a room - for attracting help in a crowd or at night.
+  // Slow, gentle pulse on purpose (not a strobe). Tap anywhere to exit.
+  const [beacon, setBeacon] = useState(false);
+  const startBeacon = () => {
+    setBeacon(true);
+    document.documentElement.requestFullscreen?.().catch(() => {});
+  };
+  const stopBeacon = () => {
+    setBeacon(false);
+    if (document.fullscreenElement) document.exitFullscreen?.().catch(() => {});
+  };
+
   if (error) return <div className="emergency-card"><p className="error-text">{error}</p></div>;
   if (!info) return <p>Loading...</p>;
 
@@ -33,6 +47,20 @@ export default function EmergencyPage() {
       <div className="emergency-row">
         <a className="call-button solo" href={`tel:${info.emergencyContact.number}`}>Call Emergency Contact</a>
       </div>
+      <div className="emergency-row">
+        <button type="button" className="beacon-button" onClick={startBeacon}>
+          Beacon Mode - attract help
+        </button>
+      </div>
+
+      {beacon && (
+        <div className="beacon-overlay" onClick={stopBeacon} role="button" aria-label="Exit beacon mode">
+          <span className="beacon-label">NEEDS HELP</span>
+          <span className="beacon-group">{info.bloodGroup}</span>
+          <span className="beacon-name">{info.name}</span>
+          <span className="beacon-exit">tap anywhere to exit</span>
+        </div>
+      )}
     </div>
   );
 }
