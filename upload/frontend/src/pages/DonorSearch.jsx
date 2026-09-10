@@ -27,49 +27,6 @@ export default function DonorSearch() {
   const [donors, setDonors] = useState([]);
   const [loading, setLoading] = useState(false);
   const [myGroup, setMyGroup] = useState(''); // compatibility checker selection
-  const [listening, setListening] = useState(false);
-  const [heard, setHeard] = useState('');
-
-  // ---- VOICE SEARCH ----
-  // Uses the browser's built-in speech recognition (Chrome/Edge).
-  // Say e.g. "O positive donors in Surat" - we pull out the blood group
-  // and the city and run the normal search with them.
-  const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
-
-  const parseSpeech = (text) => {
-    const t = ' ' + text.toLowerCase().replace(/[.,]/g, '') + ' ';
-    let group = '';
-    const abo = t.match(/\b(ab|a|b|o)\s*(positive|negative|plus|minus|\+|-)/);
-    if (abo) {
-      const sign = ['positive', 'plus', '+'].includes(abo[2]) ? '+' : '-';
-      group = abo[1].toUpperCase() + sign;
-    }
-    let city = '';
-    const inMatch = t.match(/\b(?:in|from|at|near)\s+([a-z]+)/);
-    if (inMatch) city = inMatch[1];
-    return { group, city };
-  };
-
-  const startVoice = () => {
-    if (!SpeechRec) { setHeard('Voice search needs Chrome or Edge.'); return; }
-    const rec = new SpeechRec();
-    rec.lang = 'en-IN';
-    rec.interimResults = false;
-    setListening(true);
-    setHeard('');
-    rec.onresult = (e) => {
-      const text = e.results[0][0].transcript;
-      setHeard(`"${text}"`);
-      const { group, city } = parseSpeech(text);
-      if (group) setBloodGroup(group);
-      if (city) setLocation(city);
-      if (!group && !city) setHeard(`"${text}" - try saying a blood group like "B positive in Surat"`);
-    };
-    rec.onend = () => setListening(false);
-    rec.onerror = () => { setListening(false); setHeard('Could not hear you - try again.'); };
-    rec.start();
-  };
-
   useEffect(() => {
     setLoading(true);
     const params = {};
@@ -98,16 +55,7 @@ export default function DonorSearch() {
           value={location}
           onChange={(e) => setLocation(e.target.value)}
         />
-        <button
-          type="button"
-          className={`mic-button ${listening ? 'listening' : ''}`}
-          onClick={startVoice}
-          title='Voice search - say e.g. "O positive donors in Surat"'
-        >
-          {listening ? 'Listening...' : 'Speak'}
-        </button>
       </div>
-      {heard && <p className="voice-heard">{heard}</p>}
 
       {/* ---- BLOOD COMPATIBILITY CHECKER ---- */}
       <div className="compat-card">

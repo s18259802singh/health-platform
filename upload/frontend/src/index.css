@@ -876,30 +876,9 @@ textarea { resize: vertical; line-height: 1.65; }
   animation: alarm 1.8s ease-out infinite;
 }
 
-/* ---------- Voice search ---------- */
-
-.mic-button {
-  background: var(--panel);
-  border: 1px solid var(--line-strong);
-  border-radius: 999px;
-  color: var(--ivory);
-  font-weight: 700;
-  font-size: 0.88rem;
-  padding: 10px 20px;
-  white-space: nowrap;
-}
-.mic-button:hover { border-color: var(--pulse); }
-.mic-button.listening {
-  background: linear-gradient(135deg, #ff5b6b, var(--pulse-deep));
-  border-color: transparent;
-  color: #fff;
-  animation: alarm 1.4s ease-out infinite;
-}
-.voice-heard { color: var(--dim); font-size: 0.88rem; margin: -8px 0 16px; }
-
 /* ---------- Emergency page actions ---------- */
 
-.speak-button, .call-button {
+.call-button {
   flex: 1;
   text-align: center;
   padding: 13px 10px;
@@ -909,18 +888,58 @@ textarea { resize: vertical; line-height: 1.65; }
   text-decoration: none;
   border: none;
 }
-.speak-button {
+.call-button {
   background: linear-gradient(135deg, #ff5b6b, var(--pulse-deep));
   color: #fff;
   box-shadow: 0 4px 18px var(--glow);
+  border: none;
 }
-.speak-button.speaking { animation: alarm 1.6s ease-out infinite; }
-.call-button {
-  border: 1.5px solid var(--pulse);
-  color: #ffb0b8;
-}
+.call-button.solo { flex: 1; }
 .call-button:hover { background: rgba(255, 59, 78, 0.12); }
 
 @media (max-width: 880px) {
   .supply-row { grid-template-columns: repeat(4, 1fr); }
+}
+
+/* ---------- Live Donor Map ---------- */
+
+.map-card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  padding: 14px;
+  margin-bottom: 34px;
+}
+.gujarat-map { width: 100%; height: auto; display: block; }
+.map-outline {
+  fill: rgba(255, 235, 238, 0.04);
+  stroke: rgba(255, 180, 190, 0.35);
+  stroke-width: 2;
+  stroke-linejoin: round;
+}
+.map-dot {
+  fill: #ff3b4e;
+  opacity: 0.9;
+  filter: drop-shadow(0 0 6px rgba(255, 59, 78, 0.7));
+}
+.map-ring {
+  fill: none;
+  stroke: #ff3b4e;
+  stroke-width: 1.5;
+  opacity: 0;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: map-pulse 3s ease-out infinite;
+}
+@keyframes map-pulse {
+  0%   { opacity: 0.8; transform: scale(1); }
+  100% { opacity: 0;   transform: scale(2.4); }
+}
+.map-label {
+  fill: #e8cdd1;
+  font-size: 13px;
+  font-weight: 600;
+  paint-order: stroke;
+  stroke: rgba(19, 10, 13, 0.85);
+  stroke-width: 3px;
 }

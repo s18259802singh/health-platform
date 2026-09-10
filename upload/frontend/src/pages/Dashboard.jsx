@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../api/axios';
+import DonorMap from '../components/DonorMap';
 import { useAuth } from '../context/AuthContext';
 
 const ACTIONS = [
@@ -87,6 +88,8 @@ export default function Dashboard() {
           </div>
         </>
       )}
+
+      <DonorMap />
 
       <div className="section-header">
         <h3>Our Impact</h3>
