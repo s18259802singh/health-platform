@@ -1,8 +1,6 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
-import { LanguageProvider } from './i18n';
 import Navbar from './components/Navbar';
-import DemoTour from './components/DemoTour';
 import BottomNav from './components/BottomNav';
 import ProtectedRoute from './components/ProtectedRoute';
 
@@ -20,11 +18,9 @@ import DonationRequests from './pages/DonationRequests';
 
 export default function App() {
   return (
-    <LanguageProvider>
     <AuthProvider>
       <BrowserRouter>
         <Navbar />
-        <DemoTour />
         <main className="container">
           <Routes>
             {/* Public routes - no login needed */}
@@ -47,6 +43,5 @@ export default function App() {
         <BottomNav />
       </BrowserRouter>
     </AuthProvider>
-    </LanguageProvider>
   );
 }

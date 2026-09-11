@@ -27,8 +27,7 @@ const getProfile = async (req, res) => {
 // PUT /api/profile
 const updateProfile = async (req, res) => {
   try {
-    const { name, phone, bloodGroup, allergies, emergencyContactName, emergencyContactNumber, isDonor, location,
-            heightCm, weightKg, medicalConditions, medications, lastDonationDate } = req.body;
+    const { name, phone, bloodGroup, allergies, emergencyContactName, emergencyContactNumber, isDonor, location } = req.body;
 
     const user = await User.findById(req.user.id);
     if (!user) return res.status(404).json({ message: 'User not found' });
@@ -39,11 +38,6 @@ const updateProfile = async (req, res) => {
     if (allergies !== undefined) user.allergies = allergies;
     if (location !== undefined) user.location = location;
     if (isDonor !== undefined) user.isDonor = isDonor;
-    if (heightCm !== undefined) user.heightCm = heightCm === '' ? null : Number(heightCm);
-    if (weightKg !== undefined) user.weightKg = weightKg === '' ? null : Number(weightKg);
-    if (medicalConditions !== undefined) user.medicalConditions = medicalConditions;
-    if (medications !== undefined) user.medications = medications;
-    if (lastDonationDate !== undefined) user.lastDonationDate = lastDonationDate ? new Date(lastDonationDate) : null;
     if (emergencyContactName) user.emergencyContact.name = emergencyContactName;
     if (emergencyContactNumber) user.emergencyContact.number = emergencyContactNumber;
 

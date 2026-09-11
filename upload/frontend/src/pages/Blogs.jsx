@@ -7,14 +7,12 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../api/axios';
-import { useLang } from '../i18n';
 import { useAuth } from '../context/AuthContext';
 
 const emptyForm = { title: '', excerpt: '', content: '', imageUrl: '', author: 'Admin' };
 const MAX_IMAGE_MB = 2;
 
 export default function Blogs() {
-  const { t } = useLang();
   const { user } = useAuth();
   const [blogs, setBlogs] = useState([]);
   const [form, setForm] = useState(emptyForm);
@@ -78,7 +76,7 @@ export default function Blogs() {
 
   return (
     <div className="page">
-      <h2>{t('blogTitle')}</h2>
+      <h2>Health Blog</h2>
       <p className="app-subtext">Articles on blood donation, first aid and staying healthy.</p>
       {message && <p className="hint">{message}</p>}
 

@@ -2,13 +2,11 @@
 
 import { useEffect, useState } from 'react';
 import api from '../api/axios';
-import { useLang } from '../i18n';
 import { useAuth } from '../context/AuthContext';
 
 const empty = { name: '', address: '', contactNumber: '', type: 'hospital' };
 
 export default function Hospitals() {
-  const { t } = useLang();
   const { user } = useAuth();
   const [hospitals, setHospitals] = useState([]);
   const [search, setSearch] = useState('');
@@ -52,7 +50,7 @@ export default function Hospitals() {
 
   return (
     <div className="page">
-      <h2>{t('hospitalsTitle')}</h2>
+      <h2>Hospitals & Blood Banks</h2>
       <input
         className="search-bar"
         placeholder="Search by name or address..."
@@ -68,14 +66,7 @@ export default function Hospitals() {
           {hospitals.map((h) => (
             <tr key={h._id}>
               <td>{h.name}</td>
-              <td>
-                {h.address}{' '}
-                <a
-                  className="dir-link"
-                  href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(h.name + ', ' + h.address)}`}
-                  target="_blank" rel="noreferrer"
-                >Directions →</a>
-              </td>
+              <td>{h.address}</td>
               <td>{h.contactNumber}</td>
               <td>{h.type === 'blood_bank' ? 'Blood Bank' : 'Hospital'}</td>
               {user?.role === 'admin' && (
