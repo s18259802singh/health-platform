@@ -51,10 +51,6 @@ const STEPS = [
     text: 'Set your blood group, allergies and emergency contact once here. LifeLink turns it into a QR code you can save or print - anyone who scans it sees only what you\'ve chosen to share, no login required.',
   },
   {
-    title: 'Three Languages',
-    text: 'Use the EN / हिं / ગુ switch in the menu to read LifeLink in English, Hindi or Gujarati - your choice is remembered for next time.',
-  },
-  {
     title: "That's the tour",
     text: "You can reopen this any time from the Help button in the menu, or the ? button in the corner. Now go ahead and explore.",
   },

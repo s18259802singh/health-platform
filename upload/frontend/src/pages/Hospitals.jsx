@@ -60,7 +60,7 @@ export default function Hospitals() {
 
       <table className="data-table">
         <thead>
-          <tr><th>Name</th><th>Address</th><th>Contact</th><th>Type</th>{user?.role === 'admin' && <th>Actions</th>}</tr>
+          <tr><th>Name</th><th>Address</th><th>Contact</th><th>Type</th><th>Directions</th>{user?.role === 'admin' && <th>Actions</th>}</tr>
         </thead>
         <tbody>
           {hospitals.map((h) => (
@@ -69,6 +69,16 @@ export default function Hospitals() {
               <td>{h.address}</td>
               <td>{h.contactNumber}</td>
               <td>{h.type === 'blood_bank' ? 'Blood Bank' : 'Hospital'}</td>
+              <td>
+                <a
+                  href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(h.address)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="small-button"
+                >
+                  Directions →
+                </a>
+              </td>
               {user?.role === 'admin' && (
                 <td>
                   <button onClick={() => startEdit(h)} className="small-button">Edit</button>

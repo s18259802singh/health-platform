@@ -715,37 +715,8 @@ textarea { resize: vertical; line-height: 1.65; }
 
 .bottom-nav { display: none; }
 
-/* ---------- Language toggle (in the nav menu) ---------- */
+/* ---------- Help link (in the nav menu) ---------- */
 
-.nav-links-lang {
-  display: flex;
-  justify-content: center;
-  padding: 4px 4px 10px;
-  margin-bottom: 6px;
-  border-bottom: 1px solid var(--line);
-}
-.lang-toggle {
-  display: inline-flex;
-  gap: 3px;
-  background: var(--night);
-  border: 1px solid var(--line-strong);
-  border-radius: 999px;
-  padding: 3px;
-}
-.lang-toggle button {
-  border: none;
-  background: none;
-  border-radius: 999px;
-  padding: 6px 12px;
-  font-size: 0.8rem;
-  font-weight: 700;
-  color: var(--dim);
-}
-.lang-toggle button.active {
-  background: linear-gradient(135deg, #ff5b6b, var(--pulse-deep));
-  color: #fff;
-  box-shadow: 0 2px 10px var(--glow);
-}
 .help-link { color: var(--pulse-deep) !important; font-weight: 700 !important; }
 
 /* ---------- Help FAB - reopens the Guided Tour from anywhere ---------- */

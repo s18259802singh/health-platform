@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTour } from '../context/TourContext';
-import { useLang, LanguageToggle } from '../i18n';
+import { useLang } from '../i18n';
 
 export default function Navbar() {
   const { user, logout } = useAuth();
@@ -60,9 +60,6 @@ export default function Navbar() {
         </button>
 
         <div className={`nav-links ${open ? 'open' : ''}`}>
-          <div className="nav-links-lang">
-            <LanguageToggle />
-          </div>
           {user ? (
             <>
               <Link to="/dashboard" onClick={closeMenu}>{t('dashboard')}</Link>
