@@ -37,7 +37,7 @@ const DICT = {
     apptTitle: 'Book a Doctor Appointment', profileTitle: 'My Profile',
     canDonate: 'I can donate', poster: 'Poster', markFulfilled: 'Mark Fulfilled',
     directions: 'Directions →', show: 'Show', hide: 'Hide',
-    liveDemo: 'Live Demo',
+    liveDemo: 'Live Demo', help: 'Help',
   },
   hi: {
     dashboard: 'डैशबोर्ड', findDonors: 'रक्तदाता खोजें', hospitals: 'अस्पताल',
@@ -65,7 +65,7 @@ const DICT = {
     apptTitle: 'डॉक्टर अपॉइंटमेंट बुक करें', profileTitle: 'मेरी प्रोफ़ाइल',
     canDonate: 'मैं रक्तदान कर सकता/सकती हूँ', poster: 'पोस्टर', markFulfilled: 'पूर्ण करें',
     directions: 'रास्ता →', show: 'दिखाएँ', hide: 'छिपाएँ',
-    liveDemo: 'लाइव डेमो',
+    liveDemo: 'लाइव डेमो', help: 'सहायता',
   },
   gu: {
     dashboard: 'ડેશબોર્ડ', findDonors: 'રક્તદાતા શોધો', hospitals: 'હોસ્પિટલો',
@@ -93,7 +93,7 @@ const DICT = {
     apptTitle: 'ડૉક્ટર એપોઇન્ટમેન્ટ બુક કરો', profileTitle: 'મારી પ્રોફાઇલ',
     canDonate: 'હું રક્તદાન કરી શકું છું', poster: 'પોસ્ટર', markFulfilled: 'પૂર્ણ કરો',
     directions: 'રસ્તો →', show: 'બતાવો', hide: 'છુપાવો',
-    liveDemo: 'લાઈવ ડેમો',
+    liveDemo: 'લાઈવ ડેમો', help: 'મદદ',
   },
 };
 

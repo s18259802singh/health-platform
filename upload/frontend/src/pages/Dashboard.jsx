@@ -1,21 +1,37 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../api/axios';
 import { useAuth } from '../context/AuthContext';
-
-const ACTIONS = [
-  { to: '/donors', label: 'Find a donor' },
-  { to: '/requests', label: 'Blood requests' },
-  { to: '/appointments', label: 'Book a doctor' },
-  { to: '/hospitals', label: 'Hospitals & blood banks' },
-  { to: '/blogs', label: 'Health blog' },
-  { to: '/profile', label: 'My profile & QR' },
-];
+import { useTour, hasSeenTour, markTourSeen } from '../context/TourContext';
+import { useLang } from '../i18n';
 
 export default function Dashboard() {
   const { user } = useAuth();
+  const { openTour } = useTour();
+  const { t } = useLang();
   const [seeding, setSeeding] = useState(false);
   const [seedMessage, setSeedMessage] = useState('');
+
+  const ACTIONS = [
+    { to: '/donors', label: t('findDonor') },
+    { to: '/requests', label: t('bloodRequests') },
+    { to: '/appointments', label: t('bookDoctor') },
+    { to: '/hospitals', label: t('hospitalsBanks') },
+    { to: '/blogs', label: t('healthBlog') },
+    { to: '/profile', label: t('profileQr') },
+  ];
+
+  // First-time-ever visit to the dashboard: open the guided tour automatically,
+  // once per account. Every visit after that, the tour stays closed until the
+  // user asks for it again via the Help button or the floating "?" button.
+  useEffect(() => {
+    if (!user) return;
+    if (!hasSeenTour(user._id || user.id)) {
+      markTourSeen(user._id || user.id);
+      const timer = setTimeout(() => openTour(0), 500);
+      return () => clearTimeout(timer);
+    }
+  }, [user]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // One-click sample data loader (admin only) - replaces `npm run seed`.
   const handleLoadSampleData = async () => {
@@ -34,7 +50,7 @@ export default function Dashboard() {
 
   return (
     <div className="page app-dashboard">
-      <p className="app-eyebrow">Signed in</p>
+      <p className="app-eyebrow">{t('signedIn')}</p>
       <h2 className="app-heading">{user?.name}</h2>
       <p className="app-subtext">
         {user?.role === 'admin' ? 'Administrator account' : 'One donation can save up to three lives.'}
@@ -50,32 +66,32 @@ export default function Dashboard() {
 
       <div className="banner-card">
         <div className="banner-text">
-          <span className="banner-tag">Give blood</span>
-          <h3>Fifteen minutes of your day can save someone's life.</h3>
-          <Link to="/appointments" className="banner-button">Book an appointment</Link>
+          <span className="banner-tag">{t('giveBlood')}</span>
+          <h3>{t('heroLine')}</h3>
+          <Link to="/appointments" className="banner-button">{t('bookAppointment')}</Link>
         </div>
       </div>
 
       <div className="section-header">
-        <h3>Our Impact</h3>
+        <h3>{t('ourImpact')}</h3>
       </div>
       <div className="stats-row">
         <div className="stat-box">
           <strong>2,400+</strong>
-          <span>Registered Donors</span>
+          <span>{t('registeredDonors')}</span>
         </div>
         <div className="stat-box">
           <strong>850+</strong>
-          <span>Lives Saved</span>
+          <span>{t('livesSaved')}</span>
         </div>
         <div className="stat-box">
           <strong>60+</strong>
-          <span>Partner Hospitals</span>
+          <span>{t('partnerHospitals')}</span>
         </div>
       </div>
 
       <div className="section-header">
-        <h3>Quick Links</h3>
+        <h3>{t('quickLinks')}</h3>
       </div>
       <div className="info-card">
         <div className="info-card-icon" aria-hidden="true"></div>
