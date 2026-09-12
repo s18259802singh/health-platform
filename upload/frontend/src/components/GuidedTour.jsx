@@ -18,7 +18,7 @@ const STEPS = [
   {
     to: '/dashboard',
     title: 'Your Dashboard',
-    text: 'Quick-action shortcuts to every part of the app, plus a live look at how many registered donors, past donations and partner hospitals are on LifeLink.',
+    text: 'Quick-action shortcuts to every part of the app, a Live Blood Supply monitor showing real donor counts against open requests per blood group, and a live donor map of Gujarat.',
   },
   {
     to: '/donors',

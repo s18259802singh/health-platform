@@ -901,6 +901,115 @@ textarea { resize: vertical; line-height: 1.65; }
 }
 .compat-active-banner .link-button { color: var(--mint); font-weight: 700; padding: 0; text-decoration: underline; }
 
+/* ---------- Live Blood Supply Monitor (Dashboard) ---------- */
+
+.supply-caption { color: var(--dim); font-size: 0.87rem; margin: -6px 0 18px; max-width: 62ch; }
+
+.supply-row {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 10px;
+  margin-bottom: 34px;
+}
+.supply-bag {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 7px;
+  text-align: center;
+}
+.supply-bag-shape {
+  position: relative;
+  width: 100%;
+  max-width: 60px;
+  height: 84px;
+  background: var(--night-2);
+  border: 1px solid var(--line-strong);
+  border-radius: 13px 13px 24px 24px;
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+.supply-bag-shape::before {
+  content: '';
+  position: absolute;
+  top: -6px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 16px;
+  height: 8px;
+  background: var(--panel);
+  border: 1px solid var(--line-strong);
+  border-bottom: none;
+  border-radius: 4px 4px 0 0;
+}
+.supply-bag-fill {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(180deg, #ff5b6b, var(--pulse-deep));
+  transition: height 0.6s ease;
+}
+.supply-bag.shortage .supply-bag-shape { border-color: var(--pulse); animation: bag-shortage-pulse 1.6s ease-in-out infinite; }
+@keyframes bag-shortage-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 var(--glow); }
+  50%      { box-shadow: 0 0 0 6px rgba(224, 41, 63, 0.16); }
+}
+.supply-bag-group { font-weight: 800; font-size: 0.92rem; }
+.supply-bag-count { color: var(--dim); font-size: 0.76rem; }
+.supply-bag-needed {
+  font-size: 0.7rem;
+  font-weight: 800;
+  color: var(--pulse-deep);
+  background: rgba(224, 41, 63, 0.1);
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+
+/* ---------- Live Donor Map (Dashboard) ---------- */
+
+.map-card {
+  background: var(--panel);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-lg);
+  padding: 14px;
+  margin-bottom: 34px;
+  box-shadow: var(--shadow-sm);
+}
+.gujarat-map { width: 100%; height: auto; display: block; }
+.map-outline { fill: var(--night-2); stroke: var(--line-strong); stroke-width: 1.5; }
+.map-dot { fill: var(--pulse-deep); }
+.map-ring {
+  fill: none;
+  stroke: var(--pulse);
+  stroke-width: 1.5;
+  opacity: 0.55;
+  animation: map-ring-pulse 2.6s ease-out infinite;
+  transform-origin: center;
+}
+@keyframes map-ring-pulse {
+  0%   { transform: scale(1); opacity: 0.55; }
+  100% { transform: scale(1.9); opacity: 0; }
+}
+.map-label {
+  font-size: 9px;
+  font-weight: 700;
+  fill: var(--ivory);
+  font-family: 'Manrope', system-ui, sans-serif;
+}
+
+/* ---------- Contact & share actions (Blood Requests) ---------- */
+
+.contact-actions, .request-row-actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.small-button.whatsapp { border-color: #25d366; color: #128c3e; }
+.small-button.whatsapp:hover { background: rgba(37, 211, 102, 0.08); }
+.small-button.share { border-color: #25d366; color: #128c3e; }
+.small-button.share:hover { background: rgba(37, 211, 102, 0.08); }
+
 /* ---------- Responsive ---------- */
 
 @media (max-width: 880px) {
@@ -955,6 +1064,7 @@ textarea { resize: vertical; line-height: 1.65; }
   .help-fab { bottom: 84px; right: 16px; width: 48px; height: 48px; font-size: 1.2rem; }
   .compat-grid { grid-template-columns: repeat(4, 1fr); }
   .compat-card { padding: 18px; }
+  .supply-row { grid-template-columns: repeat(4, 1fr); row-gap: 20px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

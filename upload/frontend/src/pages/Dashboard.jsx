@@ -4,6 +4,8 @@ import api from '../api/axios';
 import { useAuth } from '../context/AuthContext';
 import { useTour, hasSeenTour, markTourSeen } from '../context/TourContext';
 import { useLang } from '../i18n';
+import BloodSupplyMonitor from '../components/BloodSupplyMonitor';
+import DonorMap from '../components/DonorMap';
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -72,6 +74,8 @@ export default function Dashboard() {
         </div>
       </div>
 
+      <BloodSupplyMonitor />
+
       <div className="section-header">
         <h3>{t('ourImpact')}</h3>
       </div>
@@ -109,6 +113,8 @@ export default function Dashboard() {
         </div>
         <Link to="/donors" className="small-button">Open</Link>
       </div>
+
+      <DonorMap />
 
       {user?.role === 'admin' && (
         <>
