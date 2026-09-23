@@ -18,6 +18,11 @@ import EmergencyPage from './pages/EmergencyPage';
 import Blogs from './pages/Blogs';
 import BlogPost from './pages/BlogPost';
 import DonationRequests from './pages/DonationRequests';
+import AdminLayout from './components/AdminLayout';
+import AdminDashboard from './pages/admin/AdminDashboard';
+import AdminHospitals from './pages/admin/AdminHospitals';
+import AdminBlogs from './pages/admin/AdminBlogs';
+import AdminUsers from './pages/admin/AdminUsers';
 
 export default function App() {
   return (
@@ -42,6 +47,14 @@ export default function App() {
               <Route path="/hospitals" element={<ProtectedRoute><Hospitals /></ProtectedRoute>} />
               <Route path="/appointments" element={<ProtectedRoute><Appointments /></ProtectedRoute>} />
               <Route path="/requests" element={<ProtectedRoute><DonationRequests /></ProtectedRoute>} />
+
+              {/* Admin panel - its own layout with a sidebar; admins only */}
+              <Route path="/admin" element={<ProtectedRoute adminOnly><AdminLayout /></ProtectedRoute>}>
+                <Route index element={<AdminDashboard />} />
+                <Route path="hospitals" element={<AdminHospitals />} />
+                <Route path="blogs" element={<AdminBlogs />} />
+                <Route path="users" element={<AdminUsers />} />
+              </Route>
             </Routes>
           </main>
           <BottomNav />

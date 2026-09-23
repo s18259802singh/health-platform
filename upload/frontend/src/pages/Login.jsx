@@ -14,8 +14,8 @@ export default function Login() {
     e.preventDefault();
     setError('');
     try {
-      await login(email, password);
-      navigate('/dashboard');
+      const loggedIn = await login(email, password);
+      navigate(loggedIn?.role === 'admin' ? '/admin' : '/dashboard');
     } catch (err) {
       setError(err.response?.data?.message || 'Login failed. Please try again.');
     }

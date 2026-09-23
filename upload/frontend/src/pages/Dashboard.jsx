@@ -1,18 +1,18 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import api from '../api/axios';
 import { useAuth } from '../context/AuthContext';
 import { useTour, hasSeenTour, markTourSeen } from '../context/TourContext';
 import { useLang } from '../i18n';
 import BloodSupplyMonitor from '../components/BloodSupplyMonitor';
 import DonorMap from '../components/DonorMap';
 
+// USER dashboard. All administration (hospitals, blog, users, sample data)
+// now lives in the separate Admin Panel at /admin.
+
 export default function Dashboard() {
   const { user } = useAuth();
   const { openTour } = useTour();
   const { t } = useLang();
-  const [seeding, setSeeding] = useState(false);
-  const [seedMessage, setSeedMessage] = useState('');
 
   const ACTIONS = [
     { to: '/donors', label: t('findDonor') },
@@ -35,27 +35,14 @@ export default function Dashboard() {
     }
   }, [user]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // One-click sample data loader (admin only) - replaces `npm run seed`.
-  const handleLoadSampleData = async () => {
-    if (!confirm('This will RESET all sample data (donors, hospitals, doctors, blogs, appointments, requests). Your admin account stays. Continue?')) return;
-    setSeeding(true);
-    setSeedMessage('Loading sample data... this can take up to a minute.');
-    try {
-      const { data } = await api.post('/admin/seed');
-      setSeedMessage(`Done! Loaded ${data.donors} donors, ${data.hospitals} hospitals, ${data.doctors} doctors and ${data.blogs} blog articles.`);
-    } catch (err) {
-      setSeedMessage(err.response?.data?.message || 'Loading sample data failed.');
-    } finally {
-      setSeeding(false);
-    }
-  };
-
   return (
     <div className="page app-dashboard">
       <p className="app-eyebrow">{t('signedIn')}</p>
       <h2 className="app-heading">{user?.name}</h2>
       <p className="app-subtext">
-        {user?.role === 'admin' ? 'Administrator account' : 'One donation can save up to three lives.'}
+        {user?.role === 'admin'
+          ? 'Administrator - open the Admin Panel from the menu to manage the platform.'
+          : 'One donation can save up to three lives.'}
       </p>
 
       <div className="action-row">
@@ -64,6 +51,9 @@ export default function Dashboard() {
             {a.label}
           </Link>
         ))}
+        {user?.role === 'admin' && (
+          <Link to="/admin" className="action-badge admin-nav-link">Admin Panel</Link>
+        )}
       </div>
 
       <div className="banner-card">
@@ -115,31 +105,6 @@ export default function Dashboard() {
       </div>
 
       <DonorMap />
-
-      {user?.role === 'admin' && (
-        <>
-          <div className="section-header"><h3>Admin</h3></div>
-          <div className="info-card">
-            <div className="info-card-icon" aria-hidden="true"></div>
-            <div>
-              <strong>Manage hospitals</strong>
-              <p>Add, edit, or remove hospital listings.</p>
-            </div>
-            <Link to="/hospitals" className="small-button">Manage</Link>
-          </div>
-          <div className="info-card">
-            <div className="info-card-icon" aria-hidden="true"></div>
-            <div>
-              <strong>Load sample data</strong>
-              <p>Fills the app with 150 donors, 110 hospitals, doctors and blog articles. Resets existing sample data.</p>
-              {seedMessage && <p className="hint">{seedMessage}</p>}
-            </div>
-            <button className="small-button" onClick={handleLoadSampleData} disabled={seeding}>
-              {seeding ? 'Loading...' : 'Load'}
-            </button>
-          </div>
-        </>
-      )}
     </div>
   );
 }

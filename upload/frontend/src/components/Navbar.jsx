@@ -69,6 +69,9 @@ export default function Navbar() {
               <Link to="/requests" onClick={closeMenu}>{t('bloodRequests')}</Link>
               <Link to="/blogs" onClick={closeMenu}>{t('blog')}</Link>
               <Link to="/profile" onClick={closeMenu}>{t('myProfile')}</Link>
+            {user?.role === 'admin' && (
+              <Link to="/admin" onClick={closeMenu} className="admin-nav-link">Admin Panel</Link>
+            )}
               <button onClick={handleHelp} className="link-button help-link">{t('help')} ?</button>
               <button onClick={handleLogout} className="link-button">{t('logout')}</button>
             </>
