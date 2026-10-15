@@ -2,9 +2,10 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import adminApi from '../../api/adminApi';
+import { usePagination } from '../../components/Pagination';
 import { ConfirmDialog } from '../components/Modal';
 import { useToast } from '../components/Toast';
-import { PageHeader, Card, Toolbar, SearchInput, Badge, BloodTag, Spinner, EmptyState, TableWrap, StatCard, formatDate } from '../components/ui';
+import { Pagination, PageHeader, Card, Toolbar, SearchInput, Badge, BloodTag, Spinner, EmptyState, TableWrap, StatCard, formatDate } from '../components/ui';
 import { IconTrash, IconCheck, IconDrop, IconRefresh, IconClose } from '../components/Icons';
 
 const GROUPS = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
@@ -66,6 +67,9 @@ export default function Requests() {
   const fulfilled = items.filter((r) => r.status === 'fulfilled').length;
   const cancelled = items.filter((r) => r.status === 'cancelled').length;
 
+  // Admin tables page at 12 rows so the console stays scannable.
+  const pager = usePagination(items, 12);
+
   return (
     <>
       <PageHeader title="Blood requests" subtitle="Every request posted by members, oldest status first.">
@@ -96,11 +100,12 @@ export default function Requests() {
         {loading ? <Spinner /> : items.length === 0 ? (
           <EmptyState title="No requests match" message="Nothing to moderate with these filters." />
         ) : (
+          <>
           <TableWrap>
             <table className="adm-table">
               <thead><tr><th>Group</th><th>Location</th><th>Requested by</th><th>Contact</th><th>Posted</th><th>Status</th><th aria-label="Actions" /></tr></thead>
               <tbody>
-                {items.map((r) => (
+                {pager.slice.map((r) => (
                   <tr key={r._id} className={busyId === r._id ? 'busy' : ''}>
                     <td><BloodTag group={r.bloodGroupNeeded} /></td>
                     <td className="adm-strong">{r.location}</td>
@@ -129,6 +134,8 @@ export default function Requests() {
               </tbody>
             </table>
           </TableWrap>
+        <Pagination page={pager.page} pages={pager.pages} onChange={pager.setPage} />
+        </>
         )}
       </Card>
 

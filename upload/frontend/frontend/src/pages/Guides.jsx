@@ -24,16 +24,21 @@ export default function Guides() {
 
   return (
     <div className="page">
-      <p className="app-eyebrow">Guides</p>
-      <h2 className="page-title">Everything a donor needs to know</h2>
-      <p className="app-subtext">
-        {data.total} short guides, written plainly. Criteria shown are the national
-        standard — the doctor at your centre confirms eligibility on the day.
-      </p>
+      <div className="page-head">
+        <div>
+          <p className="app-eyebrow">Guides</p>
+          <h2>Everything a donor needs to know</h2>
+          <p>
+            {data.total} short guides, written plainly. Criteria shown are the
+            national standard — the doctor at your centre confirms eligibility
+            on the day.
+          </p>
+        </div>
+      </div>
 
-      <div className="guide-cat-grid">
-        {data.categories.filter((c) => c.items.length > 0).map((c) => (
-          <section className="guide-cat" key={c.category}>
+      <div className="bento">
+        {data.categories.filter((c) => c.items.length > 0).map((c, i) => (
+          <section className={`tile t-6 ${['rose', 'sand', 'mint', 'sky', 'slate'][i % 5]} guide-cat`} key={c.category}>
             <header>
               <h3>{META[c.category]?.title || c.category}</h3>
               <span className="guide-count">{c.items.length} guide{c.items.length === 1 ? '' : 's'}</span>

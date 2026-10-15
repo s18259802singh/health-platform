@@ -5,6 +5,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../api/axios';
+import Pagination, { usePagination } from '../components/Pagination';
 
 const GROUPS = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
 
@@ -27,23 +28,40 @@ export default function Leaderboard() {
   );
 
   const podium = data?.entries?.slice(0, 3) || [];
-  const rest = data?.entries?.slice(3) || [];
+  const pager = usePagination(data?.entries?.slice(3) || [], 10);
+  const rest = pager.slice;
 
   return (
     <div className="page">
-      <p className="app-eyebrow">Recognition</p>
-      <h2 className="page-title">Donor leaderboard</h2>
-      <p className="app-subtext">
-        Every donation here is a verified record confirmed by a blood centre.
-        Names are shortened — donors are recognised, never exposed.
-      </p>
+      <div className="page-head">
+        <div>
+          <p className="app-eyebrow">Recognition</p>
+          <h2>Donor leaderboard</h2>
+          <p>
+            Every donation here is a verified record confirmed by a blood centre.
+            Names are shortened — donors are recognised, never exposed.
+          </p>
+        </div>
+      </div>
 
       {data?.totals && (
-        <div className="board-totals">
-          <div><strong>{data.totals.donations ?? 0}</strong><span>donations recorded</span></div>
-          <div><strong>{data.totals.donors ?? 0}</strong><span>active donors</span></div>
-          <div><strong>{data.totals.units ?? 0}</strong><span>units given</span></div>
-          <div className="accent"><strong>{data.totals.livesTouched ?? 0}</strong><span>people potentially helped</span></div>
+        <div className="bento">
+          <div className="tile slate t-3 center pad-sm">
+            <span className="tile-label">Donations recorded</span>
+            <strong className="tile-value sm">{data.totals.donations ?? 0}</strong>
+          </div>
+          <div className="tile sand t-3 center pad-sm">
+            <span className="tile-label">Active donors</span>
+            <strong className="tile-value sm">{data.totals.donors ?? 0}</strong>
+          </div>
+          <div className="tile mint t-3 center pad-sm">
+            <span className="tile-label">Units given</span>
+            <strong className="tile-value sm">{data.totals.units ?? 0}</strong>
+          </div>
+          <div className="tile red t-3 center pad-sm">
+            <span className="tile-label">People helped</span>
+            <strong className="tile-value sm">{data.totals.livesTouched ?? 0}</strong>
+          </div>
         </div>
       )}
 

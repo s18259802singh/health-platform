@@ -2,9 +2,10 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import adminApi from '../../api/adminApi';
+import { usePagination } from '../../components/Pagination';
 import Modal, { ConfirmDialog } from '../components/Modal';
 import { useToast } from '../components/Toast';
-import { PageHeader, Card, Toolbar, SearchInput, Badge, Spinner, EmptyState, TableWrap, formatDate } from '../components/ui';
+import { Pagination, PageHeader, Card, Toolbar, SearchInput, Badge, Spinner, EmptyState, TableWrap, formatDate } from '../components/ui';
 import { IconPlus, IconEdit, IconTrash, IconExternal } from '../components/Icons';
 
 const EMPTY = { name: '', role: 'donor', bloodGroup: '', city: '', headline: '', body: '', featured: false };
@@ -92,6 +93,9 @@ export default function Stories() {
 
   const words = form.body.trim() ? form.body.trim().split(/\s+/).length : 0;
 
+  // Admin tables page at 12 rows so the console stays scannable.
+  const pager = usePagination(items, 12);
+
   return (
     <>
       <PageHeader title="Donor stories" subtitle={`${items.length} published · ${items.filter((s) => s.featured).length} featured on the homepage.`}>
@@ -106,11 +110,12 @@ export default function Stories() {
         {loading ? <Spinner /> : items.length === 0 ? (
           <EmptyState title="No stories yet" message="Stories are what give the public site its warmth. Add the first one." />
         ) : (
+          <>
           <TableWrap>
             <table className="adm-table">
               <thead><tr><th>Story</th><th>Person</th><th>Role</th><th>Featured</th><th>Added</th><th aria-label="Actions" /></tr></thead>
               <tbody>
-                {items.map((s) => (
+                {pager.slice.map((s) => (
                   <tr key={s._id}>
                     <td className="adm-strong">{s.headline}</td>
                     <td>
@@ -134,6 +139,8 @@ export default function Stories() {
               </tbody>
             </table>
           </TableWrap>
+        <Pagination page={pager.page} pages={pager.pages} onChange={pager.setPage} />
+        </>
         )}
       </Card>
 

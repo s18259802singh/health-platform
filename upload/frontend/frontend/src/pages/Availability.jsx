@@ -7,6 +7,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import api from '../api/axios';
+import Pagination, { usePagination } from '../components/Pagination';
 
 const GROUPS = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
 
@@ -31,6 +32,10 @@ export default function Availability() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
+  const [perPage, setPerPage] = useState(15);
+
+  // The results table is long, so it pages rather than scrolling forever.
+  const pager = usePagination(data?.results || [], perPage);
 
   useEffect(() => {
     api.get('/availability/regions')
@@ -69,11 +74,11 @@ export default function Availability() {
 
   return (
     <div className="page portal">
-      <div className="portal-head">
+      <div className="page-head">
         <div>
           <p className="app-eyebrow">Blood availability</p>
-          <h2 className="page-title">Find blood in a blood bank near you</h2>
-          <p className="app-subtext">
+          <h2>Find blood in a blood bank near you</h2>
+          <p>
             Search licensed blood banks and hospitals by region and blood group.
             No account needed — always call the centre to confirm before travelling.
           </p>
@@ -136,13 +141,23 @@ export default function Availability() {
       </form>
 
       {data && (
-        <div className="portal-summary">
-          <div><strong>{data.count}</strong><span>centres found</span></div>
-          <div><strong>{data.withStock}</strong><span>with stock{filters.bloodGroup ? ` of ${filters.bloodGroup}` : ''}</span></div>
-          <div><strong>{data.totalUnits}</strong><span>units available</span></div>
-          <div className="portal-stamp">
-            Stock figures as recorded by each centre.
-            <br />Last refreshed {new Date(data.updatedAt || Date.now()).toLocaleString('en-GB')}
+        <div className="bento">
+          <div className="tile slate t-3 center pad-sm">
+            <span className="tile-label">Centres found</span>
+            <strong className="tile-value sm">{data.count}</strong>
+          </div>
+          <div className="tile mint t-3 center pad-sm">
+            <span className="tile-label">With stock{filters.bloodGroup ? ` of ${filters.bloodGroup}` : ''}</span>
+            <strong className="tile-value sm">{data.withStock}</strong>
+          </div>
+          <div className="tile rose t-3 center pad-sm">
+            <span className="tile-label">Units available</span>
+            <strong className="tile-value sm">{data.totalUnits}</strong>
+          </div>
+          <div className="tile ink t-3 pad-sm portal-stamp-tile">
+            <span className="tile-label">Last refreshed</span>
+            <strong>{new Date(data.updatedAt || Date.now()).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}</strong>
+            <small>{new Date(data.updatedAt || Date.now()).toLocaleDateString('en-GB')} · as recorded by each centre</small>
           </div>
         </div>
       )}
@@ -172,9 +187,9 @@ export default function Availability() {
               </tr>
             </thead>
             <tbody>
-              {data.results.map((r, i) => (
+              {pager.slice.map((r, i) => (
                 <tr key={r._id}>
-                  <td className="portal-num">{i + 1}</td>
+                  <td className="portal-num">{pager.from + i}</td>
                   <td>
                     <strong>{r.name}</strong>
                     <small>{r.address}</small>
@@ -208,6 +223,18 @@ export default function Availability() {
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {!loading && data && data.results.length > 0 && (
+        <div className="pager-bar">
+          <label className="per-page">
+            <span>Rows</span>
+            <select value={perPage} onChange={(e) => setPerPage(Number(e.target.value))}>
+              {[10, 15, 25, 50].map((n) => <option key={n} value={n}>{n}</option>)}
+            </select>
+          </label>
+          <Pagination {...pager} onChange={pager.setPage} label="blood centres" />
         </div>
       )}
 

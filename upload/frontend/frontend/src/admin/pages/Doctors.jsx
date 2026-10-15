@@ -2,9 +2,10 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import adminApi from '../../api/adminApi';
+import { usePagination } from '../../components/Pagination';
 import Modal, { ConfirmDialog } from '../components/Modal';
 import { useToast } from '../components/Toast';
-import { PageHeader, Card, Toolbar, SearchInput, Spinner, EmptyState, TableWrap, Badge } from '../components/ui';
+import { Pagination, PageHeader, Card, Toolbar, SearchInput, Spinner, EmptyState, TableWrap, Badge } from '../components/ui';
 import { IconPlus, IconEdit, IconTrash } from '../components/Icons';
 
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
@@ -97,6 +98,9 @@ export default function Doctors() {
     }
   };
 
+  // Admin tables page at 12 rows so the console stays scannable.
+  const pager = usePagination(filtered, 12);
+
   return (
     <>
       <PageHeader title="Doctors" subtitle={`${items.length} doctor${items.length === 1 ? '' : 's'} bookable by members.`}>
@@ -117,11 +121,12 @@ export default function Doctors() {
         {loading ? <Spinner /> : filtered.length === 0 ? (
           <EmptyState title="No doctors listed" message="Add a doctor so members can book appointments." />
         ) : (
+          <>
           <TableWrap>
             <table className="adm-table">
               <thead><tr><th>Doctor</th><th>Speciality</th><th>Hospital</th><th>Days</th><th>Slots</th><th aria-label="Actions" /></tr></thead>
               <tbody>
-                {filtered.map((d) => (
+                {pager.slice.map((d) => (
                   <tr key={d._id}>
                     <td className="adm-strong">{d.name}</td>
                     <td>{d.specialization}</td>
@@ -137,6 +142,8 @@ export default function Doctors() {
               </tbody>
             </table>
           </TableWrap>
+        <Pagination page={pager.page} pages={pager.pages} onChange={pager.setPage} />
+        </>
         )}
       </Card>
 

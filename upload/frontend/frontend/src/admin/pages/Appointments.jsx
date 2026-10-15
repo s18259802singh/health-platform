@@ -2,9 +2,10 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import adminApi from '../../api/adminApi';
+import { usePagination } from '../../components/Pagination';
 import { ConfirmDialog } from '../components/Modal';
 import { useToast } from '../components/Toast';
-import { PageHeader, Card, Toolbar, SearchInput, Badge, Spinner, EmptyState, TableWrap, StatCard } from '../components/ui';
+import { Pagination, PageHeader, Card, Toolbar, SearchInput, Badge, Spinner, EmptyState, TableWrap, StatCard } from '../components/ui';
 import { IconTrash, IconCalendar, IconCheck, IconClose, IconRefresh } from '../components/Icons';
 
 export default function Appointments() {
@@ -67,6 +68,9 @@ export default function Appointments() {
 
   const count = (s) => items.filter((a) => a.status === s).length;
 
+  // Admin tables page at 12 rows so the console stays scannable.
+  const pager = usePagination(filtered, 12);
+
   return (
     <>
       <PageHeader title="Appointments" subtitle="Doctor bookings made by members.">
@@ -93,11 +97,12 @@ export default function Appointments() {
         {loading ? <Spinner /> : filtered.length === 0 ? (
           <EmptyState title="No appointments" message="Nothing booked with these filters." />
         ) : (
+          <>
           <TableWrap>
             <table className="adm-table">
               <thead><tr><th>Member</th><th>Doctor</th><th>Hospital</th><th>Date</th><th>Time</th><th>Status</th><th aria-label="Actions" /></tr></thead>
               <tbody>
-                {filtered.map((a) => (
+                {pager.slice.map((a) => (
                   <tr key={a._id} className={busyId === a._id ? 'busy' : ''}>
                     <td>
                       <strong>{a.userId?.name || 'Deleted member'}</strong>
@@ -124,6 +129,8 @@ export default function Appointments() {
               </tbody>
             </table>
           </TableWrap>
+        <Pagination page={pager.page} pages={pager.pages} onChange={pager.setPage} />
+        </>
         )}
       </Card>
 

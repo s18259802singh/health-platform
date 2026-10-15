@@ -3,9 +3,10 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import adminApi from '../../api/adminApi';
+import { usePagination } from '../../components/Pagination';
 import Modal, { ConfirmDialog } from '../components/Modal';
 import { useToast } from '../components/Toast';
-import { PageHeader, Card, Toolbar, SearchInput, Spinner, EmptyState, TableWrap, formatDate } from '../components/ui';
+import { Pagination, PageHeader, Card, Toolbar, SearchInput, Spinner, EmptyState, TableWrap, formatDate } from '../components/ui';
 import { IconPlus, IconEdit, IconTrash, IconExternal } from '../components/Icons';
 
 const EMPTY = { title: '', excerpt: '', content: '', imageUrl: '', author: 'LifeLink Team' };
@@ -104,6 +105,9 @@ export default function Blogs() {
 
   const words = form.content.trim() ? form.content.trim().split(/\s+/).length : 0;
 
+  // Admin tables page at 12 rows so the console stays scannable.
+  const pager = usePagination(filtered, 12);
+
   return (
     <>
       <PageHeader title="Health articles" subtitle={`${items.length} article${items.length === 1 ? '' : 's'} published on the public blog.`}>
@@ -118,11 +122,12 @@ export default function Blogs() {
         {loading ? <Spinner /> : filtered.length === 0 ? (
           <EmptyState title="No articles yet" message="Publish your first health awareness article." />
         ) : (
+          <>
           <TableWrap>
             <table className="adm-table">
               <thead><tr><th>Article</th><th>Author</th><th>Published</th><th aria-label="Actions" /></tr></thead>
               <tbody>
-                {filtered.map((b) => (
+                {pager.slice.map((b) => (
                   <tr key={b._id}>
                     <td>
                       <div className="adm-article-cell">
@@ -147,6 +152,8 @@ export default function Blogs() {
               </tbody>
             </table>
           </TableWrap>
+        <Pagination page={pager.page} pages={pager.pages} onChange={pager.setPage} />
+        </>
         )}
       </Card>
 

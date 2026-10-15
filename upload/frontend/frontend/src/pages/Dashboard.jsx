@@ -1,5 +1,5 @@
-// The member home screen. Everything administrative lives in the separate
-// console at /admin - this page is purely what a member needs.
+// The member home screen, as a bento grid.
+// Everything administrative lives in the console at /admin.
 
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
@@ -10,13 +10,33 @@ import BloodSupplyMonitor from '../components/BloodSupplyMonitor';
 import DonorMap from '../components/DonorMap';
 
 const ACTIONS = [
-  { to: '/availability', label: 'Check blood stock' },
-  { to: '/donors', label: 'Find a donor' },
-  { to: '/camps', label: 'Donation camps' },
-  { to: '/requests', label: 'Blood requests' },
-  { to: '/appointments', label: 'Book a doctor' },
-  { to: '/profile', label: 'My profile & QR' },
+  { to: '/availability', label: 'Check blood stock', tint: 'rose' },
+  { to: '/donors', label: 'Find a donor', tint: 'sand' },
+  { to: '/camps', label: 'Donation camps', tint: 'mint' },
+  { to: '/requests', label: 'Blood requests', tint: 'sky' },
+  { to: '/appointments', label: 'Book a doctor', tint: 'slate' },
+  { to: '/profile', label: 'My QR profile', tint: 'rose' },
 ];
+
+// A ring gauge: how far through the current tier the member is.
+function Ring({ value, max, caption }) {
+  const r = 44;
+  const c = 2 * Math.PI * r;
+  const pct = max > 0 ? Math.min(1, value / max) : 0;
+
+  return (
+    <div className="tile-ring">
+      <svg viewBox="0 0 104 104" role="img" aria-label={`${value} of ${max}`}>
+        <circle className="track" cx="52" cy="52" r={r} />
+        <circle className="fill" cx="52" cy="52" r={r} strokeDasharray={c} strokeDashoffset={c * (1 - pct)} />
+      </svg>
+      <span className="tile-ring-label">
+        <strong>{value}</strong>
+        <small>{caption}</small>
+      </span>
+    </div>
+  );
+}
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -24,7 +44,6 @@ export default function Dashboard() {
   const [summary, setSummary] = useState(null);
   const [myCamps, setMyCamps] = useState([]);
 
-  // First-ever visit opens the guided tour once per account.
   useEffect(() => {
     if (!user) return undefined;
     if (!hasSeenTour(user._id || user.id)) {
@@ -36,104 +55,115 @@ export default function Dashboard() {
   }, [user]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    api.get('/donations/mine').then((res) => setSummary(res.data.summary)).catch(() => {});
-    api.get('/camps/mine/list').then((res) => setMyCamps(res.data)).catch(() => {});
+    api.get('/donations/mine').then((r) => setSummary(r.data.summary)).catch(() => {});
+    api.get('/camps/mine/list').then((r) => setMyCamps(r.data)).catch(() => {});
   }, []);
 
   const upcoming = myCamps.filter((c) => c.status === 'upcoming');
+  const nextTarget = summary?.nextTier ? summary.count + summary.nextTier.needed : summary?.count || 0;
 
   return (
     <div className="page app-dashboard">
-      <p className="app-eyebrow">Signed in</p>
-      <h2 className="app-heading">{user?.name}</h2>
-      <p className="app-subtext">One donation can save up to three lives.</p>
-
-      <div className="action-row">
-        {ACTIONS.map((a) => (
-          <Link to={a.to} key={a.to} className="action-badge">{a.label}</Link>
-        ))}
+      <div className="page-head">
+        <div>
+          <p className="app-eyebrow">Signed in</p>
+          <h2>{user?.name}</h2>
+          <p>One donation can save up to three lives.</p>
+        </div>
       </div>
 
-      {/* Donor status card - the member's own record at a glance. */}
-      {summary && (
-        <div className="donor-strip">
-          <div className="donor-strip-main">
+      {/* --------------------------------------- donor status + shortcuts */}
+      <div className="bento">
+        {summary && (
+          <section className="tile ink glow t-5 r-2 donor-tile">
+            <span className="tile-label">Your donor status</span>
             <span className={`tier-badge big ${summary.tier.toLowerCase()}`}>{summary.tier}</span>
-            <div>
-              <strong>{summary.count} donation{summary.count === 1 ? '' : 's'} recorded</strong>
-              <small>
-                {summary.count === 0
-                  ? 'Your first recorded donation puts you on the leaderboard.'
-                  : summary.nextTier
-                    ? `${summary.nextTier.needed} more to reach ${summary.nextTier.label}.`
-                    : 'You have reached the top tier. Thank you.'}
-              </small>
+            <Ring value={summary.count} max={nextTarget} caption="donations" />
+            <p className="donor-tile-note">
+              {summary.count === 0
+                ? 'Your first recorded donation puts you on the leaderboard.'
+                : summary.nextTier
+                  ? `${summary.nextTier.needed} more to reach ${summary.nextTier.label}.`
+                  : 'You have reached the top tier. Thank you.'}
+            </p>
+            <div className="donor-tile-stats">
+              <span><strong>{summary.units}</strong>units</span>
+              <span><strong>{summary.livesTouched}</strong>helped</span>
             </div>
-          </div>
-          <div className="donor-strip-stats">
-            <span><strong>{summary.units}</strong>units</span>
-            <span><strong>{summary.livesTouched}</strong>people helped</span>
-          </div>
-          <Link to="/my-donations" className="small-button">My record</Link>
-        </div>
-      )}
-
-      {upcoming.length > 0 && (
-        <>
-          <div className="section-header"><h3>Your upcoming camps</h3></div>
-          {upcoming.map((c) => (
-            <div className="info-card" key={c._id}>
-              <div className="info-card-icon" aria-hidden="true" />
-              <div>
-                <strong>{c.title}</strong>
-                <p>
-                  {new Date(`${c.date}T00:00:00`).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })}
-                  {' · '}{c.startTime} · {c.venue}, {c.city}
-                </p>
-              </div>
-              <Link to={`/camps/${c._id}`} className="small-button">Details</Link>
+            <div className="tile-foot">
+              <Link to="/my-donations" className="tile-link">My record &amp; certificates →</Link>
             </div>
-          ))}
-        </>
-      )}
+          </section>
+        )}
 
-      <div className="banner-card">
-        <div className="banner-text">
-          <span className="banner-tag">Give blood</span>
-          <h3>Fifteen minutes of your day can save someone's life.</h3>
-          <Link to="/camps" className="banner-button">Find a camp near you</Link>
-        </div>
+        <section className={`tile ${summary ? 't-7' : 't-12'}`}>
+          <div className="tile-head"><h3>Jump to</h3></div>
+          <div className="shortcut-grid">
+            {ACTIONS.map((a) => (
+              <Link to={a.to} key={a.to} className={`shortcut ${a.tint}`}>
+                {a.label}
+              </Link>
+            ))}
+          </div>
+        </section>
+
+        {upcoming.length > 0 && (
+          <section className="tile t-7">
+            <div className="tile-head">
+              <h3>Your upcoming camps</h3>
+              <Link className="tile-link" to="/camps">All camps →</Link>
+            </div>
+            <div className="camp-mini-list">
+              {upcoming.map((c) => (
+                <Link className="camp-mini" to={`/camps/${c._id}`} key={c._id}>
+                  <span className="camp-mini-date">
+                    <strong>{new Date(`${c.date}T00:00:00`).toLocaleDateString('en-GB', { day: '2-digit' })}</strong>
+                    <small>{new Date(`${c.date}T00:00:00`).toLocaleDateString('en-GB', { month: 'short' }).toUpperCase()}</small>
+                  </span>
+                  <span className="camp-mini-body">
+                    <strong>{c.title}</strong>
+                    <small>{c.startTime} · {c.venue}, {c.city}</small>
+                  </span>
+                </Link>
+              ))}
+            </div>
+          </section>
+        )}
       </div>
 
-      <BloodSupplyMonitor />
-
-      <div className="section-header"><h3>Quick links</h3></div>
-      <div className="info-card">
-        <div className="info-card-icon" aria-hidden="true" />
-        <div>
-          <strong>Search live blood bank stock</strong>
-          <p>Filter by state, district and blood group before you travel.</p>
-        </div>
-        <Link to="/availability" className="small-button">Open</Link>
-      </div>
-      <div className="info-card">
-        <div className="info-card-icon" aria-hidden="true" />
-        <div>
-          <strong>Your emergency QR code</strong>
-          <p>Blood group, allergies and next of kin — readable by anyone who scans it.</p>
-        </div>
-        <Link to="/profile" className="small-button">Open</Link>
-      </div>
-      <div className="info-card">
-        <div className="info-card-icon" aria-hidden="true" />
-        <div>
-          <strong>Before you donate</strong>
-          <p>Eligibility, preparation and recovery, in short plain-English guides.</p>
-        </div>
-        <Link to="/guides" className="small-button">Open</Link>
+      {/* ------------------------------------------------- live stock tile */}
+      <div className="bento">
+        <section className="tile t-12">
+          <BloodSupplyMonitor />
+        </section>
       </div>
 
-      <DonorMap />
+      {/* ------------------------------------------------------ prompt row */}
+      <div className="bento">
+        <section className="tile red glow t-7 cta-tile">
+          <div>
+            <h3>Fifteen minutes of your day can save someone's life.</h3>
+            <p>Find a camp near you and register your slot in advance.</p>
+          </div>
+          <Link to="/camps" className="btn-light">Find a camp</Link>
+        </section>
+
+        <section className="tile sand t-5">
+          <div className="tile-head"><h3>Before you donate</h3></div>
+          <p className="tile-sub">
+            Eligibility, preparation and recovery, in short plain-English guides.
+          </p>
+          <div className="tile-foot">
+            <Link to="/guides" className="tile-link">Open the guide library →</Link>
+          </div>
+        </section>
+      </div>
+
+      <div className="bento">
+        <section className="tile t-12">
+          <DonorMap />
+        </section>
+      </div>
     </div>
   );
 }

@@ -2,9 +2,10 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import adminApi from '../../api/adminApi';
+import { usePagination } from '../../components/Pagination';
 import Modal, { ConfirmDialog } from '../components/Modal';
 import { useToast } from '../components/Toast';
-import { PageHeader, Card, Toolbar, Badge, Spinner, EmptyState, TableWrap } from '../components/ui';
+import { Pagination, PageHeader, Card, Toolbar, Badge, Spinner, EmptyState, TableWrap } from '../components/ui';
 import { IconPlus, IconEdit, IconTrash, IconExternal } from '../components/Icons';
 
 const CATEGORIES = [
@@ -87,6 +88,9 @@ export default function Guides() {
 
   const label = (v) => CATEGORIES.find((c) => c.value === v)?.label || v;
 
+  // Admin tables page at 12 rows so the console stays scannable.
+  const pager = usePagination(items, 12);
+
   return (
     <>
       <PageHeader title="Guide library" subtitle={`${items.length} guide${items.length === 1 ? '' : 's'} across five categories.`}>
@@ -104,11 +108,12 @@ export default function Guides() {
         {loading ? <Spinner /> : items.length === 0 ? (
           <EmptyState title="No guides here" message="Add a guide to this category." />
         ) : (
+          <>
           <TableWrap>
             <table className="adm-table">
               <thead><tr><th>Order</th><th>Guide</th><th>Category</th><th>Read time</th><th aria-label="Actions" /></tr></thead>
               <tbody>
-                {items.map((g) => (
+                {pager.slice.map((g) => (
                   <tr key={g._id}>
                     <td className="adm-muted">{g.order}</td>
                     <td>
@@ -127,6 +132,8 @@ export default function Guides() {
               </tbody>
             </table>
           </TableWrap>
+        <Pagination page={pager.page} pages={pager.pages} onChange={pager.setPage} />
+        </>
         )}
       </Card>
 

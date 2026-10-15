@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../api/axios';
+import { LoadMore, useLoadMore } from '../components/Pagination';
 
 const dayLabel = (iso) => {
   const d = new Date(`${iso}T00:00:00`);
@@ -31,16 +32,33 @@ export default function Camps() {
     () => [...new Set(camps.map((c) => c.city).filter(Boolean))].sort(),
     [camps]
   );
-  const shown = city ? camps.filter((c) => c.city === city) : camps;
+  const filtered = city ? camps.filter((c) => c.city === city) : camps;
+  // Card grids feel better revealing in batches than jumping between pages.
+  const batch = useLoadMore(filtered, 6);
+  const shown = batch.slice;
+
+  const totalSlots = filtered.reduce((a, c) => a + (c.slots || 0), 0);
+  const taken = filtered.reduce((a, c) => a + (c.registrations?.length || 0), 0);
 
   return (
     <div className="page">
-      <p className="app-eyebrow">Donation camps</p>
-      <h2 className="page-title">Find a camp near you</h2>
-      <p className="app-subtext">
-        Organised drives run by blood centres, clubs and campuses. Registering ahead
-        guarantees your slot and cuts the queue.
-      </p>
+      <div className="page-head">
+        <div>
+          <p className="app-eyebrow">Donation camps</p>
+          <h2>Find a camp near you</h2>
+          <p>
+            Organised drives run by blood centres, clubs and campuses. Registering
+            ahead guarantees your slot and cuts the queue.
+          </p>
+        </div>
+      </div>
+
+      <div className="stat-strip">
+        <div className="stat-chip accent"><strong>{filtered.length}</strong><span>camps listed</span></div>
+        <div className="stat-chip"><strong>{Math.max(0, totalSlots - taken)}</strong><span>slots still open</span></div>
+        <div className="stat-chip"><strong>{taken}</strong><span>donors registered</span></div>
+        <div className="stat-chip"><strong>{cities.length}</strong><span>cities covered</span></div>
+      </div>
 
       <div className="search-bar">
         <select value={when} onChange={(e) => setWhen(e.target.value)}>
@@ -99,7 +117,9 @@ export default function Camps() {
         })}
       </div>
 
-      {!loading && shown.length === 0 && (
+      <LoadMore shown={batch.shown} total={batch.total} hasMore={batch.hasMore} onMore={batch.more} label="camps" />
+
+      {!loading && filtered.length === 0 && (
         <p className="hint">No camps listed for that filter yet. Try switching to all camps.</p>
       )}
     </div>

@@ -2,9 +2,10 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import adminApi from '../../api/adminApi';
+import { usePagination } from '../../components/Pagination';
 import Modal, { ConfirmDialog } from '../components/Modal';
 import { useToast } from '../components/Toast';
-import { PageHeader, Card, Toolbar, SearchInput, Badge, Spinner, EmptyState, TableWrap } from '../components/ui';
+import { Pagination, PageHeader, Card, Toolbar, SearchInput, Badge, Spinner, EmptyState, TableWrap } from '../components/ui';
 import { IconPlus, IconEdit, IconTrash } from '../components/Icons';
 
 const GROUPS = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
@@ -95,6 +96,9 @@ export default function Hospitals() {
     }
   };
 
+  // Admin tables page at 12 rows so the console stays scannable.
+  const pager = usePagination(filtered, 12);
+
   return (
     <>
       <PageHeader title="Hospitals & blood banks" subtitle={`${items.length} location${items.length === 1 ? '' : 's'} on the network.`}>
@@ -114,11 +118,12 @@ export default function Hospitals() {
         {loading ? <Spinner /> : filtered.length === 0 ? (
           <EmptyState title="Nothing here yet" message="Add a hospital or blood bank, or clear the search." />
         ) : (
+          <>
           <TableWrap>
             <table className="adm-table">
               <thead><tr><th>Name</th><th>Address</th><th>Contact</th><th>Type</th><th>Stock</th><th aria-label="Actions" /></tr></thead>
               <tbody>
-                {filtered.map((h) => {
+                {pager.slice.map((h) => {
                   const total = (h.availableBloodUnits || []).reduce((a, u) => a + (u.units || 0), 0);
                   return (
                     <tr key={h._id}>
@@ -137,6 +142,8 @@ export default function Hospitals() {
               </tbody>
             </table>
           </TableWrap>
+        <Pagination page={pager.page} pages={pager.pages} onChange={pager.setPage} />
+        </>
         )}
       </Card>
 

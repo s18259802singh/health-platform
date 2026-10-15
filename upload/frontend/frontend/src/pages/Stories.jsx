@@ -4,6 +4,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../api/axios';
+import { LoadMore, useLoadMore } from '../components/Pagination';
 
 const ROLE = { donor: 'Donor', recipient: 'Recipient', organiser: 'Organiser' };
 
@@ -19,17 +20,23 @@ export default function Stories() {
   }, []);
 
   const shown = role ? stories.filter((s) => s.role === role) : stories;
-  const featured = shown.filter((s) => s.featured);
-  const rest = shown.filter((s) => !s.featured);
+  const featured = shown.filter((s) => s.featured).slice(0, 3);
+  const batch = useLoadMore(shown.filter((s) => !s.featured), 6);
+  const rest = batch.slice;
+  const TINTS = ['rose', 'sand', 'mint', 'sky', 'slate'];
 
   return (
     <div className="page">
-      <p className="app-eyebrow">Stories</p>
-      <h2 className="page-title">The reason any of this matters</h2>
-      <p className="app-subtext">
-        Donors and recipients in their own words. Every one of these started with
-        somebody deciding to spend fifteen minutes.
-      </p>
+      <div className="page-head">
+        <div>
+          <p className="app-eyebrow">Stories</p>
+          <h2>The reason any of this matters</h2>
+          <p>
+            Donors and recipients in their own words. Every one of these started
+            with somebody deciding to spend fifteen minutes.
+          </p>
+        </div>
+      </div>
 
       <div className="search-bar">
         <select value={role} onChange={(e) => setRole(e.target.value)}>
@@ -43,9 +50,9 @@ export default function Stories() {
       {loading && <p className="hint">Loading stories…</p>}
 
       {featured.length > 0 && (
-        <div className="story-feature-grid">
-          {featured.map((s) => (
-            <article className="story-feature" key={s._id}>
+        <div className="bento">
+          {featured.map((s, i) => (
+            <article className={`tile lift t-4 ${TINTS[i % 3]} story-tile`} key={s._id}>
               <span className={`story-role ${s.role}`}>{ROLE[s.role]}</span>
               <h3><Link to={`/stories/${s._id}`}>{s.headline}</Link></h3>
               <div className="story-byline">
@@ -62,9 +69,9 @@ export default function Stories() {
       )}
 
       {rest.length > 0 && (
-        <div className="story-grid">
-          {rest.map((s) => (
-            <article className="story-card" key={s._id}>
+        <div className="bento">
+          {rest.map((s, i) => (
+            <article className="tile lift t-4 story-card" key={s._id}>
               <div className="story-card-head">
                 <span className="story-avatar" aria-hidden="true">{s.name.charAt(0)}</span>
                 <div>
@@ -78,6 +85,8 @@ export default function Stories() {
           ))}
         </div>
       )}
+
+      <LoadMore shown={batch.shown} total={batch.total} hasMore={batch.hasMore} onMore={batch.more} label="more stories" />
 
       {!loading && shown.length === 0 && <p className="hint">No stories published yet.</p>}
     </div>

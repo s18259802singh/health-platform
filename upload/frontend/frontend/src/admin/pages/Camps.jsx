@@ -2,9 +2,10 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import adminApi from '../../api/adminApi';
+import { usePagination } from '../../components/Pagination';
 import Modal, { ConfirmDialog } from '../components/Modal';
 import { useToast } from '../components/Toast';
-import {
+import { Pagination,
   PageHeader, Card, Toolbar, SearchInput, Badge, Spinner, EmptyState,
   TableWrap, StatCard, formatDate,
 } from '../components/ui';
@@ -103,6 +104,9 @@ export default function Camps() {
   const upcoming = items.filter((c) => c.status === 'upcoming');
   const totalRegistered = items.reduce((a, c) => a + (c.registrations?.length || 0), 0);
 
+  // Admin tables page at 12 rows so the console stays scannable.
+  const pager = usePagination(items, 12);
+
   return (
     <>
       <PageHeader title="Donation camps" subtitle={`${items.length} camp${items.length === 1 ? '' : 's'} on the calendar.`}>
@@ -131,13 +135,14 @@ export default function Camps() {
         {loading ? <Spinner /> : items.length === 0 ? (
           <EmptyState title="No camps yet" message="Create your first camp so members can register." />
         ) : (
+          <>
           <TableWrap>
             <table className="adm-table">
               <thead>
                 <tr><th>Camp</th><th>Date</th><th>City</th><th>Registered</th><th>Status</th><th aria-label="Actions" /></tr>
               </thead>
               <tbody>
-                {items.map((c) => {
+                {pager.slice.map((c) => {
                   const taken = c.registrations?.length || 0;
                   const pct = c.slots ? Math.round((taken / c.slots) * 100) : 0;
                   return (
@@ -173,6 +178,8 @@ export default function Camps() {
               </tbody>
             </table>
           </TableWrap>
+        <Pagination page={pager.page} pages={pager.pages} onChange={pager.setPage} />
+        </>
         )}
       </Card>
 

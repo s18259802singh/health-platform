@@ -4,9 +4,10 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import adminApi from '../../api/adminApi';
+import { usePagination } from '../../components/Pagination';
 import Modal, { ConfirmDialog } from '../components/Modal';
 import { useToast } from '../components/Toast';
-import {
+import { Pagination,
   PageHeader, Card, Toolbar, SearchInput, Spinner, EmptyState,
   TableWrap, StatCard, formatDate,
 } from '../components/ui';
@@ -107,6 +108,9 @@ export default function Donations() {
   const units = items.reduce((a, d) => a + (d.units || 0), 0);
   const donors = new Set(items.map((d) => String(d.userId?._id || d.userId))).size;
 
+  // Admin tables page at 12 rows so the console stays scannable.
+  const pager = usePagination(items, 12);
+
   return (
     <>
       <PageHeader title="Donation records" subtitle="Confirmed donations. These drive the leaderboard and member certificates.">
@@ -129,11 +133,12 @@ export default function Donations() {
         {loading ? <Spinner /> : items.length === 0 ? (
           <EmptyState title="No donations recorded" message="Record a donation to put a member on the leaderboard." />
         ) : (
+          <>
           <TableWrap>
             <table className="adm-table">
               <thead><tr><th>Donor</th><th>Date</th><th>Group</th><th>Units</th><th>Where</th><th>Certificate</th><th aria-label="Actions" /></tr></thead>
               <tbody>
-                {items.map((d) => (
+                {pager.slice.map((d) => (
                   <tr key={d._id}>
                     <td>
                       <strong>{d.userId?.name || 'Deleted member'}</strong>
@@ -152,6 +157,8 @@ export default function Donations() {
               </tbody>
             </table>
           </TableWrap>
+        <Pagination page={pager.page} pages={pager.pages} onChange={pager.setPage} />
+        </>
         )}
       </Card>
 
