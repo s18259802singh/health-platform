@@ -1,0 +1,221 @@
+// BLOOD AVAILABILITY SEARCH
+// The eRaktKosh-style half of the site: a serious, data-first tool. Public on
+// purpose - someone looking for blood in an emergency should not hit a login
+// wall. The filters cascade state -> district, exactly as people expect from
+// a government blood portal, but the result rows are readable rather than raw.
+
+import { useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import api from '../api/axios';
+
+const GROUPS = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
+
+const LABEL = {
+  good: 'Available',
+  limited: 'Limited',
+  critical: 'Critical',
+  none: 'Out of stock',
+};
+
+export default function Availability() {
+  // The landing page's quick search hands off here via ?group= and ?q=
+  const [params] = useSearchParams();
+  const [regions, setRegions] = useState({ states: [], components: [] });
+  const [filters, setFilters] = useState({
+    state: '', district: '',
+    bloodGroup: params.get('group') || '',
+    component: 'Whole Blood',
+    type: '',
+    search: params.get('q') || '',
+  });
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [searched, setSearched] = useState(false);
+
+  useEffect(() => {
+    api.get('/availability/regions')
+      .then((res) => setRegions(res.data))
+      .catch(() => setRegions({ states: [], components: ['Whole Blood'] }));
+  }, []);
+
+  const districts = useMemo(
+    () => regions.states.find((s) => s.state === filters.state)?.districts || [],
+    [regions, filters.state]
+  );
+
+  const run = async (e) => {
+    e?.preventDefault();
+    setLoading(true);
+    setSearched(true);
+    try {
+      const { component, ...params } = filters;
+      const { data: res } = await api.get('/availability', { params });
+      setData(res);
+    } catch {
+      setData({ results: [], count: 0, withStock: 0, totalUnits: 0 });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Run once on load so the page is never an empty form.
+  useEffect(() => { run(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const set = (key, value) => setFilters((f) => ({
+    ...f,
+    [key]: value,
+    ...(key === 'state' ? { district: '' } : {}),
+  }));
+
+  return (
+    <div className="page portal">
+      <div className="portal-head">
+        <div>
+          <p className="app-eyebrow">Blood availability</p>
+          <h2 className="page-title">Find blood in a blood bank near you</h2>
+          <p className="app-subtext">
+            Search licensed blood banks and hospitals by region and blood group.
+            No account needed — always call the centre to confirm before travelling.
+          </p>
+        </div>
+      </div>
+
+      <form className="portal-filters" onSubmit={run}>
+        <label>
+          <span>State</span>
+          <select value={filters.state} onChange={(e) => set('state', e.target.value)}>
+            <option value="">All states</option>
+            {regions.states.map((s) => <option key={s.state} value={s.state}>{s.state}</option>)}
+          </select>
+        </label>
+
+        <label>
+          <span>District</span>
+          <select value={filters.district} onChange={(e) => set('district', e.target.value)} disabled={!filters.state}>
+            <option value="">{filters.state ? 'All districts' : 'Select a state first'}</option>
+            {districts.map((d) => <option key={d} value={d}>{d}</option>)}
+          </select>
+        </label>
+
+        <label>
+          <span>Blood group</span>
+          <select value={filters.bloodGroup} onChange={(e) => set('bloodGroup', e.target.value)}>
+            <option value="">All groups</option>
+            {GROUPS.map((g) => <option key={g} value={g}>{g}</option>)}
+          </select>
+        </label>
+
+        <label>
+          <span>Component</span>
+          <select value={filters.component} onChange={(e) => set('component', e.target.value)}>
+            {(regions.components || ['Whole Blood']).map((c) => <option key={c} value={c}>{c}</option>)}
+          </select>
+        </label>
+
+        <label>
+          <span>Centre type</span>
+          <select value={filters.type} onChange={(e) => set('type', e.target.value)}>
+            <option value="">All centres</option>
+            <option value="blood_bank">Blood banks</option>
+            <option value="hospital">Hospitals</option>
+          </select>
+        </label>
+
+        <label className="grow">
+          <span>Name or area</span>
+          <input
+            placeholder="e.g. Red Cross, Adajan…"
+            value={filters.search}
+            onChange={(e) => set('search', e.target.value)}
+          />
+        </label>
+
+        <button type="submit" className="btn-primary portal-search" disabled={loading}>
+          {loading ? 'Searching…' : 'Search'}
+        </button>
+      </form>
+
+      {data && (
+        <div className="portal-summary">
+          <div><strong>{data.count}</strong><span>centres found</span></div>
+          <div><strong>{data.withStock}</strong><span>with stock{filters.bloodGroup ? ` of ${filters.bloodGroup}` : ''}</span></div>
+          <div><strong>{data.totalUnits}</strong><span>units available</span></div>
+          <div className="portal-stamp">
+            Stock figures as recorded by each centre.
+            <br />Last refreshed {new Date(data.updatedAt || Date.now()).toLocaleString('en-GB')}
+          </div>
+        </div>
+      )}
+
+      {loading && <p className="hint">Searching the directory…</p>}
+
+      {!loading && data && data.results.length === 0 && searched && (
+        <div className="portal-empty">
+          <strong>No centres match that search</strong>
+          <p>Try widening the region, or clearing the blood group filter to see the full directory.</p>
+        </div>
+      )}
+
+      {!loading && data && data.results.length > 0 && (
+        <div className="portal-table-wrap">
+          <table className="portal-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Blood centre</th>
+                <th>District</th>
+                <th>Type</th>
+                <th>{filters.bloodGroup ? `${filters.bloodGroup} units` : 'Total units'}</th>
+                <th>Status</th>
+                <th>Contact</th>
+                <th aria-label="Directions" />
+              </tr>
+            </thead>
+            <tbody>
+              {data.results.map((r, i) => (
+                <tr key={r._id}>
+                  <td className="portal-num">{i + 1}</td>
+                  <td>
+                    <strong>{r.name}</strong>
+                    <small>{r.address}</small>
+                    {!filters.bloodGroup && r.breakdown?.length > 0 && (
+                      <div className="portal-breakdown">
+                        {r.breakdown.filter((b) => b.units > 0).map((b) => (
+                          <span key={b.bloodGroup}><em>{b.bloodGroup}</em>{b.units}</span>
+                        ))}
+                      </div>
+                    )}
+                  </td>
+                  <td>{r.district || '—'}</td>
+                  <td>{r.type === 'blood_bank' ? 'Blood bank' : 'Hospital'}</td>
+                  <td className="portal-units">{r.units}</td>
+                  <td><span className={`portal-status ${r.availability}`}>{LABEL[r.availability]}</span></td>
+                  <td>
+                    {r.contactNumber && r.contactNumber !== 'N/A'
+                      ? <a href={`tel:${r.contactNumber}`}>{r.contactNumber}</a>
+                      : <span className="hint">Not listed</span>}
+                  </td>
+                  <td>
+                    <a
+                      className="small-button"
+                      target="_blank" rel="noopener noreferrer"
+                      href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(r.address)}`}
+                    >
+                      Map
+                    </a>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      <p className="portal-note">
+        Stock levels are recorded by each centre and can change within minutes.
+        Always telephone the blood centre before you travel. In a life-threatening
+        emergency, contact your local emergency number first.
+      </p>
+    </div>
+  );
+}

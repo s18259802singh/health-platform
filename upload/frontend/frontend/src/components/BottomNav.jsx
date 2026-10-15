@@ -3,9 +3,9 @@ import { useAuth } from '../context/AuthContext';
 
 const TABS = [
   { to: '/dashboard', label: 'Home' },
+  { to: '/availability', label: 'Stock' },
   { to: '/donors', label: 'Donors' },
-  { to: '/requests', label: 'Requests' },
-  { to: '/hospitals', label: 'Hospitals' },
+  { to: '/camps', label: 'Camps' },
   { to: '/profile', label: 'Profile' },
 ];
 

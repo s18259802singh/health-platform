@@ -9,6 +9,7 @@ import { initials } from './components/ui';
 import {
   IconGrid, IconUsers, IconHospital, IconStethoscope, IconArticle,
   IconDrop, IconCalendar, IconSettings, IconLogout, IconMenu, IconClose, IconExternal,
+  IconBook, IconQuote, IconAward,
 } from './components/Icons';
 
 const NAV = [
@@ -20,11 +21,17 @@ const NAV = [
     { to: '/admin/requests', label: 'Blood requests', icon: <IconDrop /> },
     { to: '/admin/appointments', label: 'Appointments', icon: <IconCalendar /> },
   ]},
+  { section: 'Donations', items: [
+    { to: '/admin/camps', label: 'Camps', icon: <IconCalendar /> },
+    { to: '/admin/donations', label: 'Donation records', icon: <IconAward /> },
+  ]},
   { section: 'Network', items: [
     { to: '/admin/hospitals', label: 'Hospitals & banks', icon: <IconHospital /> },
     { to: '/admin/doctors', label: 'Doctors', icon: <IconStethoscope /> },
   ]},
   { section: 'Content', items: [
+    { to: '/admin/stories', label: 'Donor stories', icon: <IconQuote /> },
+    { to: '/admin/guides', label: 'Guide library', icon: <IconBook /> },
     { to: '/admin/blogs', label: 'Health articles', icon: <IconArticle /> },
   ]},
   { section: 'System', items: [

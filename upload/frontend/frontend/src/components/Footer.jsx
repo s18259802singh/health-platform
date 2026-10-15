@@ -14,17 +14,25 @@ export default function Footer() {
 
         <nav className="footer-links" aria-label="Footer">
           <div>
-            <h4>Platform</h4>
+            <h4>Find blood</h4>
+            <Link to="/availability">Blood availability</Link>
             <Link to="/donors">Find donors</Link>
             <Link to="/requests">Blood requests</Link>
             <Link to="/hospitals">Hospitals &amp; banks</Link>
-            <Link to="/appointments">Book a doctor</Link>
+          </div>
+          <div>
+            <h4>Donate</h4>
+            <Link to="/camps">Donation camps</Link>
+            <Link to="/register">Become a donor</Link>
+            <Link to="/leaderboard">Donor leaderboard</Link>
+            <Link to="/my-donations">My donations</Link>
           </div>
           <div>
             <h4>Learn</h4>
+            <Link to="/guides">Donor guides</Link>
+            <Link to="/stories">Donor stories</Link>
             <Link to="/blogs">Health blog</Link>
-            <Link to="/register">Become a donor</Link>
-            <Link to="/profile">Emergency QR</Link>
+            <Link to="/appointments">Book a doctor</Link>
           </div>
         </nav>
       </div>

@@ -559,3 +559,12 @@
 @media (prefers-reduced-motion: reduce) {
   .adm-modal, .adm-toast, .adm-sidebar, .adm-bar { animation: none !important; transition: none !important; }
 }
+
+/* ---------- additions for camps / donations ---------- */
+.adm-mini-bar {
+  display: block; width: 86px; height: 5px; margin-top: 5px;
+  border-radius: 99px; background: var(--adm-line-soft); overflow: hidden;
+}
+.adm-mini-bar span { display: block; height: 100%; border-radius: 99px; background: var(--adm-accent); }
+.adm-link { background: none; border: 0; padding: 0; font: inherit; cursor: pointer; color: var(--adm-accent); font-weight: 600; }
+.adm-link:hover { text-decoration: underline; }

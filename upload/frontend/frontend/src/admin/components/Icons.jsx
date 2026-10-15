@@ -32,3 +32,6 @@ export const IconDownload = make(<><path d="M12 3.5v11" /><path d="m7.5 10 4.5 4
 export const IconAlert = make(<><path d="M12 8.5v5" /><path d="M12 17h.01" /><circle cx="12" cy="12" r="9" /></>);
 export const IconMenu = make(<><path d="M4 7h16" /><path d="M4 12h16" /><path d="M4 17h16" /></>);
 export const IconChart = make(<><path d="M4 20V10" /><path d="M10 20V4" /><path d="M16 20v-7" /><path d="M22 20H2" /></>);
+export const IconBook = make(<><path d="M4 4.5A1.5 1.5 0 0 1 5.5 3H19v15H5.5A1.5 1.5 0 0 0 4 19.5Z" /><path d="M4 19.5A1.5 1.5 0 0 1 5.5 18H19v3H5.5A1.5 1.5 0 0 1 4 19.5Z" /><path d="M8 7.5h7" /><path d="M8 11h7" /></>);
+export const IconQuote = make(<><path d="M9 7.5C6.5 8.4 5 10.6 5 13.2V17h5v-5.2H7.6c.1-1.3.7-2.3 1.9-2.9Z" /><path d="M19 7.5c-2.5.9-4 3.1-4 5.7V17h5v-5.2h-2.4c.1-1.3.7-2.3 1.9-2.9Z" /></>);
+export const IconAward = make(<><circle cx="12" cy="9" r="5.2" /><path d="m8.2 13.4-1.4 7 5.2-2.6 5.2 2.6-1.4-7" /></>);
