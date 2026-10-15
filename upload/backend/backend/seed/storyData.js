@@ -1,0 +1,28 @@
+// SAMPLE donor and recipient stories for the demo.
+// Fictional people; written to show how the story wall reads when populated.
+module.exports = [
+  { name: 'Meera Joshi', role: 'recipient', bloodGroup: 'B-', city: 'Surat', featured: true,
+    headline: 'Four units in one night, from four strangers',
+    body: 'I went into surgery expecting a routine afternoon and came out needing more blood than the hospital had on the shelf for my group.\n\nB negative is not common. By the time my brother thought to search for donors it was past nine at night. He found four people within eleven kilometres, called three of them, and all three came.\n\nI have never met two of them. I think about that more than I expected to.' },
+  { name: 'Arjun Rao', role: 'donor', bloodGroup: 'O-', city: 'Ahmedabad', featured: true,
+    headline: 'I am the universal donor, so I treat it as a standing appointment',
+    body: 'O negative goes to anyone, which means it is the bag they reach for when there is no time to type a patient.\n\nI set a reminder every three months. Fifteen minutes, a biscuit, back to work. In eight years that has added up to twenty-six donations and I have never once felt worse for it.\n\nThe only thing I would change is how long it took me to start.' },
+  { name: 'Fatima Shaikh', role: 'donor', bloodGroup: 'A+', city: 'Vadodara', featured: true,
+    headline: 'I was terrified of needles until I actually did it',
+    body: 'I had put it off for years. Genuinely frightened — I would look away during a blood test.\n\nA colleague offered to come with me to a camp. The nurse talked me through every step before she did it, and the part I had been dreading lasted about eight seconds.\n\nI have donated five times since. I still look away. It still only takes eight seconds.' },
+  { name: 'Rohit Shah', role: 'donor', bloodGroup: 'B+', city: 'Rajkot',
+    headline: 'A request came through at 2am and I was eleven minutes away',
+    body: 'My phone buzzed with a request for B positive at a hospital I drive past every day.\n\nI almost did not open it. I am glad I did. The patient was a nineteen-year-old after a road accident, and by the time I arrived two other donors were already in the corridor.\n\nNone of us knew each other. We waited together until someone came out and said it had gone well.' },
+  { name: 'Priya Desai', role: 'recipient', bloodGroup: 'AB+', city: 'Navsari',
+    headline: 'My daughter needed platelets every fortnight for a year',
+    body: 'Dengue took her platelet count somewhere no parent wants to see on a chart. What followed was a year of fortnightly transfusions.\n\nWhat I did not understand before is that platelets expire in days. There is no stockpile. Every bag she received was given by someone in the week she needed it.\n\nShe is fifteen now and fine. She has already asked when she can donate.' },
+  { name: 'Sanjay Trivedi', role: 'organiser', bloodGroup: 'A-', city: 'Bhavnagar',
+    headline: 'We run one camp a year and it carries the district through the summer',
+    body: 'Our club has been organising the same drive for nineteen years. The first one collected thirty-one units.\n\nThis year it was two hundred and forty. The difference is not enthusiasm — it was always there — it is that people can now see where the shortage is and plan around it.\n\nShow someone a number and they turn up.' },
+  { name: 'Anita Nair', role: 'donor', bloodGroup: 'O+', city: 'Surat',
+    headline: 'Fifty donations, and the hundredth is the one I am counting towards',
+    body: 'I started at twenty-two because my father did. He stopped at sixty-five, which is the upper limit, and handed me the card he had been carrying.\n\nI crossed fifty this spring. At one every three months that puts a hundred somewhere in my sixties, which feels like a reasonable thing to aim at.\n\nMy son is nineteen. He has been twice.' },
+  { name: 'Vikram Patel', role: 'donor', bloodGroup: 'AB-', city: 'Ahmedabad',
+    headline: 'My group is under one percent of people, so I stay on the register',
+    body: 'AB negative is the rarest of the eight. Fewer than one person in a hundred has it.\n\nThat means I am not going to be called often, and when I am called it genuinely matters. I keep my number current and my phone loud.\n\nThree calls in six years. All three I went.' },
+];

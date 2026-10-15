@@ -12,6 +12,7 @@ const router = express.Router();
 const { protect, adminOnly } = require('../middleware/auth');
 const runSeed = require('../seed/seedRunner');
 const admin = require('../controllers/adminController');
+const content = require('../controllers/adminContentController');
 
 // --- public: admin sign-in -------------------------------------------------
 router.post('/login', admin.adminLogin);
@@ -44,6 +45,30 @@ router.get('/doctors', admin.listDoctors);
 router.post('/doctors', admin.createDoctor);
 router.put('/doctors/:id', admin.updateDoctor);
 router.delete('/doctors/:id', admin.deleteDoctor);
+
+// camps
+router.get('/camps', content.listCamps);
+router.post('/camps', content.createCamp);
+router.get('/camps/:id/registrations', content.getCampRegistrations);
+router.put('/camps/:id', content.updateCamp);
+router.delete('/camps/:id', content.deleteCamp);
+
+// donor stories
+router.get('/stories', content.listStories);
+router.post('/stories', content.createStory);
+router.put('/stories/:id', content.updateStory);
+router.delete('/stories/:id', content.deleteStory);
+
+// guide library
+router.get('/guides', content.listGuides);
+router.post('/guides', content.createGuide);
+router.put('/guides/:id', content.updateGuide);
+router.delete('/guides/:id', content.deleteGuide);
+
+// donation records (these drive the leaderboard and certificates)
+router.get('/donations', content.listDonations);
+router.post('/donations', content.createDonation);
+router.delete('/donations/:id', content.deleteDonation);
 
 // maintenance: reload the demo dataset
 router.post('/seed', async (req, res) => {

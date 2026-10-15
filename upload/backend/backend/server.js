@@ -60,6 +60,13 @@ app.use('/api/blogs', require('./routes/blogRoutes')); // reading is public, wri
 app.use('/api/admin', require('./routes/adminRoutes')); // admin-only utilities (reload sample data)
 app.use('/api/stats', require('./routes/statsRoutes')); // live blood-supply monitor
 
+// --- public content & services ------------------------------------------
+app.use('/api/camps', require('./routes/campRoutes'));           // donation camps
+app.use('/api/stories', require('./routes/storyRoutes'));        // donor stories
+app.use('/api/guides', require('./routes/guideRoutes'));         // donor guide hub
+app.use('/api/availability', require('./routes/availabilityRoutes')); // blood stock search
+app.use('/api/donations', require('./routes/donationRoutes'));   // leaderboard & certificates
+
 // Simple health check route, useful to confirm the server is running
 app.get('/', (req, res) => {
   res.json({ message: 'Health Emergency & Blood Donor Assistance Platform API is running' });
