@@ -1,20 +1,38 @@
-// A single, shared Axios "instance" for the whole app.
-// It automatically attaches the JWT token (if we have one) to every request.
+// Shared Axios instance for the PUBLIC / USER side of LifeLink.
+// It only ever sends the user token. The admin panel has its own client
+// (api/adminApi.js) with its own token, so the two sessions never mix.
 
 import axios from 'axios';
+import demoApi from './demo';
 
-// Local pe chalega toh localhost:5000 use karega,
-// Live (Vercel) pe VITE_API_URL environment variable use karega.
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+export const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
-const api = axios.create({ baseURL: API_BASE_URL });
+// VITE_DEMO=true builds a standalone copy that runs with no backend, for
+// showing the design. It is off in every normal build.
+export const DEMO = import.meta.env.VITE_DEMO === 'true';
 
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
+export const USER_TOKEN_KEY = 'lifelink.user.token';
+export const USER_KEY = 'lifelink.user';
+
+const realApi = axios.create({ baseURL: API_BASE_URL });
+const api = DEMO ? demoApi : realApi;
+
+realApi.interceptors.request.use((config) => {
+  const token = localStorage.getItem(USER_TOKEN_KEY);
+  if (token) config.headers.Authorization = `Bearer ${token}`;
   return config;
 });
+
+realApi.interceptors.response.use(
+  (res) => res,
+  (error) => {
+    // An expired/!valid user session should drop straight back to the login page.
+    if (error.response?.status === 401 && !window.location.pathname.startsWith('/admin')) {
+      localStorage.removeItem(USER_TOKEN_KEY);
+      localStorage.removeItem(USER_KEY);
+    }
+    return Promise.reject(error);
+  }
+);
 
 export default api;

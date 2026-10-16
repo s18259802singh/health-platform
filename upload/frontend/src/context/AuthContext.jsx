@@ -1,39 +1,50 @@
-// AuthContext keeps track of "who is logged in" across the whole app,
-// so any page or component can check `user` or call `login()` / `logout()`
-// without passing props down manually everywhere.
+// Who is signed into the PUBLIC / MEMBER side of LifeLink.
+// The admin console has its own context (admin/AdminAuthContext.jsx) and its
+// own token, so the two sessions are completely independent.
 
-import { createContext, useContext, useState } from 'react';
-import api from '../api/axios';
+import { createContext, useCallback, useContext, useState } from 'react';
+import api, { DEMO, USER_KEY, USER_TOKEN_KEY } from '../api/axios';
 
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(() => {
-    const saved = localStorage.getItem('user');
-    return saved ? JSON.parse(saved) : null;
+    try {
+      const saved = localStorage.getItem(USER_KEY);
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
   });
 
-  const login = async (email, password) => {
+  const persist = (data) => {
+    localStorage.setItem(USER_TOKEN_KEY, data.token);
+    localStorage.setItem(USER_KEY, JSON.stringify(data.user));
+    setUser(data.user);
+    return data.user;
+  };
+
+  const login = useCallback(async (email, password) => {
+    if (DEMO) {
+      return persist({ token: 'demo', user: { id: 'demo', name: 'Dhruv Shah', email, role: 'user' } });
+    }
     const { data } = await api.post('/auth/login', { email, password });
-    localStorage.setItem('token', data.token);
-    localStorage.setItem('user', JSON.stringify(data.user));
-    setUser(data.user);
-    return data.user;
-  };
+    return persist(data);
+  }, []);
 
-  const register = async (formData) => {
+  const register = useCallback(async (formData) => {
+    if (DEMO) {
+      return persist({ token: 'demo', user: { id: 'demo', name: formData.name || 'New member', email: formData.email, role: 'user' } });
+    }
     const { data } = await api.post('/auth/register', formData);
-    localStorage.setItem('token', data.token);
-    localStorage.setItem('user', JSON.stringify(data.user));
-    setUser(data.user);
-    return data.user;
-  };
+    return persist(data);
+  }, []);
 
-  const logout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
+  const logout = useCallback(() => {
+    localStorage.removeItem(USER_TOKEN_KEY);
+    localStorage.removeItem(USER_KEY);
     setUser(null);
-  };
+  }, []);
 
   return (
     <AuthContext.Provider value={{ user, login, register, logout }}>
