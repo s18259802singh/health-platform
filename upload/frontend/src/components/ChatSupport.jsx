@@ -56,6 +56,8 @@ export default function ChatSupport() {
     try { return localStorage.getItem(KEY_STORE) || ''; } catch { return ''; }
   });
   const [unread, setUnread] = useState(0);
+  const [stale, setStale] = useState(false);   // server is a version behind
+  const [slow, setSlow] = useState(false);     // free host waking up
   const seenRef = useRef(0);
   const bodyRef = useRef(null);
   const inputRef = useRef(null);
@@ -65,7 +67,13 @@ export default function ChatSupport() {
   // Count the admin messages the visitor has not had on screen, so a closed
   // window can say "there is an answer in here" instead of staying silent.
   const absorb = useCallback((thread, isOpen) => {
-    const list = thread?.messages || [];
+    // A server running the previous version answers without a messages array.
+    // Keep what is already on screen rather than blanking the window: losing
+    // somebody's typed question because the backend is a version behind is the
+    // worst thing this component could do.
+    if (!Array.isArray(thread?.messages)) { setStale(true); return; }
+    setStale(false);
+    const list = thread.messages;
     setMsgs(list);
     if (thread?.contact) setHaveContact(true);
     const fromTeam = list.filter((m) => m.from === 'admin').length;
@@ -128,7 +136,12 @@ export default function ChatSupport() {
     if (!body || sending) return;
     setSending(true);
     setError('');
+    setSlow(false);
     setDraft('');
+    // Render puts the free plan to sleep; the first request wakes it, which
+    // can take most of a minute. Say so rather than showing "Sending..."
+    // for 50 seconds and looking broken.
+    const slowTimer = setTimeout(() => setSlow(true), 6000);
     // Show it straight away. The server's copy replaces this a moment later.
     const mine = { from: 'visitor', body, at: new Date().toISOString(), pending: true };
     setMsgs((m) => [...m, mine]);
@@ -146,6 +159,11 @@ export default function ChatSupport() {
       }
       absorb(data, true);
       setWantContact(false);
+      // When the server could not give us the thread back, mark our own copy
+      // as sent so it stops saying "Sending..." forever.
+      if (!Array.isArray(data?.messages)) {
+        setMsgs((m) => m.map((x) => (x === mine ? { ...x, pending: false } : x)));
+      }
     } catch (err) {
       setMsgs((m) => m.filter((x) => x !== mine));
       setDraft(body);
@@ -153,6 +171,8 @@ export default function ChatSupport() {
         ? `The chat service is not reachable from this server yet. Please call ${PHONE} or email ${EMAIL}.`
         : `That did not send. Check your connection, or call ${PHONE}.`);
     } finally {
+      clearTimeout(slowTimer);
+      setSlow(false);
       setSending(false);
     }
   };
@@ -232,6 +252,22 @@ export default function ChatSupport() {
               <div className="chat-pending">
                 <span className="chat-pending-dot" aria-hidden="true" />
                 With the team. The answer appears here — you can close this window.
+              </div>
+            )}
+
+            {slow && (
+              <div className="chat-pending">
+                <span className="chat-pending-dot" aria-hidden="true" />
+                Waking the server — the first message after a quiet spell takes a moment.
+              </div>
+            )}
+
+            {stale && !error && (
+              <div className="chat-error" role="status">
+                Your message was saved, but this server is still running the
+                previous version of the chat, so the conversation cannot be
+                shown back to you yet. Deploy the backend update and it will
+                appear here.
               </div>
             )}
 

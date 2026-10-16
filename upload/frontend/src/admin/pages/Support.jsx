@@ -38,6 +38,19 @@ const since = (date) => {
   return `${Math.round(mins / 1440)} d ago`;
 };
 
+// Conversations saved before the live-chat update are one question and at
+// most one answer, in different fields. Read them as a two-message thread
+// rather than showing an empty box — those are real questions from real
+// people, and they were invisible in the first version of this page.
+const readMessages = (row) => {
+  if (Array.isArray(row.messages)) return { msgs: row.messages, legacy: false };
+  const msgs = [];
+  if (row.message) msgs.push({ _id: `${row._id}-q`, from: 'visitor', body: row.message, at: row.createdAt });
+  if (row.reply) msgs.push({ _id: `${row._id}-a`, from: 'admin', body: row.reply,
+                            byName: row.repliedBy?.name || 'LifeLink team', at: row.repliedAt });
+  return { msgs, legacy: true };
+};
+
 const stamp = (at) => {
   const d = new Date(at);
   return Number.isNaN(d.getTime()) ? '' : d.toLocaleString([], {
@@ -176,7 +189,7 @@ export default function Support() {
           <>
             <ul className="adm-threads">
               {pager.slice.map((row) => {
-                const msgs = row.messages || [];
+                const { msgs, legacy } = readMessages(row);
                 const last = msgs[msgs.length - 1];
                 const fromVisitor = msgs.filter((m) => m.from === 'visitor').length;
                 return (
@@ -208,6 +221,14 @@ export default function Support() {
                       ))}
                       {msgs.length === 0 && <li className="adm-muted">No messages in this conversation.</li>}
                     </ol>
+
+                    {legacy && (
+                      <p className="adm-legacy-note">
+                        Saved before the live-chat update, so it cannot be replied to
+                        in a thread. Deploy the backend update, then re-seed from
+                        Settings &amp; data to clear these.
+                      </p>
+                    )}
 
                     {row.status === 'closed' ? (
                       <div className="adm-thread-actions">

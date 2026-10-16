@@ -620,6 +620,12 @@
   text-transform: none; margin-left: 7px; color: var(--adm-muted);
 }
 
+.adm-legacy-note {
+  margin: 10px 0 0; padding: 9px 12px; border-radius: var(--adm-radius-sm);
+  background: var(--adm-warn-soft); color: var(--adm-warn);
+  font-size: 12.5px; line-height: 1.55;
+}
+
 .adm-thread-reply { margin-top: 12px; }
 .adm-thread-reply textarea {
   width: 100%; padding: 10px 12px; resize: vertical; line-height: 1.6;
