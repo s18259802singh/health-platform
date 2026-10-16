@@ -66,6 +66,8 @@ app.use('/api/stories', require('./routes/storyRoutes'));        // donor storie
 app.use('/api/guides', require('./routes/guideRoutes'));         // donor guide hub
 app.use('/api/availability', require('./routes/availabilityRoutes')); // blood stock search
 app.use('/api/donations', require('./routes/donationRoutes'));   // leaderboard & certificates
+app.use('/api/support', require('./routes/supportRoutes'));
+app.use('/api/care', require('./routes/careRoutes'));   // find care near me
 
 // Simple health check route, useful to confirm the server is running
 app.get('/', (req, res) => {

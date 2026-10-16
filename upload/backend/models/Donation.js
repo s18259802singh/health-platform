@@ -16,6 +16,16 @@ const donationSchema = new mongoose.Schema(
     campId: { type: mongoose.Schema.Types.ObjectId, ref: 'Camp' },
     locationName: { type: String, default: '' },
     certificateNo: { type: String, unique: true, sparse: true },
+
+    // CERTIFICATES ARE ISSUED, NOT AUTOMATIC.
+    // The reference number is reserved when the record is created, but the
+    // certificate itself is not valid until an administrator issues it. A
+    // certificate is a document a centre stands behind - it should not be
+    // downloadable the instant a row lands in the database.
+    certificateIssued: { type: Boolean, default: false },
+    certificateIssuedAt: { type: Date },
+    certificateIssuedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+
     notes: { type: String, default: '' },
   },
   { timestamps: true }

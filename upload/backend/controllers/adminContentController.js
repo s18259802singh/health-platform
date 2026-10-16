@@ -9,6 +9,7 @@ const Story = require('../models/Story');
 const Guide = require('../models/Guide');
 const Donation = require('../models/Donation');
 const User = require('../models/User');
+const SupportMessage = require('../models/SupportMessage');
 
 // ---------------------------------------------------------------- CAMPS ---
 
@@ -219,3 +220,126 @@ module.exports = {
   listGuides, createGuide, updateGuide, deleteGuide,
   listDonations, createDonation, deleteDonation,
 };
+
+// ---------------------------------------------------------------------------
+// CERTIFICATES
+// Issuing is a separate, deliberate act from recording a donation. A record
+// says "this happened"; a certificate says "and we will put our name to it".
+// ---------------------------------------------------------------------------
+
+const issueCertificate = async (req, res) => {
+  try {
+    const donation = await Donation.findById(req.params.id);
+    if (!donation) return res.status(404).json({ message: 'Donation not found' });
+    if (donation.certificateIssued) {
+      return res.status(409).json({ message: 'That certificate has already been issued' });
+    }
+
+    donation.certificateIssued = true;
+    donation.certificateIssuedAt = new Date();
+    donation.certificateIssuedBy = req.user.id;
+    await donation.save();
+
+    const populated = await Donation.findById(donation._id).populate('userId', 'name bloodGroup location');
+    res.json(populated);
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
+const revokeCertificate = async (req, res) => {
+  try {
+    const donation = await Donation.findById(req.params.id);
+    if (!donation) return res.status(404).json({ message: 'Donation not found' });
+    donation.certificateIssued = false;
+    donation.certificateIssuedAt = undefined;
+    donation.certificateIssuedBy = undefined;
+    await donation.save();
+    res.json({ message: 'Certificate withdrawn', _id: donation._id });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
+// Clearing a backlog one row at a time is how a queue stops being used.
+const issueAllPending = async (req, res) => {
+  try {
+    const result = await Donation.updateMany(
+      { certificateIssued: { $ne: true } },
+      { $set: { certificateIssued: true, certificateIssuedAt: new Date(), certificateIssuedBy: req.user.id } }
+    );
+    res.json({ issued: result.modifiedCount ?? result.nModified ?? 0 });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
+// ---------------------------------------------------------------------------
+// SUPPORT INBOX
+// ---------------------------------------------------------------------------
+
+const listSupport = async (req, res) => {
+  try {
+    const { status = '', search = '' } = req.query;
+    const filter = {};
+    if (status) filter.status = status;
+    if (search) {
+      filter.$or = [
+        { message: { $regex: search, $options: 'i' } },
+        { name: { $regex: search, $options: 'i' } },
+        { contact: { $regex: search, $options: 'i' } },
+      ];
+    }
+    const [rows, open] = await Promise.all([
+      SupportMessage.find(filter).sort({ status: 1, createdAt: -1 }).limit(300)
+        .populate('userId', 'name email phone')
+        .populate('repliedBy', 'name'),
+      SupportMessage.countDocuments({ status: 'open' }),
+    ]);
+    res.json({ rows, openCount: open });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
+const replySupport = async (req, res) => {
+  try {
+    const { reply } = req.body;
+    if (!reply || !String(reply).trim()) {
+      return res.status(400).json({ message: 'A reply is required' });
+    }
+    const doc = await SupportMessage.findById(req.params.id);
+    if (!doc) return res.status(404).json({ message: 'Message not found' });
+
+    doc.reply = String(reply).trim().slice(0, 4000);
+    doc.status = 'answered';
+    doc.repliedAt = new Date();
+    doc.repliedBy = req.user.id;
+    await doc.save();
+
+    const populated = await SupportMessage.findById(doc._id)
+      .populate('userId', 'name email phone').populate('repliedBy', 'name');
+    res.json(populated);
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
+const closeSupport = async (req, res) => {
+  try {
+    const doc = await SupportMessage.findByIdAndUpdate(
+      req.params.id, { status: 'closed' }, { new: true }
+    );
+    if (!doc) return res.status(404).json({ message: 'Message not found' });
+    res.json(doc);
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
+module.exports.issueCertificate = issueCertificate;
+module.exports.revokeCertificate = revokeCertificate;
+module.exports.issueAllPending = issueAllPending;
+module.exports.listSupport = listSupport;
+module.exports.replySupport = replySupport;
+module.exports.closeSupport = closeSupport;

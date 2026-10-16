@@ -30,4 +30,21 @@ const adminOnly = (req, res, next) => {
   return res.status(403).json({ message: 'Admin access only' });
 };
 
-module.exports = { protect, adminOnly };
+// Attaches req.user when a valid token is present and carries on regardless.
+// For routes that are open to everyone but behave better when they know who
+// is asking — the support chat is the case this was written for: a visitor
+// can ask a question without an account, and a signed-in member's question is
+// filed against their record so they can find the answer later.
+const optionalAuth = (req, res, next) => {
+  const authHeader = req.headers.authorization;
+  if (authHeader && authHeader.startsWith('Bearer')) {
+    try {
+      req.user = jwt.verify(authHeader.split(' ')[1], process.env.JWT_SECRET);
+    } catch {
+      // An expired token on an open route is not an error - just anonymous.
+    }
+  }
+  return next();
+};
+
+module.exports = { protect, adminOnly, optionalAuth };

@@ -70,6 +70,16 @@ router.get('/donations', content.listDonations);
 router.post('/donations', content.createDonation);
 router.delete('/donations/:id', content.deleteDonation);
 
+// certificates - issuing is separate from recording the donation
+router.post('/donations/:id/certificate', content.issueCertificate);
+router.delete('/donations/:id/certificate', content.revokeCertificate);
+router.post('/certificates/issue-all', content.issueAllPending);
+
+// support inbox - questions the chat could not answer by itself
+router.get('/support', content.listSupport);
+router.post('/support/:id/reply', content.replySupport);
+router.post('/support/:id/close', content.closeSupport);
+
 // maintenance: reload the demo dataset
 router.post('/seed', async (req, res) => {
   try {

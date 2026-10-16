@@ -18,6 +18,7 @@ const Camp = require('../models/Camp');
 const Story = require('../models/Story');
 const Guide = require('../models/Guide');
 const Donation = require('../models/Donation');
+const SupportMessage = require('../models/SupportMessage');
 
 const hospitalData = require('./hospitalData');
 const donorData = require('./donorData');
@@ -56,6 +57,7 @@ const runSeed = async () => {
   await Story.deleteMany({});
   await Guide.deleteMany({});
   await Donation.deleteMany({});
+  await SupportMessage.deleteMany({});
 
   // Password for the SAMPLE DONOR accounts only.
   // Set SEED_DEMO_PASSWORD in the environment to change it; if it is not set,
@@ -214,6 +216,17 @@ const runSeed = async () => {
     donationDocs.push(...buildHistory(admin, 900 + k * 13, 7 + k));
   });
 
+  // Certificates are issued by an administrator, not minted automatically.
+  // Historical donations arrive already issued - they are history. The most
+  // recent handful are left pending on purpose, so the issuing queue in the
+  // console is not an empty screen nobody ever looks at.
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - 45);
+  donationDocs.forEach((d) => {
+    const issued = d.donatedAt < cutoff;
+    d.certificateIssued = issued;
+    if (issued) d.certificateIssuedAt = new Date(d.donatedAt.getTime() + 2 * 86400000);
+  });
   const donations = await Donation.insertMany(donationDocs, { ordered: false });
 
   // Put each admin on an upcoming camp too, so "My camps" on the dashboard
@@ -247,6 +260,27 @@ const runSeed = async () => {
     .filter(Boolean);
   const requests = await DonationRequest.insertMany(requestDocs);
 
+  // ---- Support inbox ----
+  // Two questions the chat could not answer, so the console's inbox shows
+  // what an unanswered one looks like next to an answered one.
+  const supportSeed = [
+    {
+      name: 'Rupal Mehta', contact: '9876543210',
+      message: 'I am on blood pressure tablets. Can I still donate at the camp on the 19th?',
+      page: '/camps', status: 'open',
+      createdAt: new Date(Date.now() - 5 * 3600000),
+    },
+    {
+      name: 'Kalpesh Patel', contact: 'kalpesh@example.com',
+      message: 'My father needs two units of B negative in Rajkot tomorrow. Does the portal hold them for us?',
+      page: '/availability', status: 'answered',
+      reply: 'The portal shows what each centre has recorded but cannot reserve units — call the centre directly and they will hold them against the patient name. Sterling Hospital Rajkot had B negative in stock this morning.',
+      repliedAt: new Date(Date.now() - 20 * 3600000),
+      createdAt: new Date(Date.now() - 26 * 3600000),
+    },
+  ].map((m, i) => ({ ...m, threadKey: `seed${i}${Math.random().toString(36).slice(2, 10)}` }));
+  const support = await SupportMessage.insertMany(supportSeed);
+
   return {
     donors: createdDonors.length,
     hospitals: hospitals.length,
@@ -257,6 +291,9 @@ const runSeed = async () => {
     guides: guides.length,
     donations: donations.length,
     requests: requests.length,
+    support: support.length,
+    certificatesIssued: donationDocs.filter((d) => d.certificateIssued).length,
+    certificatesPending: donationDocs.filter((d) => !d.certificateIssued).length,
     bloodUnits: withRegion.reduce((a, h) => a + h.availableBloodUnits.reduce((x, u) => x + u.units, 0), 0),
   };
 };

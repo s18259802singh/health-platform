@@ -103,6 +103,10 @@ const getMyDonations = async (req, res) => {
         nextTier: higher ? { label: higher.label, needed: higher.min - count } : null,
         firstDonation: donations.length ? donations[donations.length - 1].donatedAt : null,
         lastDonation: donations.length ? donations[0].donatedAt : null,
+        // So the member's page can say "2 certificates waiting to be issued"
+        // instead of silently showing some rows without a download link.
+        certificatesIssued: donations.filter((d) => d.certificateIssued).length,
+        certificatesPending: donations.filter((d) => !d.certificateIssued).length,
       },
     });
   } catch (error) {
@@ -117,6 +121,18 @@ const getCertificate = async (req, res) => {
       .populate('hospitalId', 'name city state')
       .populate('campId', 'title city state');
     if (!donation) return res.status(404).json({ message: 'Certificate not found' });
+
+    // A certificate is a document the network stands behind, so it is issued
+    // by an administrator rather than minted the moment a row is created.
+    // Until then the member can see that the donation is on their record -
+    // they just cannot download a certificate for it yet.
+    if (!donation.certificateIssued) {
+      return res.status(409).json({
+        message: 'This certificate has not been issued yet',
+        status: 'pending',
+        donatedAt: donation.donatedAt,
+      });
+    }
 
     const user = await User.findById(req.user.id).select('name bloodGroup location');
     const index = await Donation.countDocuments({ userId: req.user.id, donatedAt: { $lte: donation.donatedAt } });
