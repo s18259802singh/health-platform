@@ -5,6 +5,8 @@ import { Link } from 'react-router-dom';
 import api from '../api/axios';
 import { LoadMore, useLoadMore } from '../components/Pagination';
 import SearchSelect from '../components/SearchSelect';
+import Photo from '../components/Photo';
+import { photoFor } from '../lib/photos';
 
 const dayLabel = (iso) => {
   const d = new Date(`${iso}T00:00:00`);
@@ -90,6 +92,8 @@ export default function Camps() {
 
           return (
             <article className={`camp-card ${c.status !== 'upcoming' ? 'past' : ''}`} key={c._id}>
+              <Photo photo={photoFor(c._id)} className="camp-photo" ratio="4 / 3"
+                     sizes="(max-width: 760px) 100vw, 150px" />
               <div className="camp-date" aria-hidden="true">
                 <strong>{d.day}</strong>
                 <span>{d.month}</span>

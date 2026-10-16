@@ -742,6 +742,62 @@ input[type="file"] { padding: 9px; font-size: 13.5px; background: var(--line-sof
   .chat-typing span { animation: none; opacity: .5; }
 }
 
+
+/* ===========================================================================
+   PHOTOGRAPHY (components/Photo.jsx, lib/photos.js)
+   Remote images, so the wrapper holds its shape from the first paint and the
+   placeholder is a deliberate brand tint rather than a grey void.
+   ======================================================================== */
+.photo {
+  position: relative; overflow: hidden; width: 100%;
+  background: linear-gradient(140deg, var(--p-100), var(--brand-soft) 60%, var(--line-soft));
+}
+.photo-round { border-radius: var(--r-sm); }
+.photo img {
+  width: 100%; height: 100%; object-fit: cover; display: block;
+  opacity: 0; animation: photo-in .5s ease forwards;
+}
+@keyframes photo-in { to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .photo img { animation: none; opacity: 1; } }
+
+/* If the CDN is unreachable the tint stays and carries a faint drop mark, so
+   the slot still reads as intentional instead of broken. */
+.photo-failed::after {
+  content: ''; position: absolute; inset: 0;
+  background: radial-gradient(circle at 50% 45%, rgba(138, 83, 154, .22) 0 14%, transparent 15%);
+}
+
+/* the landing hero: a photo panel beside the search card */
+/* The hero photograph sits BEHIND the hero's own content. The overlay is what
+   makes the white text legible on top of an arbitrary photo — without it the
+   contrast depends on whatever happens to be in the picture. */
+.hero-tile.has-photo { position: relative; isolation: isolate; overflow: hidden; }
+.hero-bg {
+  position: absolute; inset: 0; z-index: -2;
+  width: 100%; height: 100%; aspect-ratio: auto !important;
+  background: var(--deep-1);
+}
+.hero-bg img { height: 100%; object-fit: cover; filter: saturate(.75); }
+.hero-tile.has-photo::before {
+  content: ''; position: absolute; inset: 0; z-index: -1;
+  background:
+    linear-gradient(105deg, rgba(13, 18, 32, .95) 0%, rgba(13, 18, 32, .88) 45%, rgba(86, 48, 95, .72) 100%);
+}
+
+/* a photo band across the top of a card */
+.card-photo { height: 100%; }
+
+/* The camp card is a row: date block, photo, body. The photo is the first
+   thing that makes a list of camps look like events rather than records. */
+.camp-photo { flex: none; width: 132px; align-self: stretch; border-radius: var(--r-sm); }
+@media (max-width: 680px) {
+  .camp-photo { width: 100%; aspect-ratio: 16 / 7 !important; }
+}
+
+/* a band across the top of a card */
+.card-photo { margin: calc(var(--s4) * -1) calc(var(--s4) * -1) var(--s3); border-radius: 0; }
+.tile .card-photo { margin: calc(var(--s5) * -1) calc(var(--s5) * -1) var(--s4); }
+
 /* ===========================================================================
    SEARCHABLE DROPDOWN (components/SearchSelect.jsx)
    A native select with 26 districts or 110 hospitals in it is a scroll hunt.
@@ -870,7 +926,21 @@ input[type="file"] { padding: 9px; font-size: 13.5px; background: var(--line-sof
 /* ------------------------------------------------- blood supply monitor */
 .supply-caption { font-size: 13.5px; color: var(--muted); margin: -6px 0 16px; max-width: 70ch; }
 .supply-row { display: grid; grid-template-columns: repeat(8, 1fr); gap: 10px; }
-.supply-bag { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.supply-bag {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  padding: 8px 4px 6px; border-radius: var(--r-sm);
+  color: inherit; text-decoration: none;
+  transition: background .15s ease, transform .15s ease;
+}
+.supply-bag:hover, .supply-bag:focus-visible {
+  background: var(--brand-soft); text-decoration: none; transform: translateY(-2px);
+}
+.supply-bag-go {
+  font-size: 10.5px; font-weight: 650; color: var(--brand);
+  opacity: 0; transition: opacity .15s ease;
+}
+.supply-bag:hover .supply-bag-go, .supply-bag:focus-visible .supply-bag-go { opacity: 1; }
+@media (hover: none) { .supply-bag-go { opacity: .75; } }
 .supply-bag-shape {
   position: relative; width: 100%; max-width: 58px; aspect-ratio: 3 / 4;
   border: 2px solid var(--red-line); border-radius: 8px 8px 14px 14px;
@@ -1524,6 +1594,7 @@ input[type="file"] { padding: 9px; font-size: 13.5px; background: var(--line-sof
 .portal-filters span { font-size: 12px; font-weight: 650; color: var(--ink-2); }
 .portal-filters input, .portal-filters select { margin: 0; font-size: 14px; padding: 10px 12px; }
 .portal-search { height: 42px; }
+.portal-reset { height: 42px; align-self: end; }
 
 .portal-summary {
   display: flex; align-items: center; gap: 28px; flex-wrap: wrap;

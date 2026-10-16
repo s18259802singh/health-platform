@@ -65,8 +65,14 @@ export default function Availability() {
     }
   };
 
-  // Run once on load so the page is never an empty form.
-  useEffect(() => { run(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  // Re-query whenever a filter changes, rather than waiting for the Search
+  // button. Changing district and watching the count sit at 110 reads as a
+  // broken filter — and every other list on the site filters as you type.
+  // The text box is debounced so it does not fire on every keystroke.
+  useEffect(() => {
+    const t = setTimeout(run, filters.search ? 350 : 0);
+    return () => clearTimeout(t);
+  }, [filters.state, filters.district, filters.bloodGroup, filters.type, filters.search]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const set = (key, value) => setFilters((f) => ({
     ...f,
@@ -152,9 +158,21 @@ export default function Availability() {
           />
         </label>
 
+        {/* Results update as the filters change, so this is a re-run rather
+            than the only way to apply them. It stays because people reach for
+            a Search button on a portal like this and look lost without one. */}
         <button type="submit" className="btn-primary portal-search" disabled={loading}>
           {loading ? 'Searching…' : 'Search'}
         </button>
+        {(filters.state || filters.district || filters.bloodGroup || filters.type || filters.search) && (
+          <button
+            type="button"
+            className="small-button portal-reset"
+            onClick={() => setFilters({ state: '', district: '', bloodGroup: '', component: 'Whole Blood', type: '', search: '' })}
+          >
+            Clear filters
+          </button>
+        )}
       </form>
 
       {data && (

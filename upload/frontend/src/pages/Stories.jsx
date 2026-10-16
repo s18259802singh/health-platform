@@ -7,6 +7,8 @@ import api from '../api/axios';
 import { LoadMore, useLoadMore } from '../components/Pagination';
 import { initials, avatarTint, excerpt } from '../lib/people';
 import SearchSelect from '../components/SearchSelect';
+import Photo from '../components/Photo';
+import { photoFor } from '../lib/photos';
 
 const ROLE = { donor: 'Donor', recipient: 'Recipient', organiser: 'Organiser' };
 
@@ -60,6 +62,10 @@ export default function Stories() {
         <div className="bento">
           {featured.map((s, i) => (
             <article className={`tile lift t-4 ${TINTS[i % 3]} story-tile`} key={s._id}>
+              {/* Scene photography only. The person in a story is shown by
+                  their monogram, never by a stock face — see lib/photos.js. */}
+              <Photo photo={photoFor(s._id)} className="card-photo" ratio="21 / 9"
+                     sizes="(max-width: 760px) 100vw, 380px" />
               <span className={`story-role ${s.role}`}>{ROLE[s.role]}</span>
               <h3><Link to={`/stories/${s._id}`}>{s.headline}</Link></h3>
               <p className="story-excerpt">{excerpt(s.body, 150)}</p>

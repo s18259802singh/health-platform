@@ -9,6 +9,8 @@ import api from '../api/axios';
 import { useAuth } from '../context/AuthContext';
 import { Reveal, Counter } from '../components/Motion';
 import SearchSelect from '../components/SearchSelect';
+import Photo from '../components/Photo';
+import { PHOTOS } from '../lib/photos';
 
 const GROUPS = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
 
@@ -72,7 +74,12 @@ export default function Home() {
     <div className="landing">
       {/* ------------------------------------------------- hero + QR tile */}
       <div className="bento">
-        <section className="tile ink glow pad-lg t-8 r-2 hero-tile">
+        <section className="tile ink glow pad-lg t-8 r-2 hero-tile has-photo">
+          {/* A real photograph behind the hero, darkened enough that the text
+              on top keeps its contrast. The wrapper holds the aspect from the
+              first paint so nothing below it jumps when the image lands. */}
+          <Photo photo={PHOTOS.donating} className="hero-bg" ratio="auto" eager rounded={false}
+                 sizes="(max-width: 900px) 100vw, 820px" />
           <span className="tile-label">Health emergency &amp; blood donor network</span>
           <h1>When someone needs blood, minutes decide the outcome.</h1>
           <p className="hero-lede">
