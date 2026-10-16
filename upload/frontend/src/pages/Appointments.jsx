@@ -1,6 +1,7 @@
 // Book a new appointment, and view/cancel your existing ones.
 
 import { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import api from '../api/axios';
 import SearchSelect from '../components/SearchSelect';
 
@@ -8,7 +9,17 @@ export default function Appointments() {
   const [hospitals, setHospitals] = useState([]);
   const [doctors, setDoctors] = useState([]);
   const [myAppointments, setMyAppointments] = useState([]);
-  const [form, setForm] = useState({ hospitalId: '', doctorId: '', appointmentDate: '', appointmentTime: '' });
+  // "Find care near me" links straight into this form with the hospital,
+  // doctor and time already chosen, so picking a slot there does not mean
+  // finding the same three things again here.
+  const [params] = useSearchParams();
+  const [form, setForm] = useState({
+    hospitalId: params.get('hospitalId') || '',
+    doctorId: params.get('doctorId') || '',
+    appointmentDate: '',
+    appointmentTime: params.get('time') || '',
+  });
+  const prefilled = !!params.get('hospitalId');
   const [message, setMessage] = useState('');
 
   const loadMyAppointments = () => {
@@ -57,6 +68,11 @@ export default function Appointments() {
   return (
     <div className="page">
       <h1 className="page-h1">Book a Doctor Appointment</h1>
+      {prefilled && (
+        <p className="compat-active-banner">
+          Carried over from your search — just pick a date and confirm.
+        </p>
+      )}
       {message && <p className="hint">{message}</p>}
 
       <div className="form-card">

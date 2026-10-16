@@ -12,6 +12,7 @@ import { useTour } from '../context/TourContext';
 
 const PUBLIC_PRIMARY = [
   { to: '/', label: 'Home', end: true },
+  { to: '/near-me', label: 'Find care near me' },
   { to: '/availability', label: 'Blood availability' },
   { to: '/camps', label: 'Camps' },
   { to: '/stories', label: 'Stories' },
@@ -24,6 +25,7 @@ const PUBLIC_MORE = [
 
 const MEMBER_PRIMARY = [
   { to: '/dashboard', label: 'Dashboard' },
+  { to: '/near-me', label: 'Near me' },
   { to: '/donors', label: 'Find donors' },
   { to: '/availability', label: 'Availability' },
   { to: '/camps', label: 'Camps' },

@@ -148,6 +148,10 @@ const myDonations = Array.from({ length: 9 }, (_, i) => ({
   bloodGroup: 'O-', units: 1,
   locationName: hospitals[i % hospitals.length].name,
   certificateNo: `LL-2026-${(10000 + i * 37).toString(36).toUpperCase()}`,
+  // The two most recent are still with the centre, so the preview shows both
+  // an issued certificate and one awaiting issue.
+  certificateIssued: i > 1,
+  certificateIssuedAt: i > 1 ? new Date(Date.now() - (i * 94) * 86400000) : undefined,
 }));
 
 const donors = (() => {
@@ -166,6 +170,21 @@ const donors = (() => {
   });
   return out;
 })();
+
+// Three doctors per centre, generated the same way everywhere they are asked
+// for, so an id handed out by /care/near still resolves under /doctors.
+const DOC_NAMES = ['Dr. Mehta','Dr. Patel','Dr. Shah','Dr. Desai','Dr. Trivedi','Dr. Joshi'];
+const DOC_SPECS = ['Cardiologist','General Physician','Orthopedic','Dermatologist','Pediatrician','ENT Specialist','Gynecologist','Neurologist'];
+const DOC_DAYS = [['Monday','Wednesday','Friday'],['Tuesday','Thursday'],['Monday','Saturday']];
+const DOC_SLOTS = [['10:00 AM','11:00 AM','4:00 PM'],['9:00 AM','12:00 PM'],['11:00 AM','2:00 PM']];
+const doctorsFor = (hospitalId, i = 0) => [0, 1, 2].map((k) => ({
+  _id: `${hospitalId}-d${k}`,
+  hospitalId,
+  name: DOC_NAMES[(i + k) % DOC_NAMES.length],
+  specialization: DOC_SPECS[(i * 3 + k) % DOC_SPECS.length],
+  availableDays: DOC_DAYS[k % 3],
+  availableTimeSlots: DOC_SLOTS[k % 3],
+}));
 
 const blogs = [
   { _id: 'b1', title: 'Why platelet donors are needed every single week', excerpt: 'Platelets last about five days, which changes everything about how supply works.', author: 'LifeLink Team', imageUrl: '', createdAt: new Date(Date.now() - 4 * 864e5).toISOString(), content: GUIDE_BODY },
@@ -251,7 +270,7 @@ function resolve(url, config = {}) {
         return {
           member: { name: 'Dhruv Shah', bloodGroup: 'O-', city: 'Ahmedabad' },
           donations: myDonations,
-          summary: { count: 9, units: 9, livesTouched: 27, tier: 'Silver', tierNote: '8+ donations', nextTier: { label: 'Gold', needed: 6 }, firstDonation: myDonations[8].donatedAt, lastDonation: myDonations[0].donatedAt },
+          summary: { count: 9, units: 9, livesTouched: 27, tier: 'Silver', tierNote: '8+ donations', nextTier: { label: 'Gold', needed: 6 }, firstDonation: myDonations[8].donatedAt, lastDonation: myDonations[0].donatedAt, certificatesIssued: 7, certificatesPending: 2 },
         };
       }
       if (seg[2] === 'certificate') {
@@ -289,6 +308,69 @@ function resolve(url, config = {}) {
       const want = p.status;
       return want ? all.filter((r) => r.status === want) : all;
     }
+    case 'care': {
+      if (seg[1] === 'options') {
+        return { cities: [...new Set(REGISTER.map(([c]) => c))].sort(),
+          conditions: [
+            {id:'heart',label:'Heart, chest pain, blood pressure'},
+            {id:'general',label:'Fever, infection, general illness'},
+            {id:'bones',label:'Bones, joints, fractures, back pain'},
+            {id:'skin',label:'Skin, rash, hair'},
+            {id:'child',label:'Children and babies'},
+            {id:'ent',label:'Ear, nose, throat'},
+            {id:'womens',label:"Women's health and pregnancy"},
+            {id:'neuro',label:'Headaches, nerves, seizures'},
+          ] };
+      }
+      // near: fake distances that still sort sensibly, so the page can be
+      // judged without a backend.
+      const want = String(p.place || '').toLowerCase();
+      if (!want) return { message: 'Tell us roughly where you are.', unresolved: true };
+      const SPEC = { heart:['Cardiologist'], general:['General Physician'], bones:['Orthopedic'],
+        skin:['Dermatologist'], child:['Pediatrician'], ent:['ENT Specialist'],
+        womens:['Gynecologist'], neuro:['Neurologist'] };
+      const wanted = SPEC[p.condition];
+      const SPEC_ALL = ['Cardiologist','General Physician','Orthopedic','Dermatologist','Pediatrician','ENT Specialist','Gynecologist','Neurologist'];
+      let list = hospitals.map((h, i) => {
+        const near = h.city.toLowerCase().includes(want) || want.includes(h.city.toLowerCase());
+        const docs = doctorsFor(h._id, i);
+        const stock = h.availableBloodUnits || [];
+        return { ...h, distanceKm: near ? (3 + (i % 9)) : (28 + i * 7),
+          units: p.bloodGroup ? (stock.find((u)=>u.bloodGroup===p.bloodGroup)?.units || 0)
+                              : stock.reduce((a,u)=>a+(u.units||0),0),
+          breakdown: stock, doctorCount: docs.length,
+          doctors: wanted ? docs.filter((d) => wanted.includes(d.specialization)) : docs };
+      });
+      if (p.type) list = list.filter((h) => h.type === p.type);
+      if (p.bloodGroup) list = list.filter((h) => h.units > 0);
+      list.sort((a,b) => (wanted ? (b.doctors.length>0)-(a.doctors.length>0) : 0) || a.distanceKm - b.distanceKm);
+      list = list.slice(0, 12);
+      return { origin: { place: want.replace(/\b\w/g, (c)=>c.toUpperCase()), query: p.place },
+        condition: wanted ? { id: p.condition, label: p.condition, specialisms: wanted } : null,
+        bloodGroup: p.bloodGroup || '', count: list.length, results: list };
+    }
+
+    case 'doctors':
+      return p.hospitalId
+        ? doctorsFor(p.hospitalId, hospitals.findIndex((h) => h._id === p.hospitalId))
+        : hospitals.flatMap((h, i) => doctorsFor(h._id, i)).slice(0, 40);
+
+    case 'support': {
+      if (seg[1] === 'thread') {
+        // In the demo an answer arrives on its own after a few seconds, so the
+        // handoff can be seen working without an admin at the other end.
+        const asked = Number(sessionStorage.getItem('demo.support.at') || 0);
+        const waited = Date.now() - asked;
+        return waited > 8000
+          ? { message: 'demo question', status: 'answered',
+              reply: 'Thanks for waiting — this is what a reply from the team looks like. On the real site an administrator writes this in the console and it lands here.',
+              repliedAt: new Date().toISOString() }
+          : { message: 'demo question', status: 'open', reply: '' };
+      }
+      sessionStorage.setItem('demo.support.at', String(Date.now()));
+      return { threadKey: 'demo-thread', status: 'open', createdAt: new Date().toISOString() };
+    }
+
     case 'profile':
       return { name: 'Dhruv Shah', email: 'dhruv@example.com', phone: '09876543210', bloodGroup: 'O-', allergies: 'Penicillin', location: 'Ahmedabad', isDonor: true, emergencyContact: { name: 'Next of kin', number: '09876500000' }, qrCodePath: '' };
     default:

@@ -17,6 +17,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
+import api from '../api/axios';
 
 const PHONE = '1910';            // India's national blood helpline
 const EMAIL = 'support@lifelink.example';
@@ -79,13 +80,25 @@ const GREETING = {
   text: `Hello. I am the LifeLink assistant — an automated one, not a person.\n\nI can answer questions about donating, finding blood, camps and your account. For anything urgent, call ${PHONE}.`,
 };
 
-const FALLBACK = `I could not match that to anything I know. For a medical question or an urgent request, call ${PHONE} — it is staffed around the clock — or email ${EMAIL}.\n\nYou can also pick one of the topics below.`;
+const FALLBACK = `I could not match that to anything I know, so I can pass it to the team — they answer from the admin console, usually the same day.\n\nFor anything urgent, call ${PHONE} rather than waiting on a reply.`;
+
+// Where an unanswered question goes, and how we watch for the answer.
+const POLL_MS = 20000;
+const KEY_STORE = 'lifelink.support.thread';
 
 export default function ChatSupport() {
   const [open, setOpen] = useState(false);
   const [msgs, setMsgs] = useState([GREETING]);
   const [draft, setDraft] = useState('');
   const [typing, setTyping] = useState(false);
+  // Handoff state: the last unanswered question's thread, plus the contact
+  // details the asker gave us so somebody can actually get back to them.
+  const [handoff, setHandoff] = useState(null);     // { message } while composing
+  const [contact, setContact] = useState('');
+  const [threadKey, setThreadKey] = useState(() => {
+    try { return localStorage.getItem(KEY_STORE) || ''; } catch { return ''; }
+  });
+  const [answered, setAnswered] = useState(false);
   const bodyRef = useRef(null);
   const inputRef = useRef(null);
 
@@ -104,6 +117,53 @@ export default function ChatSupport() {
     return () => document.removeEventListener('keydown', onKey);
   }, [open]);
 
+  // Watch an outstanding question for its reply. Polling rather than sockets:
+  // this is a help widget, not a trading floor, and a socket server is one
+  // more thing that can be down at 2am.
+  useEffect(() => {
+    if (!threadKey || answered) return undefined;
+    let stop = false;
+    const check = async () => {
+      try {
+        const { data } = await api.get(`/support/thread/${threadKey}`);
+        if (stop || !data?.reply) return;
+        setAnswered(true);
+        setMsgs((m) => [...m, {
+          from: 'bot', human: true,
+          text: data.reply,
+          at: data.repliedAt,
+        }]);
+        try { localStorage.removeItem(KEY_STORE); } catch { /* private mode */ }
+      } catch { /* not answered yet, or offline - try again next tick */ }
+    };
+    check();
+    const t = setInterval(check, POLL_MS);
+    return () => { stop = true; clearInterval(t); };
+  }, [threadKey, answered]);
+
+  const sendToTeam = async (text) => {
+    try {
+      const { data } = await api.post('/support', {
+        message: text,
+        contact,
+        page: window.location.pathname,
+      });
+      try { localStorage.setItem(KEY_STORE, data.threadKey); } catch { /* private mode */ }
+      setThreadKey(data.threadKey);
+      setAnswered(false);
+      setHandoff(null);
+      setMsgs((m) => [...m, {
+        from: 'bot',
+        text: `Passed to the team. ${contact ? `They will reply to ${contact}.` : 'Keep this window open and the answer will appear here.'}\n\nFor anything urgent, call ${PHONE}.`,
+      }]);
+    } catch {
+      setMsgs((m) => [...m, {
+        from: 'bot',
+        text: `I could not send that just now. Please call ${PHONE} or email ${EMAIL}.`,
+      }]);
+    }
+  };
+
   const reply = (topic) => {
     setTyping(true);
     // A beat before answering: an instant wall of text reads as a dump, and
@@ -112,7 +172,7 @@ export default function ChatSupport() {
       setTyping(false);
       setMsgs((m) => [...m, topic
         ? { from: 'bot', text: topic.answer, link: topic.link }
-        : { from: 'bot', text: FALLBACK }]);
+        : { from: 'bot', text: FALLBACK, offerHandoff: true }]);
     }, 420);
   };
 
@@ -121,7 +181,9 @@ export default function ChatSupport() {
     if (!q) return;
     setMsgs((m) => [...m, { from: 'me', text: q }]);
     setDraft('');
-    reply(TOPICS.find((t) => t.match.test(q)));
+    const topic = TOPICS.find((t) => t.match.test(q));
+    if (!topic) setHandoff({ message: q });   // remember it, in case they hand it over
+    reply(topic);
   };
 
   const pick = (topic) => {
@@ -166,21 +228,59 @@ export default function ChatSupport() {
 
           <div className="chat-body" ref={bodyRef}>
             {msgs.map((m, i) => (
-              <div key={i} className={`chat-msg ${m.from}`}>
+              <div key={i} className={`chat-msg ${m.from} ${m.human ? 'human' : ''}`}>
+                {m.human && <span className="chat-from-team">Reply from the team</span>}
                 <p>{m.text}</p>
                 {m.link && (
                   <Link className="chat-msg-link" to={m.link.to} onClick={() => setOpen(false)}>
                     {m.link.label} →
                   </Link>
                 )}
+                {m.offerHandoff && !threadKey && (
+                  <button type="button" className="chat-handoff-btn"
+                          onClick={() => setHandoff(handoff || { message: msgs.filter((x) => x.from === 'me').slice(-1)[0]?.text || '' })}>
+                    Ask the team instead →
+                  </button>
+                )}
               </div>
             ))}
+
+            {threadKey && !answered && (
+              <div className="chat-pending">
+                <span className="chat-pending-dot" aria-hidden="true" />
+                With the team — the answer appears here when they reply.
+              </div>
+            )}
             {typing && (
               <div className="chat-msg bot chat-typing" aria-label="Assistant is typing">
                 <span /><span /><span />
               </div>
             )}
           </div>
+
+          {handoff && (
+            <form
+              className="chat-handoff"
+              onSubmit={(e) => { e.preventDefault(); sendToTeam(handoff.message); }}
+            >
+              <strong>Send this to the team</strong>
+              <blockquote>{handoff.message}</blockquote>
+              <input
+                value={contact}
+                onChange={(e) => setContact(e.target.value)}
+                placeholder="Phone or email (optional)"
+                aria-label="How the team can reach you"
+              />
+              <small>
+                Leave it blank and the answer still comes back here — a contact just
+                means they can reach you if you close the page.
+              </small>
+              <div className="chat-handoff-row">
+                <button type="button" className="small-button" onClick={() => setHandoff(null)}>Cancel</button>
+                <button type="submit" className="btn-primary">Send to the team</button>
+              </div>
+            </form>
+          )}
 
           <div className="chat-chips">
             {TOPICS.map((t) => (

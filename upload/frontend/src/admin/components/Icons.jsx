@@ -35,3 +35,11 @@ export const IconChart = make(<><path d="M4 20V10" /><path d="M10 20V4" /><path 
 export const IconBook = make(<><path d="M4 4.5A1.5 1.5 0 0 1 5.5 3H19v15H5.5A1.5 1.5 0 0 0 4 19.5Z" /><path d="M4 19.5A1.5 1.5 0 0 1 5.5 18H19v3H5.5A1.5 1.5 0 0 1 4 19.5Z" /><path d="M8 7.5h7" /><path d="M8 11h7" /></>);
 export const IconQuote = make(<><path d="M9 7.5C6.5 8.4 5 10.6 5 13.2V17h5v-5.2H7.6c.1-1.3.7-2.3 1.9-2.9Z" /><path d="M19 7.5c-2.5.9-4 3.1-4 5.7V17h5v-5.2h-2.4c.1-1.3.7-2.3 1.9-2.9Z" /></>);
 export const IconAward = make(<><circle cx="12" cy="9" r="5.2" /><path d="m8.2 13.4-1.4 7 5.2-2.6 5.2 2.6-1.4-7" /></>);
+
+// Support inbox: a speech bubble, matching the public site's chat button.
+export const IconMessage = (p) => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"
+       strokeLinecap="round" strokeLinejoin="round" width="20" height="20" {...p}>
+    <path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 9 9 0 0 1-3.3-.6L3 21l1.8-5a8.3 8.3 0 0 1-.8-3.6 8.4 8.4 0 0 1 8.5-8.4 8.4 8.4 0 0 1 8.5 8.5Z" />
+  </svg>
+);

@@ -9,7 +9,7 @@ import { useAdminAuth } from './AdminAuthContext';
 import { initials } from './components/ui';
 import {
   IconGrid, IconUsers, IconHospital, IconStethoscope, IconArticle,
-  IconDrop, IconCalendar, IconSettings, IconLogout, IconMenu, IconClose, IconExternal,
+  IconDrop, IconCalendar, IconSettings, IconMessage, IconLogout, IconMenu, IconClose, IconExternal,
   IconBook, IconQuote, IconAward,
 } from './components/Icons';
 
@@ -36,6 +36,7 @@ const NAV = [
     { to: '/admin/blogs', label: 'Health articles', icon: <IconArticle /> },
   ]},
   { section: 'System', items: [
+    { to: '/admin/support', label: 'Support inbox', icon: <IconMessage /> },
     { to: '/admin/settings', label: 'Settings & data', icon: <IconSettings /> },
   ]},
 ];

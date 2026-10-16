@@ -1,6 +1,11 @@
 // Donation records. These are the entries that put a member on the public
-// leaderboard and generate their certificate, so only an administrator can
-// create one - a member cannot claim a donation for themselves.
+// leaderboard, so only an administrator can create one - a member cannot
+// claim a donation for themselves.
+//
+// Issuing the CERTIFICATE is a second, separate act. Recording a donation
+// says it happened; issuing says the network will put its name to it. Until
+// an administrator issues it, the member sees the donation on their record
+// with the certificate marked as pending rather than a download link.
 
 import { useCallback, useEffect, useState } from 'react';
 import adminApi from '../../api/adminApi';
@@ -9,7 +14,7 @@ import Modal, { ConfirmDialog } from '../components/Modal';
 import { useToast } from '../components/Toast';
 import { Pagination,
   PageHeader, Card, Toolbar, SearchInput, Spinner, EmptyState,
-  TableWrap, StatCard, formatDate,
+  TableWrap, StatCard, Badge, formatDate,
 } from '../components/ui';
 import { IconPlus, IconTrash, IconDrop, IconUsers, IconCheck } from '../components/Icons';
 
@@ -26,6 +31,10 @@ export default function Donations() {
   const [saving, setSaving] = useState(false);
   const [confirm, setConfirm] = useState(null);
   const [deleting, setDeleting] = useState(false);
+  // Issuing a certificate is a separate act from recording the donation, so
+  // it gets its own row action rather than happening on create.
+  const [busyId, setBusyId] = useState(null);
+  const [issuingAll, setIssuingAll] = useState(false);
 
   // Pickers for the create form
   const [members, setMembers] = useState([]);
@@ -80,7 +89,7 @@ export default function Donations() {
     setSaving(true);
     try {
       await adminApi.post('/admin/donations', form);
-      toast.success('Donation recorded. The certificate is now available to the member.');
+      toast.success('Donation recorded. Issue the certificate when you are ready for the member to download it.');
       setAdding(false);
       load();
     } catch (err) {
@@ -105,15 +114,61 @@ export default function Donations() {
     }
   };
 
+  const issue = async (d) => {
+    setBusyId(d._id);
+    try {
+      const { data } = await adminApi.post(`/admin/donations/${d._id}/certificate`);
+      setItems((rows) => rows.map((r) => (r._id === d._id ? { ...r, ...data } : r)));
+      toast.success(`Certificate issued to ${d.userId?.name || 'the member'}.`);
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Could not issue that certificate.');
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const revoke = async (d) => {
+    setBusyId(d._id);
+    try {
+      await adminApi.delete(`/admin/donations/${d._id}/certificate`);
+      setItems((rows) => rows.map((r) => (r._id === d._id
+        ? { ...r, certificateIssued: false, certificateIssuedAt: null } : r)));
+      toast.success('Certificate withdrawn.');
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Could not withdraw that certificate.');
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const issueAll = async () => {
+    setIssuingAll(true);
+    try {
+      const { data } = await adminApi.post('/admin/certificates/issue-all');
+      toast.success(`${data.issued} certificate${data.issued === 1 ? '' : 's'} issued.`);
+      load();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Could not issue the queue.');
+    } finally {
+      setIssuingAll(false);
+    }
+  };
+
   const units = items.reduce((a, d) => a + (d.units || 0), 0);
   const donors = new Set(items.map((d) => String(d.userId?._id || d.userId))).size;
+  const pending = items.filter((d) => !d.certificateIssued).length;
 
   // Admin tables page at 12 rows so the console stays scannable.
   const pager = usePagination(items, 12);
 
   return (
     <>
-      <PageHeader title="Donation records" subtitle="Confirmed donations. These drive the leaderboard and member certificates.">
+      <PageHeader title="Donation records" subtitle="Confirmed donations. Recording one puts a member on the leaderboard; the certificate is issued separately, here.">
+        {pending > 0 && (
+          <button type="button" className="adm-btn" onClick={issueAll} disabled={issuingAll}>
+            {issuingAll ? 'Issuing…' : `Issue all ${pending} pending`}
+          </button>
+        )}
         <button type="button" className="adm-btn primary" onClick={openNew}>
           <IconPlus width={16} height={16} /> Record donation
         </button>
@@ -123,6 +178,9 @@ export default function Donations() {
         <StatCard icon={<IconDrop />} label="Donations shown" value={items.length} tone="accent" />
         <StatCard icon={<IconCheck />} label="Units" value={units} />
         <StatCard icon={<IconUsers />} label="Distinct donors" value={donors} />
+        <StatCard icon={<IconCheck />} label="Certificates awaiting issue" value={pending}
+                  tone={pending > 0 ? 'warn' : 'default'}
+                  hint={pending > 0 ? 'Members cannot download these yet' : 'Nothing waiting'} />
       </div>
 
       <Card>
@@ -136,7 +194,7 @@ export default function Donations() {
           <>
           <TableWrap>
             <table className="adm-table">
-              <thead><tr><th>Donor</th><th>Date</th><th>Group</th><th>Units</th><th>Where</th><th>Certificate</th><th aria-label="Actions" /></tr></thead>
+              <thead><tr><th>Donor</th><th>Date</th><th>Group</th><th>Units</th><th>Where</th><th>Reference</th><th>Certificate</th><th aria-label="Actions" /></tr></thead>
               <tbody>
                 {pager.slice.map((d) => (
                   <tr key={d._id}>
@@ -149,7 +207,21 @@ export default function Donations() {
                     <td>{d.units}</td>
                     <td className="adm-muted">{d.locationName || d.hospitalId?.name || d.campId?.title || '—'}</td>
                     <td className="adm-mono">{d.certificateNo || '—'}</td>
+                    <td>
+                      {d.certificateIssued ? (
+                        <Badge tone="good">Issued {d.certificateIssuedAt ? formatDate(d.certificateIssuedAt) : ''}</Badge>
+                      ) : (
+                        <Badge tone="warn">Awaiting issue</Badge>
+                      )}
+                    </td>
                     <td className="adm-row-actions">
+                      {d.certificateIssued ? (
+                        <button type="button" className="adm-btn small" disabled={busyId === d._id}
+                                onClick={() => revoke(d)}>Withdraw</button>
+                      ) : (
+                        <button type="button" className="adm-btn small primary" disabled={busyId === d._id}
+                                onClick={() => issue(d)}>Issue certificate</button>
+                      )}
                       <button type="button" className="adm-icon-btn danger" title="Delete" onClick={() => setConfirm(d)}><IconTrash width={17} height={17} /></button>
                     </td>
                   </tr>

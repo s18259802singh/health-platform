@@ -31,8 +31,10 @@ export default function MyDonations() {
     try {
       const { data: cert } = await api.get(`/donations/${id}/certificate`);
       setCertificate(cert);
-    } catch {
-      setError('Could not open that certificate.');
+    } catch (err) {
+      setError(err.response?.status === 409
+        ? 'That certificate has not been issued yet. A blood centre issues it after confirming the donation.'
+        : 'Could not open that certificate.');
     }
   };
 
@@ -124,6 +126,14 @@ export default function MyDonations() {
       ) : (
         <>
           <div className="section-header"><h3>Every donation</h3></div>
+          {summary?.certificatesPending > 0 && (
+            <p className="cert-note">
+              {summary.certificatesPending} of your {donations.length} donations{' '}
+              {summary.certificatesPending === 1 ? 'is' : 'are'} waiting on a certificate.
+              A blood centre issues each one after confirming the donation — usually
+              within a few days. Nothing is missing from your record in the meantime.
+            </p>
+          )}
           <table className="data-table">
             <thead>
               <tr><th>#</th><th>Date</th><th>Group</th><th>Units</th><th>Where</th><th>Certificate</th></tr>
@@ -137,9 +147,18 @@ export default function MyDonations() {
                   <td>{d.units}</td>
                   <td>{d.locationName || d.hospitalId?.name || d.campId?.title || '—'}</td>
                   <td>
-                    <button type="button" className="small-button" onClick={() => openCertificate(d._id)}>
-                      View certificate
-                    </button>
+                    {d.certificateIssued ? (
+                      <button type="button" className="small-button" onClick={() => openCertificate(d._id)}>
+                        View certificate
+                      </button>
+                    ) : (
+                      // A certificate is issued by a blood centre, not minted
+                      // the moment a record lands. Saying so beats a button
+                      // that fails, or a blank cell that looks like a bug.
+                      <span className="cert-pending" title="A blood centre issues this once the donation is confirmed">
+                        Awaiting issue
+                      </span>
+                    )}
                   </td>
                 </tr>
               ))}

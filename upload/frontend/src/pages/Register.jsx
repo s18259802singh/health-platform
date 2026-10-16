@@ -1,11 +1,13 @@
 import { useState } from 'react';
-import { useNavigate, Link, Navigate } from 'react-router-dom';
+import { useNavigate, Link, Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import SearchSelect from '../components/SearchSelect';
 
 const BLOOD_GROUPS = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
 
 export default function Register() {
+  const location = useLocation();
+  const from = location.state?.from;
   const { user, register } = useAuth();
   const [form, setForm] = useState({
     name: '', email: '', password: '', phone: '', bloodGroup: 'O+',
@@ -30,7 +32,7 @@ export default function Register() {
     setBusy(true);
     try {
       await register(form);
-      navigate('/dashboard');
+      navigate(from || '/dashboard');
     } catch (err) {
       setError(err.response?.data?.message || 'Registration failed. Please check your details.');
     } finally {

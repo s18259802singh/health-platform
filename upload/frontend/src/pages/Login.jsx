@@ -1,8 +1,10 @@
 import { useState } from 'react';
-import { useNavigate, Link, Navigate } from 'react-router-dom';
+import { useNavigate, useLocation, Link, Navigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 export default function Login() {
+  const location = useLocation();
+  const from = location.state?.from;
   const { user, login } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -11,7 +13,7 @@ export default function Login() {
   const [busy, setBusy] = useState(false);
   const navigate = useNavigate();
 
-  if (user) return <Navigate to="/dashboard" replace />;
+  if (user) return <Navigate to={from || '/dashboard'} replace />;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -19,7 +21,8 @@ export default function Login() {
     setBusy(true);
     try {
       await login(email, password);
-      navigate('/dashboard');
+      // Back to whatever they were trying to reach, if anything.
+      navigate(from || '/dashboard');
     } catch (err) {
       setError(err.response?.data?.message || 'Login failed. Please try again.');
     } finally {
@@ -60,7 +63,9 @@ export default function Login() {
           <button type="submit" disabled={busy}>{busy ? 'Signing in…' : 'Sign in'}</button>
         </form>
 
-        <p className="form-foot">New here? <Link to="/register">Create an account</Link></p>
+        <p className="form-foot">
+          New here? <Link to="/register" state={from ? { from } : undefined}>Create an account</Link>
+        </p>
         <p className="hint">Administrators sign in separately at <Link to="/admin/login">/admin</Link>.</p>
       </div>
 

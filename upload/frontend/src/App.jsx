@@ -29,6 +29,7 @@ const Profile = lazy(() => import('./pages/Profile'));
 const DonorSearch = lazy(() => import('./pages/DonorSearch'));
 const Hospitals = lazy(() => import('./pages/Hospitals'));
 const Appointments = lazy(() => import('./pages/Appointments'));
+const NearMe = lazy(() => import('./pages/NearMe'));
 const EmergencyPage = lazy(() => import('./pages/EmergencyPage'));
 const Blogs = lazy(() => import('./pages/Blogs'));
 const BlogPost = lazy(() => import('./pages/BlogPost'));
@@ -61,6 +62,7 @@ const AdminStories = lazy(() => import('./admin/pages/Stories'));
 const AdminGuides = lazy(() => import('./admin/pages/Guides'));
 const AdminDonations = lazy(() => import('./admin/pages/Donations'));
 const AdminSettings = lazy(() => import('./admin/pages/Settings'));
+const AdminSupport = lazy(() => import('./admin/pages/Support'));
 
 
 // Shown for the moment a route's code is in flight. Deliberately quiet: a
@@ -92,6 +94,7 @@ export default function App() {
                     <Route path="appointments" element={<AdminAppointments />} />
                     <Route path="camps" element={<AdminCamps />} />
                     <Route path="donations" element={<AdminDonations />} />
+          <Route path="support" element={<AdminSupport />} />
                     <Route path="hospitals" element={<AdminHospitals />} />
                     <Route path="doctors" element={<AdminDoctors />} />
                     <Route path="stories" element={<AdminStories />} />
@@ -120,6 +123,7 @@ export default function App() {
                     <Route path="register" element={<Register />} />
                     <Route path="emergency/:userId" element={<EmergencyPage />} />
                     <Route path="availability" element={<Availability />} />
+          <Route path="near-me" element={<NearMe />} />
                     <Route path="camps" element={<Camps />} />
                     <Route path="camps/:id" element={<CampDetail />} />
                     <Route path="stories" element={<Stories />} />
