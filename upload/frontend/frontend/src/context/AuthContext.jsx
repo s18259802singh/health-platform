@@ -3,7 +3,7 @@
 // own token, so the two sessions are completely independent.
 
 import { createContext, useCallback, useContext, useState } from 'react';
-import api, { USER_KEY, USER_TOKEN_KEY } from '../api/axios';
+import api, { DEMO, USER_KEY, USER_TOKEN_KEY } from '../api/axios';
 
 const AuthContext = createContext(null);
 
@@ -25,11 +25,17 @@ export function AuthProvider({ children }) {
   };
 
   const login = useCallback(async (email, password) => {
+    if (DEMO) {
+      return persist({ token: 'demo', user: { id: 'demo', name: 'Dhruv Shah', email, role: 'user' } });
+    }
     const { data } = await api.post('/auth/login', { email, password });
     return persist(data);
   }, []);
 
   const register = useCallback(async (formData) => {
+    if (DEMO) {
+      return persist({ token: 'demo', user: { id: 'demo', name: formData.name || 'New member', email: formData.email, role: 'user' } });
+    }
     const { data } = await api.post('/auth/register', formData);
     return persist(data);
   }, []);

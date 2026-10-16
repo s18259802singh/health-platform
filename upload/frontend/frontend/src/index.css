@@ -48,8 +48,21 @@
   --shadow: 0 2px 4px rgba(22, 22, 26, .03), 0 14px 32px -16px rgba(22, 22, 26, .2);
   --shadow-lg: 0 28px 70px -26px rgba(143, 21, 38, .34);
 
-  /* rhythm */
-  --gap: 18px;
+  /* rhythm — one 4px-based scale. Every margin and gap in the site comes
+     from this list, which is what stops spacing drifting page to page. */
+  --s1: 4px;
+  --s2: 8px;
+  --s3: 12px;
+  --s4: 16px;
+  --s5: 24px;
+  --s6: 32px;
+  --s7: 48px;
+  --s8: 64px;
+  --s9: 88px;
+
+  --gap: var(--s4);          /* grid gap between tiles */
+  --gutter: var(--s5);       /* page side margin on desktop */
+  --gutter-sm: var(--s4);    /* page side margin on phones */
   --page-max: 1240px;
 
   --font: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
@@ -91,11 +104,17 @@ a:hover { text-decoration: underline; }
   width: 100%;
   max-width: var(--page-max);
   margin: 0 auto;
-  padding: 28px 20px 96px;
-  min-height: 60vh;
+  padding: var(--s6) var(--gutter) var(--s8);
+  min-height: 55vh;
 }
-.container.wide { max-width: 1240px; padding-top: 10px; }
-.container.bare { max-width: 640px; padding-top: 48px; min-height: 100vh; }
+.container.wide { max-width: var(--page-max); padding-top: var(--s5); }
+.container.bare { max-width: 640px; padding-top: var(--s7); min-height: 100vh; }
+
+/* Consistent vertical rhythm between the stacked tile groups of a page,
+   instead of each page inventing its own margins. */
+.bento + .bento { margin-top: var(--gap); }
+.page > .bento:first-child { margin-top: 0; }
+.page-head + .bento, .page-head + .stat-strip { margin-top: 0; }
 
 .page { animation: rise .3s ease-out; }
 .page-title { margin-bottom: 4px; }
@@ -156,7 +175,12 @@ a:hover { text-decoration: underline; }
   transition: transform .08s linear;
 }
 
-.brand-text { display: flex; flex-direction: column; line-height: 1.1; }
+.logo-mark { display: block; flex: none; transition: width .25s ease, height .25s ease; }
+
+.brand-text { display: flex; flex-direction: column; line-height: 1.08; }
+.brand-word { font-size: 20px; font-weight: 700; letter-spacing: -.025em; color: var(--ink); }
+.brand-word-alt { color: var(--red); }
+.site-header.condensed .brand-word { font-size: 18px; }
 .brand-text small {
   font-size: 10.5px; font-weight: 600; letter-spacing: .1em;
   text-transform: uppercase; color: var(--muted);
@@ -165,8 +189,7 @@ a:hover { text-decoration: underline; }
 .site-header.condensed .brand-text small { opacity: 0; max-height: 0; }
 
 .brand {
-  display: inline-flex; align-items: center; gap: 10px;
-  font-size: 19px; font-weight: 700; letter-spacing: -.02em;
+  display: inline-flex; align-items: center; gap: var(--s3);
   color: var(--ink); text-decoration: none;
 }
 .brand:hover { text-decoration: none; }
@@ -782,17 +805,24 @@ input[type="file"] { padding: 9px; font-size: 13.5px; background: var(--line-sof
 
 /* --------------------------------------------------------------- footer */
 .site-footer {
-  margin-top: 40px; padding: 48px 20px 28px;
+  margin-top: var(--s8); padding: var(--s8) var(--gutter) var(--s5);
   background: #1f1418; color: #d9cbce;
 }
 .footer-inner {
   max-width: var(--page-max); margin: 0 auto;
-  display: grid; grid-template-columns: 1.1fr 1fr; gap: 36px;
+  display: grid; grid-template-columns: 1fr 1.15fr; gap: var(--s7);
 }
-.footer-brand { display: flex; gap: 12px; align-items: flex-start; }
-.footer-brand strong { color: #fff; font-size: 17px; letter-spacing: -.01em; }
-.footer-brand p { margin: 4px 0 0; font-size: 14px; color: #ab9a9e; max-width: 38ch; }
-.footer-links { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+.footer-brand { display: flex; flex-direction: column; gap: var(--s3); align-items: flex-start; }
+.footer-logo .brand-word { color: #fff; }
+.footer-logo .brand-word-alt { color: #ff8396; }
+.footer-brand p { margin: 0; font-size: 14px; color: #ab9a9e; max-width: 46ch; line-height: 1.65; }
+.footer-assurances { list-style: none; margin: var(--s2) 0 0; padding: 0; display: grid; gap: var(--s2); }
+.footer-assurances li { position: relative; padding-left: 20px; font-size: 13px; color: #c3b2b6; }
+.footer-assurances li::before {
+  content: ''; position: absolute; left: 0; top: 7px;
+  width: 6px; height: 6px; border-radius: 50%; background: #ff8396;
+}
+.footer-links { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--s5); }
 .footer-links h4 {
   font-size: 11.5px; letter-spacing: .12em; text-transform: uppercase;
   color: #8c7b7f; margin-bottom: 12px; font-weight: 650;
@@ -1409,8 +1439,8 @@ input[type="file"] { padding: 9px; font-size: 13.5px; background: var(--line-sof
 .bento {
   display: grid;
   grid-template-columns: repeat(12, 1fr);
-  gap: 16px;
-  margin-bottom: 16px;
+  gap: var(--gap);
+  margin-bottom: var(--gap);
 }
 
 /* column spans */
@@ -1722,4 +1752,22 @@ input[type="file"] { padding: 9px; font-size: 13.5px; background: var(--line-sof
 @media (max-width: 680px) {
   .donor-tile-stats { gap: 20px; }
   .pager-bar { flex-direction: column; align-items: stretch; }
+}
+
+
+/* -------------------------------------------------------- trust band */
+.trust-band {
+  flex-direction: row; flex-wrap: wrap; gap: var(--s5);
+  background: var(--tint-slate); border-color: #e4e6ee;
+}
+.trust-band > div { flex: 1 1 200px; position: relative; padding-left: var(--s4); }
+.trust-band > div::before {
+  content: ''; position: absolute; left: 0; top: 4px; bottom: 4px;
+  width: 3px; border-radius: 99px; background: var(--red); opacity: .55;
+}
+.trust-band strong { display: block; font-size: 14.5px; margin-bottom: var(--s1); }
+.trust-band p { margin: 0; font-size: 13px; color: var(--muted); line-height: 1.6; }
+
+@media (max-width: 680px) {
+  .trust-band { flex-direction: column; gap: var(--s4); }
 }

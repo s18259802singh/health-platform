@@ -6,6 +6,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
+import Logo from './Logo';
 import { useAuth } from '../context/AuthContext';
 import { useTour } from '../context/TourContext';
 
@@ -105,11 +106,7 @@ export default function Navbar() {
     <header className={`site-header ${condensed ? 'condensed' : ''}`}>
       <nav className="navbar">
         <Link to={user ? '/dashboard' : '/'} className="brand" onClick={close}>
-          <span className="brand-mark" aria-hidden="true" />
-          <span className="brand-text">
-            LifeLink
-            <small>Blood donor network</small>
-          </span>
+          <Logo size={condensed ? 28 : 34} />
         </Link>
 
         <div className="menu-wrap" ref={menuRef}>

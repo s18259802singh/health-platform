@@ -8,7 +8,12 @@
 // and own tokens. Nothing from one shell renders inside the other.
 // ============================================================================
 
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, HashRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { DEMO } from './api/axios';
+
+// Static hosts cannot rewrite unknown paths to index.html, so the standalone
+// demo build routes on the hash instead.
+const Router = DEMO ? HashRouter : BrowserRouter;
 
 import { AuthProvider } from './context/AuthContext';
 import { TourProvider } from './context/TourContext';
@@ -59,7 +64,7 @@ import './admin/admin.css';
 
 export default function App() {
   return (
-    <BrowserRouter>
+    <Router>
       <Routes>
         {/* ----------------------- ADMIN CONSOLE ----------------------- */}
         <Route
@@ -131,6 +136,6 @@ export default function App() {
           )}
         />
       </Routes>
-    </BrowserRouter>
+    </Router>
   );
 }

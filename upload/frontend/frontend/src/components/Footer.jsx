@@ -1,15 +1,22 @@
 import { Link } from 'react-router-dom';
+import Logo from './Logo';
 
 export default function Footer() {
   return (
     <footer className="site-footer">
       <div className="footer-inner">
         <div className="footer-brand">
-          <span className="brand-mark" aria-hidden="true" />
-          <div>
-            <strong>LifeLink</strong>
-            <p>Connecting donors, patients and hospitals when minutes matter.</p>
-          </div>
+          <Link to="/" className="brand footer-logo"><Logo size={36} showDescriptor={false} /></Link>
+          <p>
+            A public register connecting blood donors, patients, hospitals and
+            blood banks — so finding a compatible donor takes a search, not a
+            chain of phone calls.
+          </p>
+          <ul className="footer-assurances">
+            <li>Free for donors and recipients</li>
+            <li>Contact details shown only to signed-in members</li>
+            <li>Stock figures sourced from the listed centres</li>
+          </ul>
         </div>
 
         <nav className="footer-links" aria-label="Footer">
@@ -38,8 +45,11 @@ export default function Footer() {
       </div>
 
       <div className="footer-base">
-        <span>© {new Date().getFullYear()} LifeLink. Built for faster emergency response.</span>
-        <span className="footer-note">In a life-threatening emergency, always call your local emergency number first.</span>
+        <span>© {new Date().getFullYear()} LifeLink</span>
+        <span className="footer-note">
+          Information on this site is general and not medical advice. In a
+          life-threatening emergency, call your local emergency number first.
+        </span>
       </div>
     </footer>
   );

@@ -74,8 +74,8 @@ export default function Home() {
           <span className="tile-label">Health emergency &amp; blood donor network</span>
           <h1>When someone needs blood, minutes decide the outcome.</h1>
           <p className="hero-lede">
-            Donors, patients, hospitals and blood banks on one map — so finding a
-            compatible donor takes a search box, not a chain of phone calls.
+            Search live blood bank stock, find a compatible donor near you, or
+            book a place at a donation camp. Free, and open without an account.
           </p>
 
           <form className="hero-search" onSubmit={runQuickSearch}>
@@ -154,6 +154,28 @@ export default function Home() {
           </div>
         </div>
       )}
+
+      {/* ------------------------------------------------------ trust band */}
+      <div className="bento">
+        <div className="tile t-12 trust-band">
+          <div>
+            <strong>Free, always</strong>
+            <p>No charge to donors or recipients. Centres set their own processing fees.</p>
+          </div>
+          <div>
+            <strong>Your number stays private</strong>
+            <p>Shown only to signed-in members searching the register, and only if you opt in.</p>
+          </div>
+          <div>
+            <strong>Stock from the centres</strong>
+            <p>Availability figures are those recorded by each listed blood bank.</p>
+          </div>
+          <div>
+            <strong>Donations are verified</strong>
+            <p>Leaderboard entries come from records confirmed by a blood centre.</p>
+          </div>
+        </div>
+      </div>
 
       {/* ----------------------------------------------- camps + stories */}
       <div className="bento">

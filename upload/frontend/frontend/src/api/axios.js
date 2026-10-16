@@ -3,21 +3,27 @@
 // (api/adminApi.js) with its own token, so the two sessions never mix.
 
 import axios from 'axios';
+import demoApi from './demo';
 
 export const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+
+// VITE_DEMO=true builds a standalone copy that runs with no backend, for
+// showing the design. It is off in every normal build.
+export const DEMO = import.meta.env.VITE_DEMO === 'true';
 
 export const USER_TOKEN_KEY = 'lifelink.user.token';
 export const USER_KEY = 'lifelink.user';
 
-const api = axios.create({ baseURL: API_BASE_URL });
+const realApi = axios.create({ baseURL: API_BASE_URL });
+const api = DEMO ? demoApi : realApi;
 
-api.interceptors.request.use((config) => {
+realApi.interceptors.request.use((config) => {
   const token = localStorage.getItem(USER_TOKEN_KEY);
   if (token) config.headers.Authorization = `Bearer ${token}`;
   return config;
 });
 
-api.interceptors.response.use(
+realApi.interceptors.response.use(
   (res) => res,
   (error) => {
     // An expired/!valid user session should drop straight back to the login page.
