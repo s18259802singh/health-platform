@@ -45,7 +45,12 @@ export default function NearMe() {
         setData(res);
       } catch (err) {
         setData(null);
-        setError(err.response?.data?.message || 'Could not search just now.');
+        // A 404 here does not mean "no centres" - it means the server has no
+        // /api/care route, i.e. this build of the frontend is newer than the
+        // backend it is talking to. Saying so turns a mystery into a fix.
+        setError(err.response?.status === 404
+          ? 'This page needs the latest backend. The server does not have the /api/care endpoint yet — deploy the backend update and reload.'
+          : err.response?.data?.message || 'Could not search just now.');
       } finally {
         setLoading(false);
       }

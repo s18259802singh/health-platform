@@ -40,6 +40,7 @@ export default function Support() {
   const [search, setSearch] = useState('');
   const [drafts, setDrafts] = useState({});
   const [busyId, setBusyId] = useState(null);
+  const [failed, setFailed] = useState('');
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -47,8 +48,12 @@ export default function Support() {
       const { data } = await adminApi.get('/admin/support', { params: { status, search } });
       setRows(data.rows);
       setOpenCount(data.openCount);
+      setFailed('');
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Could not load the inbox.');
+      setFailed(err.response?.status === 404 ? 'missing-endpoint' : 'error');
+      toast.error(err.response?.status === 404
+        ? 'The server has no support endpoint yet — deploy the backend update.'
+        : err.response?.data?.message || 'Could not load the inbox.');
     } finally {
       setLoading(false);
     }
@@ -125,7 +130,12 @@ export default function Support() {
           </div>
         </Toolbar>
 
-        {loading ? <Spinner /> : rows.length === 0 ? (
+        {loading ? <Spinner /> : failed === 'missing-endpoint' ? (
+          <EmptyState
+            title="The server does not have this endpoint yet"
+            message="This page is part of the backend update. Upload the backend files and let Render finish deploying, then reload — nothing here is broken, the console is simply ahead of the server."
+          />
+        ) : rows.length === 0 ? (
           <EmptyState
             title={status === 'open' ? 'Nothing waiting' : 'No messages'}
             message={status === 'open'
