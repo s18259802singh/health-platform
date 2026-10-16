@@ -7,7 +7,6 @@ import api from '../api/axios';
 import { useAuth } from '../context/AuthContext';
 import { useTour, hasSeenTour, markTourSeen } from '../context/TourContext';
 import BloodSupplyMonitor from '../components/BloodSupplyMonitor';
-import DonorMap from '../components/DonorMap';
 
 const ACTIONS = [
   { to: '/availability', label: 'Check blood stock', tint: 'rose' },
@@ -67,7 +66,7 @@ export default function Dashboard() {
       <div className="page-head">
         <div>
           <p className="app-eyebrow">Signed in</p>
-          <h2>{user?.name}</h2>
+          <h1 className="page-h1">{user?.name}</h1>
           <p>One donation can save up to three lives.</p>
         </div>
       </div>
@@ -156,12 +155,6 @@ export default function Dashboard() {
           <div className="tile-foot">
             <Link to="/guides" className="tile-link">Open the guide library →</Link>
           </div>
-        </section>
-      </div>
-
-      <div className="bento">
-        <section className="tile t-12">
-          <DonorMap />
         </section>
       </div>
     </div>

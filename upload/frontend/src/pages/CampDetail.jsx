@@ -64,7 +64,7 @@ export default function CampDetail() {
           <span className={`camp-pill ${camp.status !== 'upcoming' ? 'done' : left === 0 ? 'full' : ''}`}>
             {camp.status === 'upcoming' ? (left === 0 ? 'Fully booked' : `${left} of ${camp.slots} slots left`) : camp.status}
           </span>
-          <h2>{camp.title}</h2>
+          <h1 className="page-h1">{camp.title}</h1>
           <p className="camp-org">Organised by {camp.organiser}</p>
         </div>
       </div>

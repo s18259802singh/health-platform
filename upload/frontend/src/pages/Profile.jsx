@@ -44,7 +44,7 @@ export default function Profile() {
 
   return (
     <div className="form-card">
-      <h2>My Profile</h2>
+      <h1 className="page-h1">My Profile</h1>
       {message && <p className="hint">{message}</p>}
       <form onSubmit={handleSave}>
         <label>Full Name</label>

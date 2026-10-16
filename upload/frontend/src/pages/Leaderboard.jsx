@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../api/axios';
 import Pagination, { usePagination } from '../components/Pagination';
+import { initials, avatarTint } from '../lib/people';
 
 const GROUPS = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
 
@@ -36,7 +37,7 @@ export default function Leaderboard() {
       <div className="page-head">
         <div>
           <p className="app-eyebrow">Recognition</p>
-          <h2>Donor leaderboard</h2>
+          <h1 className="page-h1">Donor leaderboard</h1>
           <p>
             Every donation here is a verified record confirmed by a blood centre.
             Names are shortened — donors are recognised, never exposed.
@@ -72,7 +73,7 @@ export default function Leaderboard() {
             return (
               <div className={`podium-slot place-${place}`} key={e.rank}>
                 <span className="podium-rank">{place}</span>
-                <span className="podium-avatar" aria-hidden="true">{e.name.charAt(0)}</span>
+                <span className={`podium-avatar ${avatarTint(e.name)}`} aria-hidden="true">{initials(e.name)}</span>
                 <strong>{e.name}</strong>
                 <small>{e.city || '—'}</small>
                 <span className="podium-count">{e.donations} donations</span>

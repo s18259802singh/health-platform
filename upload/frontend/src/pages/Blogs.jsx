@@ -17,7 +17,7 @@ export default function Blogs() {
 
   return (
     <div className="page">
-      <h2 className="page-title">Health Blog</h2>
+      <h1 className="page-title page-h1">Health Blog</h1>
       <p className="app-subtext">Articles on blood donation, first aid and staying healthy.</p>
 
       {loading && <p className="hint">Loading articles…</p>}

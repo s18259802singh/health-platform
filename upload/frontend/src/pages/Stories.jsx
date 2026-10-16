@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../api/axios';
 import { LoadMore, useLoadMore } from '../components/Pagination';
+import { initials, avatarTint, excerpt } from '../lib/people';
 
 const ROLE = { donor: 'Donor', recipient: 'Recipient', organiser: 'Organiser' };
 
@@ -30,7 +31,7 @@ export default function Stories() {
       <div className="page-head">
         <div>
           <p className="app-eyebrow">Stories</p>
-          <h2>The reason any of this matters</h2>
+          <h1>The reason any of this matters</h1>
           <p>
             Donors and recipients in their own words. Every one of these started
             with somebody deciding to spend fifteen minutes.
@@ -55,8 +56,9 @@ export default function Stories() {
             <article className={`tile lift t-4 ${TINTS[i % 3]} story-tile`} key={s._id}>
               <span className={`story-role ${s.role}`}>{ROLE[s.role]}</span>
               <h3><Link to={`/stories/${s._id}`}>{s.headline}</Link></h3>
+              <p className="story-excerpt">{excerpt(s.body, 150)}</p>
               <div className="story-byline">
-                <span className="story-avatar" aria-hidden="true">{s.name.charAt(0)}</span>
+                <span className={`story-avatar ${avatarTint(s.name)}`} aria-hidden="true">{initials(s.name)}</span>
                 <span>
                   <strong>{s.name}</strong>
                   <small>{[s.bloodGroup, s.city].filter(Boolean).join(' · ')}</small>
@@ -73,13 +75,14 @@ export default function Stories() {
           {rest.map((s, i) => (
             <article className="tile lift t-4 story-card" key={s._id}>
               <div className="story-card-head">
-                <span className="story-avatar" aria-hidden="true">{s.name.charAt(0)}</span>
+                <span className={`story-avatar ${avatarTint(s.name)}`} aria-hidden="true">{initials(s.name)}</span>
                 <div>
                   <strong>{s.name}</strong>
                   <small>{[ROLE[s.role], s.bloodGroup, s.city].filter(Boolean).join(' · ')}</small>
                 </div>
               </div>
               <h3><Link to={`/stories/${s._id}`}>{s.headline}</Link></h3>
+              <p className="story-excerpt">{excerpt(s.body)}</p>
               <Link className="blog-readmore" to={`/stories/${s._id}`}>Read →</Link>
             </article>
           ))}

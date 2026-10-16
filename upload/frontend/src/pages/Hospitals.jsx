@@ -28,7 +28,7 @@ export default function Hospitals() {
 
   return (
     <div className="page">
-      <h2 className="page-title">Hospitals &amp; Blood Banks</h2>
+      <h1 className="page-title page-h1">Hospitals &amp; Blood Banks</h1>
       <p className="app-subtext">Search the network, check stock and get directions.</p>
 
       <div className="search-bar">

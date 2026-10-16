@@ -7,37 +7,50 @@
    =========================================================================== */
 
 :root {
-  /* brand */
-  --red: #d7263d;
-  --red-dark: #ab1b2e;
-  --red-ink: #8f1526;
-  --red-soft: #fdeef0;
-  --red-line: #f6d3d8;
+  /* ---------------------------------------------------------------- THEME
+     Three palettes share one set of token names, so every component below
+     is written once and re-skins by swapping the block. Default is Midnight
+     Clinical: cool paper, deep ink furniture, crimson used only as accent.
+     ------------------------------------------------------------------- */
 
-  /* neutrals */
-  --ink: #16161a;
-  --ink-2: #41414c;
-  --muted: #6f6f7d;
-  --line: #e9e4e4;
-  --line-soft: #f2eeee;
+  /* accent */
+  --red: #e02440;
+  --red-dark: #b91730;
+  --red-ink: #7c1024;
+  --red-soft: #fdeff1;
+  --red-line: #f7d4da;
+
+  /* neutrals — cool, not warm; a slight blue bias reads clinical */
+  --ink: #0d1220;
+  --ink-2: #39405420;
+  --ink-2: #394054;
+  --muted: #6b7386;
+  --line: #e2e5ec;
+  --line-soft: #eef0f5;
   --surface: #ffffff;
-  --bg: #fdf8f7;
-  --bg-deep: #1a1115;
+  --bg: #f6f7fb;
+  --bg-deep: #0d1220;
+
+  /* the dark furniture: headers, feature tiles, footer */
+  --deep-1: #0d1220;
+  --deep-2: #161d31;
+  --deep-3: #232c45;
+  --on-deep: #e7eaf2;
+  --on-deep-dim: #9aa3b8;
 
   /* status */
-  --good: #0f9d58;
-  --good-soft: #e7f6ee;
-  --warn: #b45309;
-  --warn-soft: #fef3e2;
+  --good: #0e8a62;
+  --good-soft: #e4f5ef;
+  --warn: #9a5b06;
+  --warn-soft: #fdf1df;
 
   /* tile tints - the bento palette. Each tile picks one so a grid of them
      reads as a composition rather than a row of identical boxes. */
-  --tint-rose: #fff1f3;
-  --tint-sand: #fdf4ec;
-  --tint-mint: #eef8f2;
-  --tint-sky:  #eef4fb;
-  --tint-slate:#f3f4f8;
-  --ink-tile:  #1d1419;
+  --tint-rose: #fdeef1;
+  --tint-sand: #fbf3e8;
+  --tint-mint: #e8f5f0;
+  --tint-sky:  #eaf1fb;
+  --tint-slate:#eef0f6;
 
   /* shape - bento means generous radii and soft, layered depth */
   --r-sm: 12px;
@@ -87,6 +100,31 @@ h1, h2, h3, h4 { margin: 0 0 .5em; line-height: 1.22; letter-spacing: -.02em; fo
 h1 { font-size: clamp(32px, 5vw, 50px); }
 h2 { font-size: clamp(23px, 3vw, 30px); }
 h3 { font-size: 19px; }
+
+/* Every page now carries exactly one <h1> - previously only the landing page
+   did, so search engines and screen readers saw no title on the inner pages.
+   The hero keeps the display size; a page heading stays at the heading-2
+   scale it was already drawn at, so nothing moves visually. */
+h1.page-h1 { font-size: clamp(23px, 3vw, 30px); }
+
+/* Available to assistive tech, invisible on screen. */
+.sr-only {
+  position: absolute; width: 1px; height: 1px;
+  padding: 0; margin: -1px; overflow: hidden;
+  clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap; border: 0;
+}
+
+/* Keyboard users land on this first and can jump past the navigation. */
+.skip-link {
+  position: absolute; left: 50%; top: 0; transform: translate(-50%, -120%);
+  z-index: 200; padding: 11px 20px;
+  background: var(--red); color: #fff;
+  font-size: 14px; font-weight: 650;
+  border-radius: 0 0 10px 10px; text-decoration: none;
+  transition: transform .18s ease;
+}
+.skip-link:focus,
+.skip-link:focus-visible { transform: translate(-50%, 0); text-decoration: none; }
 p { margin: 0 0 1em; }
 a { color: var(--red); text-decoration: none; }
 a:hover { text-decoration: underline; }
@@ -147,22 +185,26 @@ a:hover { text-decoration: underline; }
    component sets from the scroll position. */
 .site-header {
   position: sticky; top: 0; z-index: 60;
-  background: rgba(255, 253, 252, .82);
+  background: color-mix(in srgb, var(--bg) 82%, transparent);
   backdrop-filter: blur(14px) saturate(1.3);
   border-bottom: 1px solid transparent;
   transition: background .25s ease, border-color .25s ease, box-shadow .25s ease;
 }
 .site-header.condensed {
-  background: rgba(255, 253, 252, .94);
+  background: color-mix(in srgb, var(--bg) 94%, transparent);
   border-bottom-color: var(--line);
   box-shadow: 0 6px 24px -18px rgba(22, 22, 26, .45);
 }
 
 .navbar {
   display: flex; align-items: center; justify-content: space-between;
-  gap: 16px; padding: 0 22px;
+  gap: var(--s4);
+  padding-left: max(var(--gutter), env(safe-area-inset-left, 0px));
+  padding-right: max(var(--gutter), env(safe-area-inset-right, 0px));
   height: 76px;
-  max-width: 1320px; margin: 0 auto;
+  /* Same max-width and gutter as .container, so the logo sits on the
+     content's left edge instead of 40px outside it. */
+  max-width: var(--page-max); margin: 0 auto;
   transition: height .25s ease;
 }
 .site-header.condensed .navbar { height: 58px; }
@@ -364,8 +406,8 @@ input[type="file"] { padding: 9px; font-size: 13.5px; background: var(--line-sof
   position: sticky; top: 92px;
   padding: 28px;
   border-radius: var(--r-lg);
-  background: linear-gradient(155deg, #26161b 0%, #3b1a22 60%, #6d1526 100%);
-  color: #f4e9ea;
+  background: linear-gradient(155deg, var(--deep-1) 0%, var(--deep-2) 55%, var(--deep-3) 100%);
+  color: var(--on-deep);
   box-shadow: var(--shadow-lg);
 }
 .auth-aside h3 { color: #fff; font-size: 21px; }
@@ -453,7 +495,7 @@ input[type="file"] { padding: 9px; font-size: 13.5px; background: var(--line-sof
   gap: 24px; flex-wrap: wrap;
   margin: 46px 0 10px; padding: 34px;
   border-radius: var(--r-lg);
-  background: linear-gradient(135deg, #26161b, #6d1526);
+  background: linear-gradient(135deg, var(--deep-1), var(--deep-3));
   color: #fff; box-shadow: var(--shadow-lg);
 }
 .cta-band h3 { color: #fff; font-size: 23px; margin-bottom: 6px; }
@@ -806,7 +848,7 @@ input[type="file"] { padding: 9px; font-size: 13.5px; background: var(--line-sof
 /* --------------------------------------------------------------- footer */
 .site-footer {
   margin-top: var(--s8); padding: var(--s8) var(--gutter) var(--s5);
-  background: #1f1418; color: #d9cbce;
+  background: var(--deep-1); color: var(--on-deep);
 }
 .footer-inner {
   max-width: var(--page-max); margin: 0 auto;
@@ -830,7 +872,7 @@ input[type="file"] { padding: 9px; font-size: 13.5px; background: var(--line-sof
 .footer-links a { display: block; margin-bottom: 8px; font-size: 14px; color: #d9cbce; }
 .footer-links a:hover { color: #ff8396; text-decoration: none; }
 .footer-base {
-  max-width: var(--page-max); margin: 32px auto 0; padding-top: 20px;
+  max-width: var(--page-max); margin: var(--s6) auto 0; padding-top: var(--s5);
   border-top: 1px solid rgba(255, 255, 255, .1);
   display: flex; justify-content: space-between; gap: 14px; flex-wrap: wrap;
   font-size: 12.5px; color: #8c7b7f;
@@ -1032,7 +1074,7 @@ input[type="file"] { padding: 9px; font-size: 13.5px; background: var(--line-sof
 .portal-summary {
   display: flex; align-items: center; gap: 28px; flex-wrap: wrap;
   padding: 15px 20px; margin-bottom: 16px;
-  background: linear-gradient(135deg, #1f1418, #4a1823);
+  background: linear-gradient(135deg, var(--deep-1), var(--deep-3));
   border-radius: var(--r); color: #f0dcdf;
 }
 .portal-summary > div strong { display: block; font-size: 23px; font-weight: 700; color: #fff; line-height: 1.15; }
@@ -1178,6 +1220,29 @@ input[type="file"] { padding: 9px; font-size: 13.5px; background: var(--line-sof
   color: #fff; font-size: 15px; font-weight: 700;
 }
 .story-byline.large .story-avatar { width: 48px; height: 48px; font-size: 19px; }
+
+/* Six deterministic avatar tints.
+   Stories carry no portrait, so the initials ARE the portrait. One shared red
+   circle made every byline look like the same person; a stable colour per name
+   lets the eye tell them apart and keeps the wall from reading as a list.
+   Hues stay in the brand's warm-to-clinical range rather than going rainbow. */
+.story-avatar.av-1, .podium-avatar.av-1 { background: linear-gradient(145deg, #e0394b, #9e1726); }
+.story-avatar.av-2, .podium-avatar.av-2 { background: linear-gradient(145deg, #c2563a, #87301c); }
+.story-avatar.av-3, .podium-avatar.av-3 { background: linear-gradient(145deg, #8a5a9e, #543065); }
+.story-avatar.av-4, .podium-avatar.av-4 { background: linear-gradient(145deg, #3f7f91, #1f4e5c); }
+.story-avatar.av-5, .podium-avatar.av-5 { background: linear-gradient(145deg, #4a7a52, #255030); }
+.story-avatar.av-6, .podium-avatar.av-6 { background: linear-gradient(145deg, #a8763a, #6d4718); }
+.story-avatar { letter-spacing: .02em; }
+
+/* One line of the story itself on each card. Without this the wall was a
+   column of headlines with nothing to read. */
+.story-excerpt {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--ink-2);
+}
+.story-tile .story-excerpt { font-size: 14.5px; margin-top: 4px; }
 
 .story-read { max-width: 720px; margin: 0 auto; }
 .story-cta {
@@ -1480,11 +1545,11 @@ input[type="file"] { padding: 9px; font-size: 13.5px; background: var(--line-sof
 .tile.slate { background: var(--tint-slate); border-color: #e4e6ee; }
 
 .tile.ink {
-  background: linear-gradient(155deg, #241319 0%, #42151f 55%, #7d1426 100%);
+  background: linear-gradient(155deg, var(--deep-1) 0%, var(--deep-2) 48%, var(--deep-3) 100%);
   border-color: transparent; color: #f3e4e6;
 }
 .tile.ink h3, .tile.ink strong, .tile.ink .tile-value { color: #fff; }
-.tile.ink .tile-label, .tile.ink p, .tile.ink small { color: #d6b7bc; }
+.tile.ink .tile-label, .tile.ink p, .tile.ink small { color: var(--on-deep-dim); }
 
 .tile.red {
   background: linear-gradient(150deg, var(--red) 0%, var(--red-ink) 100%);
@@ -1580,7 +1645,7 @@ input[type="file"] { padding: 9px; font-size: 13.5px; background: var(--line-sof
   display: flex; align-items: flex-end; justify-content: space-between;
   gap: 18px; flex-wrap: wrap; margin-bottom: 20px;
 }
-.page-head h2 { margin: 0 0 5px; }
+.page-head h1, .page-head h2 { margin: 0 0 5px; }
 .page-head p { margin: 0; color: var(--muted); font-size: 15px; max-width: 62ch; }
 
 /* a horizontal strip of small stats, used under a page title */
@@ -1631,8 +1696,13 @@ input[type="file"] { padding: 9px; font-size: 13.5px; background: var(--line-sof
 .hero-tile .hero-search small { color: #cfaeb4; }
 .hero-tile .hero-search-row select,
 .hero-tile .hero-search-row input {
-  background: rgba(255, 255, 255, .95); border-color: transparent; color: var(--ink);
+  /* These sit on an explicitly near-white field, so their text colour is
+     fixed rather than themed — var(--ink) is light in the dark theme and
+     would vanish here. */
+  background: rgba(255, 255, 255, .96); border-color: transparent; color: #0d1220;
 }
+.hero-tile .hero-search-row input::placeholder { color: #767f93; }
+.hero-tile .hero-search-row select { color: #0d1220; }
 .hero-actions { display: flex; gap: 11px; flex-wrap: wrap; margin-top: auto; }
 
 .btn-light, .btn-ghost-light {
@@ -1771,3 +1841,184 @@ input[type="file"] { padding: 9px; font-size: 13.5px; background: var(--line-sof
 @media (max-width: 680px) {
   .trust-band { flex-direction: column; gap: var(--s4); }
 }
+
+
+/* ===========================================================================
+   ALTERNATE THEMES
+   Same token names, different values. Set data-theme on <html> to switch;
+   nothing else in the stylesheet changes.
+   =========================================================================== */
+
+/* --- Crimson Noir: dark throughout, crimson as the only light source --- */
+:root[data-theme="noir"] {
+  color-scheme: dark;
+
+  --red: #ff3b58;
+  --red-dark: #e02440;
+  --red-ink: #ff7088;
+  --red-soft: #2a1119;
+  --red-line: #4a1c27;
+
+  --ink: #f2eef0;
+  --ink-2: #c6bdc2;
+  --muted: #8d8289;
+  --line: #2b2328;
+  --line-soft: #221b20;
+  --surface: #171216;
+  --bg: #0f0b0e;
+  --bg-deep: #000000;
+
+  --deep-1: #1d1419;
+  --deep-2: #2a1820;
+  --deep-3: #4a1522;
+  --on-deep: #f4e9ec;
+  --on-deep-dim: #b3a1a8;
+
+  --tint-rose: #24151b;
+  --tint-sand: #221a14;
+  --tint-mint: #13211d;
+  --tint-sky:  #141c26;
+  --tint-slate:#1c1a20;
+
+  --good: #35c48d;
+  --good-soft: #10231c;
+  --warn: #e0a033;
+  --warn-soft: #251c0f;
+
+  --shadow-sm: 0 1px 2px rgba(0,0,0,.5), 0 3px 10px -4px rgba(0,0,0,.6);
+  --shadow: 0 2px 6px rgba(0,0,0,.5), 0 16px 36px -18px rgba(0,0,0,.8);
+  --shadow-lg: 0 30px 70px -26px rgba(255, 59, 88, .3);
+}
+:root[data-theme="noir"] .btn-light { background: var(--red); color: #fff; }
+:root[data-theme="noir"] .btn-light:hover { background: var(--red-dark); color: #fff; }
+:root[data-theme="noir"] .tile.red { background: linear-gradient(150deg, #8c1328, #4a0f1c); }
+:root[data-theme="noir"] .step-n { background: rgba(255,255,255,.08); }
+:root[data-theme="noir"] .guide-links a { background: rgba(255,255,255,.04); }
+:root[data-theme="noir"] .camp-mini { background: rgba(255,255,255,.04); }
+:root[data-theme="noir"] .camp-mini:hover { background: rgba(255,59,88,.12); }
+:root[data-theme="noir"] .tile.guide-cat .guide-links a { background: rgba(255,255,255,.05); }
+:root[data-theme="noir"] .portal-table tr:hover td,
+:root[data-theme="noir"] .data-table tr:hover td { background: rgba(255,255,255,.03); }
+:root[data-theme="noir"] .faq-item button:hover { background: rgba(255,255,255,.03); }
+:root[data-theme="noir"] .qr-tile { background: linear-gradient(160deg, var(--surface), var(--tint-rose)); }
+
+/* --- Warm Plasma: the original warm red, refined ---------------------- */
+:root[data-theme="warm"] {
+  --red: #d7263d;
+  --red-dark: #ab1b2e;
+  --red-ink: #8f1526;
+  --red-soft: #fdeef0;
+  --red-line: #f6d3d8;
+
+  --ink: #16161a;
+  --ink-2: #41414c;
+  --muted: #6f6f7d;
+  --line: #e9e4e4;
+  --line-soft: #f2eeee;
+  --surface: #ffffff;
+  --bg: #fdf8f7;
+  --bg-deep: #1a1115;
+
+  --deep-1: #241319;
+  --deep-2: #42151f;
+  --deep-3: #7d1426;
+  --on-deep: #f3e4e6;
+  --on-deep-dim: #d6b7bc;
+
+  --tint-rose: #fff1f3;
+  --tint-sand: #fdf4ec;
+  --tint-mint: #eef8f2;
+  --tint-sky:  #eef4fb;
+  --tint-slate:#f3f4f8;
+
+  --good: #0f9d58;
+  --good-soft: #e7f6ee;
+  --warn: #b45309;
+  --warn-soft: #fef3e2;
+}
+
+/* ===========================================================================
+   MOTION
+   Entrances are additive: an element is laid out and readable first, then
+   the class moves it. Nothing is left invisible waiting for a scroll.
+   =========================================================================== */
+
+.reveal {
+  opacity: 0;
+  transform: translateY(14px);
+  transition: opacity .55s cubic-bezier(.22,.7,.3,1), transform .55s cubic-bezier(.22,.7,.3,1);
+  will-change: opacity, transform;
+}
+.reveal.in { opacity: 1; transform: none; }
+
+/* The page itself eases in on every route change. */
+.page, .landing { animation: page-in .4s cubic-bezier(.22,.7,.3,1) both; }
+@keyframes page-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+
+/* Tiles lift and their shadow deepens together, which reads as weight
+   rather than as a colour change. */
+.tile.lift { will-change: transform; }
+
+/* Buttons acknowledge the press. */
+.btn-primary, .btn-secondary, .btn-light, .btn-ghost-light, .small-button {
+  transition: background .18s ease, color .18s ease, border-color .18s ease,
+              transform .12s cubic-bezier(.3,.7,.4,1), box-shadow .18s ease;
+}
+.btn-primary:active, .btn-secondary:active, .btn-light:active,
+.btn-ghost-light:active, .small-button:active { transform: translateY(1px) scale(.985); }
+
+/* The accent underline that grows under a nav item on hover. */
+.nav-links > a { position: relative; }
+.nav-links > a::after {
+  content: ''; position: absolute; left: 11px; right: 11px; bottom: 4px;
+  height: 2px; border-radius: 2px; background: var(--red);
+  transform: scaleX(0); transform-origin: left center;
+  transition: transform .26s cubic-bezier(.22,.7,.3,1);
+}
+.nav-links > a:hover::after, .nav-links > a.active::after { transform: scaleX(1); }
+
+/* Counters sit on tabular figures so they do not jitter while counting. */
+.tile-value, .stat-chip strong, .counter { font-variant-numeric: tabular-nums; }
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal { opacity: 1 !important; transform: none !important; transition: none !important; }
+  .page, .landing { animation: none !important; }
+  .nav-links > a::after { transition: none; }
+}
+
+/* ------------------------------------------------------------ back link */
+.back-link {
+  display: inline-flex; align-items: center; gap: var(--s2);
+  margin-bottom: var(--s4);
+  padding: 8px 15px 8px 12px;
+  border: 1px solid var(--line); border-radius: 999px;
+  background: var(--surface); color: var(--ink-2);
+  font-family: inherit; font-size: 13.5px; font-weight: 550;
+  cursor: pointer;
+  transition: border-color .16s ease, color .16s ease, background .16s ease, transform .12s ease;
+}
+.back-link:hover {
+  border-color: var(--red); color: var(--red); background: var(--red-soft);
+}
+/* The arrow slides left on hover — the direction the button takes you. */
+.back-link svg { transition: transform .18s cubic-bezier(.3,.7,.4,1); }
+.back-link:hover svg { transform: translateX(-3px); }
+.back-link:active { transform: translateY(1px); }
+
+@media (prefers-reduced-motion: reduce) {
+  .back-link, .back-link svg { transition: none; }
+}
+
+/* ------------------------------------------------- empty / error states */
+.state-tile { align-items: center; text-align: center; padding: var(--s8) var(--s5); gap: var(--s3); }
+.state-icon {
+  width: 46px; height: 46px; border-radius: 50%;
+  display: grid; place-items: center;
+  background: var(--red-soft); color: var(--red);
+  font-size: 23px; font-weight: 700; line-height: 1;
+  margin-bottom: var(--s2);
+}
+.state-icon.soft { background: var(--tint-slate); color: var(--muted); }
+.state-tile strong { font-size: 18px; }
+.state-tile p { margin: 0; max-width: 56ch; color: var(--muted); font-size: 14.5px; line-height: 1.7; }
+.state-actions { display: flex; gap: var(--s3); flex-wrap: wrap; justify-content: center; margin-top: var(--s3); }

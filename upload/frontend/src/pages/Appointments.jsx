@@ -55,7 +55,7 @@ export default function Appointments() {
 
   return (
     <div className="page">
-      <h2>Book a Doctor Appointment</h2>
+      <h1 className="page-h1">Book a Doctor Appointment</h1>
       {message && <p className="hint">{message}</p>}
 
       <div className="form-card">

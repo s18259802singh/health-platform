@@ -56,7 +56,7 @@ export default function DonorSearch() {
 
   return (
     <div className="page">
-      <h2>Find Blood Donors</h2>
+      <h1 className="page-h1">Find Blood Donors</h1>
 
       <CompatibilityChecker onFilterDonors={handleCompatibleFilter} />
 

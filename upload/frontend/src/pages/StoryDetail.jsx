@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import api from '../api/axios';
+import { initials, avatarTint } from '../lib/people';
 
 const ROLE = { donor: 'Donor', recipient: 'Recipient', organiser: 'Organiser' };
 
@@ -26,7 +27,7 @@ export default function StoryDetail() {
       <h1 className="blog-post-title">{story.headline}</h1>
 
       <div className="story-byline large">
-        <span className="story-avatar" aria-hidden="true">{story.name.charAt(0)}</span>
+        <span className={`story-avatar ${avatarTint(story.name)}`} aria-hidden="true">{initials(story.name)}</span>
         <span>
           <strong>{story.name}</strong>
           <small>{[story.bloodGroup, story.city].filter(Boolean).join(' · ')}</small>

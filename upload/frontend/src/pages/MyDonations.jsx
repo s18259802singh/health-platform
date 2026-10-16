@@ -12,11 +12,19 @@ export default function MyDonations() {
   const [certificate, setCertificate] = useState(null);
   const [error, setError] = useState('');
 
-  useEffect(() => {
+  const load = () => {
+    setError('');
     api.get('/donations/mine')
       .then((res) => setData(res.data))
-      .catch(() => setError('Could not load your donation record.'));
-  }, []);
+      .catch((err) => {
+        // A 404 here means the server is running a build without the donation
+        // routes, which is a deployment state rather than a user problem - so
+        // say which it is instead of one generic failure message.
+        setError(err.response?.status === 404 ? 'missing' : 'failed');
+      });
+  };
+
+  useEffect(load, []);
 
   const openCertificate = async (id) => {
     try {
@@ -27,7 +35,39 @@ export default function MyDonations() {
     }
   };
 
-  if (error) return <div className="page"><p className="error-text">{error}</p></div>;
+  if (error) {
+    return (
+      <div className="page">
+        <div className="page-head">
+          <div>
+            <p className="app-eyebrow">My record</p>
+            <h1 className="page-h1">Donation history</h1>
+          </div>
+        </div>
+
+        <div className="bento">
+          <div className="tile t-12 state-tile">
+            <span className="state-icon" aria-hidden="true">!</span>
+            <strong>
+              {error === 'missing'
+                ? 'This part of the service is not available yet'
+                : 'We could not load your donation record'}
+            </strong>
+            <p>
+              {error === 'missing'
+                ? 'Your donation history lives on the server, and this server is running an older build that does not have it yet. Nothing of yours has been lost.'
+                : 'The server did not respond. This is usually temporary — it is worth trying again in a moment.'}
+            </p>
+            <div className="state-actions">
+              <button type="button" className="btn-primary" onClick={load}>Try again</button>
+              <Link to="/dashboard" className="btn-secondary">Back to dashboard</Link>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (!data) return <p className="hint">Loading your record…</p>;
 
   const { summary, donations, member } = data;
@@ -65,13 +105,20 @@ export default function MyDonations() {
       </div>
 
       {donations.length === 0 ? (
-        <div className="portal-empty">
-          <strong>No donations recorded yet</strong>
-          <p>
-            Donations are added by a blood centre after you give. Once your first one
-            is recorded it appears here with a certificate.
-          </p>
-          <Link to="/camps" className="btn-primary">Find a camp</Link>
+        <div className="bento">
+          <div className="tile t-12 state-tile">
+            <span className="state-icon soft" aria-hidden="true">+</span>
+            <strong>No donations recorded yet</strong>
+            <p>
+              A blood centre records your donation after you give, and it appears here
+              within a day or two with a downloadable certificate. Your tier and your
+              place on the leaderboard both come from these records.
+            </p>
+            <div className="state-actions">
+              <Link to="/camps" className="btn-primary">Find a camp near you</Link>
+              <Link to="/guides" className="btn-secondary">Check if I can donate</Link>
+            </div>
+          </div>
         </div>
       ) : (
         <>

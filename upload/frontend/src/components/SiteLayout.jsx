@@ -3,6 +3,7 @@
 
 import { Outlet, useLocation } from 'react-router-dom';
 import Navbar from './Navbar';
+import BackLink from './BackLink';
 import Footer from './Footer';
 import BottomNav from './BottomNav';
 import GuidedTour from './GuidedTour';
@@ -15,13 +16,17 @@ export default function SiteLayout() {
   const wide = pathname === '/';
 
   if (bare) {
-    return <main className="container bare"><Outlet /></main>;
+    return <main id="main" className="container bare"><Outlet /></main>;
   }
 
   return (
     <>
+      {/* First thing a keyboard or screen-reader user reaches, so they can
+          skip the navigation instead of tabbing through it on every page. */}
+      <a className="skip-link" href="#main">Skip to main content</a>
       <Navbar />
-      <main className={wide ? 'container wide' : 'container'}>
+      <main id="main" className={wide ? 'container wide' : 'container'}>
+        <BackLink />
         <Outlet />
       </main>
       <Footer />

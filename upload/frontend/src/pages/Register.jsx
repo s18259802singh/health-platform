@@ -41,7 +41,7 @@ export default function Register() {
     <div className="auth-shell">
       <div className="form-card">
         <p className="app-eyebrow">Join the register</p>
-        <h2>Create your account</h2>
+        <h1 className="page-h1">Create your account</h1>
         {error && <p className="error-text">{error}</p>}
 
         <form onSubmit={handleSubmit}>

@@ -77,7 +77,7 @@ export default function Availability() {
       <div className="page-head">
         <div>
           <p className="app-eyebrow">Blood availability</p>
-          <h2>Find blood in a blood bank near you</h2>
+          <h1 className="page-h1">Find blood in a blood bank near you</h1>
           <p>
             Search licensed blood banks and hospitals by region and blood group.
             No account needed — always call the centre to confirm before travelling.

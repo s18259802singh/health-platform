@@ -24,7 +24,7 @@ export default function EmergencyPage() {
 
   return (
     <div className="emergency-card">
-      <h2>Emergency Medical Information</h2>
+      <h1 className="page-h1">Emergency Medical Information</h1>
       <p className="emergency-sub">Scanned from QR code - no login required</p>
       <div className="emergency-row"><span>Name</span><strong>{info.name}</strong></div>
       <div className="emergency-row"><span>Blood Group</span><strong className="blood-badge">{info.bloodGroup}</strong></div>

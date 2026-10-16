@@ -7,6 +7,7 @@ import { useEffect, useState } from 'react';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
 import api from '../api/axios';
 import { useAuth } from '../context/AuthContext';
+import { Reveal, Counter } from '../components/Motion';
 
 const GROUPS = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
 
@@ -136,28 +137,23 @@ export default function Home() {
       {/* ------------------------------------------------------- counters */}
       {stats && (
         <div className="bento">
-          <div className="tile rose t-3 center">
-            <span className="tile-label">Active donors</span>
-            <strong className="tile-value">{stats.donors ?? 0}</strong>
-          </div>
-          <div className="tile sand t-3 center">
-            <span className="tile-label">Donations</span>
-            <strong className="tile-value">{stats.donations ?? 0}</strong>
-          </div>
-          <div className="tile mint t-3 center">
-            <span className="tile-label">Units given</span>
-            <strong className="tile-value">{stats.units ?? 0}</strong>
-          </div>
-          <div className="tile sky t-3 center">
-            <span className="tile-label">People helped</span>
-            <strong className="tile-value">{stats.livesTouched ?? 0}</strong>
-          </div>
+          {[
+            { tint: 'rose', label: 'Active donors', value: stats.donors ?? 0 },
+            { tint: 'sand', label: 'Donations', value: stats.donations ?? 0 },
+            { tint: 'mint', label: 'Units given', value: stats.units ?? 0 },
+            { tint: 'sky', label: 'People helped', value: stats.livesTouched ?? 0 },
+          ].map((c, i) => (
+            <Reveal key={c.label} delay={i * 70} className={`tile ${c.tint} t-3 center`}>
+              <span className="tile-label">{c.label}</span>
+              <strong className="tile-value"><Counter value={c.value} /></strong>
+            </Reveal>
+          ))}
         </div>
       )}
 
       {/* ------------------------------------------------------ trust band */}
       <div className="bento">
-        <div className="tile t-12 trust-band">
+        <Reveal className="tile t-12 trust-band">
           <div>
             <strong>Free, always</strong>
             <p>No charge to donors or recipients. Centres set their own processing fees.</p>
@@ -174,12 +170,12 @@ export default function Home() {
             <strong>Donations are verified</strong>
             <p>Leaderboard entries come from records confirmed by a blood centre.</p>
           </div>
-        </div>
+        </Reveal>
       </div>
 
       {/* ----------------------------------------------- camps + stories */}
       <div className="bento">
-        <section className="tile t-7">
+        <Reveal as="section" className="tile t-7">
           <div className="tile-head">
             <h3>Upcoming camps</h3>
             <Link className="tile-link" to="/camps">All camps →</Link>
@@ -204,9 +200,9 @@ export default function Home() {
             })}
             {camps.length === 0 && <p className="hint">No camps listed yet.</p>}
           </div>
-        </section>
+        </Reveal>
 
-        <section className="tile slate t-5">
+        <Reveal as="section" delay={90} className="tile slate t-5">
           <div className="tile-head">
             <h3>Top donors</h3>
             <Link className="tile-link" to="/leaderboard">Full board →</Link>
@@ -226,14 +222,14 @@ export default function Home() {
               ))}
             </ol>
           )}
-        </section>
+        </Reveal>
       </div>
 
       {/* --------------------------------------------------------- stories */}
       {stories.length > 0 && (
         <div className="bento">
           {stories.map((s, i) => (
-            <article className={`tile lift t-4 ${['rose', 'sand', 'mint'][i % 3]} story-tile`} key={s._id}>
+            <Reveal as="article" delay={i * 90} key={s._id} className={`tile lift t-4 ${['rose', 'sand', 'mint'][i % 3]} story-tile`}>
               <span className={`story-role ${s.role}`}>{s.role}</span>
               <h3><Link to={`/stories/${s._id}`}>{s.headline}</Link></h3>
               <div className="story-byline tile-foot">
@@ -243,19 +239,19 @@ export default function Home() {
                   <small>{[s.bloodGroup, s.city].filter(Boolean).join(' · ')}</small>
                 </span>
               </div>
-            </article>
+            </Reveal>
           ))}
         </div>
       )}
 
       {/* ----------------------------------------------------------- steps */}
       <div className="bento">
-        {STEPS.map((s) => (
-          <div className={`tile ${s.tint} t-4`} key={s.n}>
+        {STEPS.map((s, i) => (
+          <Reveal key={s.n} delay={i * 90} className={`tile ${s.tint} t-4`}>
             <span className="step-n">{s.n}</span>
             <strong className="step-title">{s.title}</strong>
             <p className="tile-sub">{s.text}</p>
-          </div>
+          </Reveal>
         ))}
       </div>
 

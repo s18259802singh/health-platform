@@ -31,7 +31,7 @@ export default function Login() {
     <div className="auth-shell">
       <div className="form-card">
         <p className="app-eyebrow">Welcome back</p>
-        <h2>Sign in to LifeLink</h2>
+        <h1 className="page-h1">Sign in to LifeLink</h1>
         {error && <p className="error-text">{error}</p>}
 
         <form onSubmit={handleSubmit}>

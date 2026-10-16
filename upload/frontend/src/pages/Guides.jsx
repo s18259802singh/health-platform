@@ -27,7 +27,7 @@ export default function Guides() {
       <div className="page-head">
         <div>
           <p className="app-eyebrow">Guides</p>
-          <h2>Everything a donor needs to know</h2>
+          <h1 className="page-h1">Everything a donor needs to know</h1>
           <p>
             {data.total} short guides, written plainly. Criteria shown are the
             national standard — the doctor at your centre confirms eligibility

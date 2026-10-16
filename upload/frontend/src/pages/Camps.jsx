@@ -45,7 +45,7 @@ export default function Camps() {
       <div className="page-head">
         <div>
           <p className="app-eyebrow">Donation camps</p>
-          <h2>Find a camp near you</h2>
+          <h1 className="page-h1">Find a camp near you</h1>
           <p>
             Organised drives run by blood centres, clubs and campuses. Registering
             ahead guarantees your slot and cuts the queue.

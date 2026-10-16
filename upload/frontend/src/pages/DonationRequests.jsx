@@ -61,7 +61,7 @@ export default function DonationRequests() {
 
   return (
     <div className="page">
-      <h2>Blood Donation Requests</h2>
+      <h1 className="page-h1">Blood Donation Requests</h1>
       {message && <p className="hint">{message}</p>}
 
       <div className="form-card">
