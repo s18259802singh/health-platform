@@ -8,24 +8,7 @@
 
 import { useState } from 'react';
 
-const GROUPS = ['O-', 'O+', 'A-', 'A+', 'B-', 'B+', 'AB-', 'AB+'];
-
-// Single source of truth: who each group can donate TO.
-// "Can receive from" for any group is just the reverse of this map.
-const CAN_DONATE_TO = {
-  'O-': ['O-', 'O+', 'A-', 'A+', 'B-', 'B+', 'AB-', 'AB+'], // universal donor
-  'O+': ['O+', 'A+', 'B+', 'AB+'],
-  'A-': ['A-', 'A+', 'AB-', 'AB+'],
-  'A+': ['A+', 'AB+'],
-  'B-': ['B-', 'B+', 'AB-', 'AB+'],
-  'B+': ['B+', 'AB+'],
-  'AB-': ['AB-', 'AB+'],
-  'AB+': ['AB+'], // universal recipient
-};
-
-function canReceiveFrom(group) {
-  return GROUPS.filter((donor) => CAN_DONATE_TO[donor].includes(group));
-}
+import { GROUPS, CAN_DONATE_TO, canReceiveFrom } from '../lib/blood';
 
 export default function CompatibilityChecker({ onFilterDonors }) {
   const [selected, setSelected] = useState(null);

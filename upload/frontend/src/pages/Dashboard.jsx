@@ -7,15 +7,12 @@ import api from '../api/axios';
 import { useAuth } from '../context/AuthContext';
 import { useTour, hasSeenTour, markTourSeen } from '../context/TourContext';
 import BloodSupplyMonitor from '../components/BloodSupplyMonitor';
+import DonorMap from '../components/DonorMap';
+import { CAN_DONATE_TO, nextEligibleDate, daysUntil } from '../lib/blood';
 
-const ACTIONS = [
-  { to: '/availability', label: 'Check blood stock', tint: 'rose' },
-  { to: '/donors', label: 'Find a donor', tint: 'sand' },
-  { to: '/camps', label: 'Donation camps', tint: 'mint' },
-  { to: '/requests', label: 'Blood requests', tint: 'sky' },
-  { to: '/appointments', label: 'Book a doctor', tint: 'slate' },
-  { to: '/profile', label: 'My QR profile', tint: 'rose' },
-];
+// Mirrors the tiers the API awards, so the ladder below always matches the
+// badge the server sent.
+const TIERS = ['Donor', 'Bronze', 'Silver', 'Gold', 'Platinum'];
 
 // A ring gauge: how far through the current tier the member is.
 function Ring({ value, max, caption }) {
@@ -42,6 +39,7 @@ export default function Dashboard() {
   const { openTour } = useTour();
   const [summary, setSummary] = useState(null);
   const [myCamps, setMyCamps] = useState([]);
+  const [requests, setRequests] = useState([]);
 
   useEffect(() => {
     if (!user) return undefined;
@@ -56,10 +54,26 @@ export default function Dashboard() {
   useEffect(() => {
     api.get('/donations/mine').then((r) => setSummary(r.data.summary)).catch(() => {});
     api.get('/camps/mine/list').then((r) => setMyCamps(r.data)).catch(() => {});
+    api.get('/donation-requests', { params: { status: 'pending' } })
+      .then((r) => setRequests(r.data)).catch(() => {});
   }, []);
 
   const upcoming = myCamps.filter((c) => c.status === 'upcoming');
   const nextTarget = summary?.nextTier ? summary.count + summary.nextTier.needed : summary?.count || 0;
+
+  // When this member can next give. 90 days is the standard interval between
+  // whole blood donations; somebody who has never donated is eligible now.
+  const eligibleOn = nextEligibleDate(summary?.lastDonation);
+  const waitDays = eligibleOn ? daysUntil(new Date(eligibleOn)) : 0;
+  const eligibleNow = waitDays <= 0;
+
+  // Open requests this member could actually answer, newest first. Filtering
+  // by what their group can give to is the whole point - a board of requests
+  // they are not able to help with is just noise on a personal dashboard.
+  const myGroup = user?.bloodGroup;
+  const canAnswer = myGroup && CAN_DONATE_TO[myGroup]
+    ? requests.filter((r) => CAN_DONATE_TO[myGroup].includes(r.bloodGroupNeeded)).slice(0, 4)
+    : requests.slice(0, 4);
 
   return (
     <div className="page app-dashboard">
@@ -89,6 +103,23 @@ export default function Dashboard() {
               <span><strong>{summary.units}</strong>units</span>
               <span><strong>{summary.livesTouched}</strong>helped</span>
             </div>
+            <div className="tier-ladder">
+              <div className="tier-ladder-track">
+                {TIERS.map((t, i) => {
+                  const here = TIERS.indexOf(summary.tier);
+                  return <span key={t} className={i < here ? 'done' : i === here ? 'now' : ''} />;
+                })}
+              </div>
+              <div className="tier-ladder-names">
+                <b>{summary.tier}</b>
+                <span>
+                  {summary.nextTier
+                    ? `${summary.nextTier.needed} to ${summary.nextTier.label}`
+                    : 'Top tier'}
+                </span>
+              </div>
+            </div>
+
             <div className="tile-foot">
               <Link to="/my-donations" className="tile-link">My record &amp; certificates →</Link>
             </div>
@@ -96,14 +127,7 @@ export default function Dashboard() {
         )}
 
         <section className={`tile ${summary ? 't-7' : 't-12'}`}>
-          <div className="tile-head"><h3>Jump to</h3></div>
-          <div className="shortcut-grid">
-            {ACTIONS.map((a) => (
-              <Link to={a.to} key={a.to} className={`shortcut ${a.tint}`}>
-                {a.label}
-              </Link>
-            ))}
-          </div>
+          <DonorMap />
         </section>
 
         {upcoming.length > 0 && (
@@ -130,6 +154,89 @@ export default function Dashboard() {
         )}
       </div>
 
+      {/* ------------------------------- when you can give, and who needs it */}
+      <div className="bento">
+        <section className={`tile t-4 ready-tile ${eligibleNow ? 'is-ready' : ''}`}>
+          <span className="tile-label">Next donation</span>
+          {eligibleNow ? (
+            <>
+              <strong className="ready-headline">You can give today</strong>
+              <p className="tile-sub">
+                {summary?.lastDonation
+                  ? 'More than 90 days have passed since your last donation.'
+                  : 'Nothing on your record yet — your first donation can be at any camp.'}
+              </p>
+              <div className="tile-foot">
+                <Link to="/camps" className="tile-link">Book a slot at a camp →</Link>
+              </div>
+            </>
+          ) : (
+            <>
+              <strong className="ready-headline">{waitDays} day{waitDays === 1 ? '' : 's'} to go</strong>
+              <p className="tile-sub">
+                Eligible again on{' '}
+                {new Date(eligibleOn).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}.
+                The interval between whole blood donations is 90 days.
+              </p>
+              <div className="ready-meta">
+                <div>
+                  <span>Your group</span>
+                  <strong>{user?.bloodGroup || '—'}</strong>
+                </div>
+                <div>
+                  <span>Last donated</span>
+                  <strong>
+                    {summary?.lastDonation
+                      ? new Date(summary.lastDonation).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+                      : '—'}
+                  </strong>
+                </div>
+              </div>
+              <div className="tile-foot">
+                <Link to="/guides" className="tile-link">Why the wait →</Link>
+              </div>
+            </>
+          )}
+        </section>
+
+        <section className="tile t-8">
+          <div className="tile-head">
+            <h3>Requests you can answer</h3>
+            <Link className="tile-link" to="/requests">All requests →</Link>
+          </div>
+          {canAnswer.length === 0 ? (
+            <p className="tile-sub">
+              No open requests match your blood group right now. That is good news.
+            </p>
+          ) : (
+            <>
+              <p className="tile-sub">
+                {myGroup
+                  ? <>Open requests for groups <strong>{myGroup}</strong> can give to.</>
+                  : <>Open requests across the network.</>}
+              </p>
+              <ul className="req-mini-list">
+                {canAnswer.map((r) => (
+                  <li key={r._id}>
+                    <span className="req-mini-group">{r.bloodGroupNeeded}</span>
+                    <span className="req-mini-body">
+                      <strong>{r.location}</strong>
+                      <small>
+                        Posted by {r.requesterId?.name || 'a member'}
+                        {r.createdAt && ` · ${new Date(r.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}`}
+                      </small>
+                    </span>
+                    {r.requesterId?.phone && (
+                      <a className="small-button" href={`tel:${r.requesterId.phone}`}>Call</a>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
+        </section>
+      </div>
+
       {/* ------------------------------------------------- live stock tile */}
       <div className="bento">
         <section className="tile t-12">
@@ -152,8 +259,50 @@ export default function Dashboard() {
           <p className="tile-sub">
             Eligibility, preparation and recovery, in short plain-English guides.
           </p>
+          <ul className="fact-list">
+            <li><strong>18–65</strong> years old, and at least <strong>45 kg</strong></li>
+            <li>Haemoglobin of <strong>12.5 g/dL</strong> or above</li>
+            <li><strong>90 days</strong> between whole blood donations</li>
+            <li>Takes about <strong>15 minutes</strong>, plus a short rest</li>
+          </ul>
           <div className="tile-foot">
             <Link to="/guides" className="tile-link">Open the guide library →</Link>
+          </div>
+        </section>
+      </div>
+
+      {/* ---------------------------------------------- the rest of the app */}
+      <div className="bento">
+        <section className="tile t-4">
+          <div className="tile-head"><h3>Your emergency QR</h3></div>
+          <p className="tile-sub">
+            A paramedic can scan it and see your blood group, allergies and next
+            of kin without unlocking your phone.
+          </p>
+          <div className="tile-foot">
+            <Link to="/profile" className="tile-link">Open my QR profile →</Link>
+          </div>
+        </section>
+
+        <section className="tile t-4">
+          <div className="tile-head"><h3>Check stock near you</h3></div>
+          <p className="tile-sub">
+            Search licensed blood banks and hospitals by district and group
+            before you travel to one.
+          </p>
+          <div className="tile-foot">
+            <Link to="/availability" className="tile-link">Search availability →</Link>
+          </div>
+        </section>
+
+        <section className="tile t-4">
+          <div className="tile-head"><h3>Book a doctor</h3></div>
+          <p className="tile-sub">
+            Appointments at any hospital in the network, with the specialists
+            and slots each one actually offers.
+          </p>
+          <div className="tile-foot">
+            <Link to="/appointments" className="tile-link">Book an appointment →</Link>
           </div>
         </section>
       </div>

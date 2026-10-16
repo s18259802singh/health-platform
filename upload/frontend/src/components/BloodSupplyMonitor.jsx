@@ -24,6 +24,14 @@ export default function BloodSupplyMonitor() {
 
   const maxDonors = Math.max(1, ...supply.map((s) => s.donors));
 
+  // Split "AB+" into the ABO family and the Rh sign so each can be styled
+  // separately: the family drives the colour (A one hue, B another, AB the
+  // two blended, O its own), the sign stays quiet so the letter leads.
+  const parts = (group) => {
+    const m = String(group).match(/^(AB|A|B|O)([+-])$/);
+    return m ? { family: m[1], sign: m[2] } : { family: group, sign: '' };
+  };
+
   return (
     <>
       <div className="section-header">
@@ -41,7 +49,9 @@ export default function BloodSupplyMonitor() {
               <div className="supply-bag-shape">
                 <div className="supply-bag-fill" style={{ height: `${Math.max(8, fillPct)}%` }} />
               </div>
-              <span className="supply-bag-group">{s.group}</span>
+              <span className={`supply-bag-group g-${parts(s.group).family.toLowerCase()}`}>
+                <em>{parts(s.group).family}</em><i>{parts(s.group).sign}</i>
+              </span>
               <span className="supply-bag-count">{s.donors} donor{s.donors === 1 ? '' : 's'}</span>
               {s.pendingRequests > 0 && (
                 <span className="supply-bag-needed">{s.pendingRequests} needed</span>

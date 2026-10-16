@@ -606,8 +606,14 @@ input[type="file"] { padding: 9px; font-size: 13.5px; background: var(--line-sof
   content: ''; position: absolute; top: 0; left: 50%; transform: translateX(-50%);
   width: 40%; height: 5px; background: var(--red-line); border-radius: 0 0 4px 4px;
 }
+/* The bag fill reads as blood: a deep maroon, but pulled round to the
+   wine end of the hue wheel (336-339deg) so it sits beside the brand purple
+   instead of fighting it. A true fire-engine maroon at 0deg would be the one
+   thing on the page that does not belong. */
 .supply-bag-fill {
-  width: 100%; background: linear-gradient(180deg, #e16fcf, var(--red));
+  width: 100%;
+  background: linear-gradient(180deg, #9c3458 0%, #7a2546 55%, #5d1733 100%);
+  box-shadow: inset 0 2px 5px rgba(255, 255, 255, .22);
   transition: height .5s ease;
 }
 .supply-bag.shortage .supply-bag-shape { animation: bag-shortage-pulse 1.6s ease-in-out infinite; }
@@ -615,11 +621,182 @@ input[type="file"] { padding: 9px; font-size: 13.5px; background: var(--line-sof
   0%, 100% { box-shadow: 0 0 0 0 rgba(138, 83, 154, .4); border-color: var(--red); }
   50% { box-shadow: 0 0 0 7px rgba(138, 83, 154, 0); border-color: var(--red-line); }
 }
-.supply-bag-group { font-size: 13px; font-weight: 700; color: var(--red); }
+/* ABO families get their own colour: A one hue, B another, AB the two
+   blended across the letters, O its own. The colour reinforces the label —
+   it never replaces it, so nobody has to tell the hues apart to read the
+   chart. The Rh sign stays quiet so the letter leads. */
+.supply-bag-group {
+  display: inline-flex; align-items: baseline; gap: 1px;
+  font-size: 13px; font-weight: 700; letter-spacing: -.01em;
+}
+.supply-bag-group em { font-style: normal; }
+.supply-bag-group i {
+  font-style: normal; font-size: 11.5px; font-weight: 650; opacity: .62;
+}
+.supply-bag-group.g-a  { color: #6a4a9c; }   /* violet  */
+.supply-bag-group.g-b  { color: #a8346f; }   /* magenta */
+.supply-bag-group.g-o  { color: #8a2b4a; }   /* wine    */
+.supply-bag-group.g-ab { color: #87407f; }   /* fallback for the blend below */
+
+/* AB carries both parents' colours across the two letters. background-clip
+   is the only way to put a gradient on glyphs; the flat colour above shows
+   through anywhere it is unsupported. */
+@supports ((-webkit-background-clip: text) or (background-clip: text)) {
+  .supply-bag-group.g-ab em {
+    background: linear-gradient(100deg, #6a4a9c 10%, #a8346f 90%);
+    -webkit-background-clip: text; background-clip: text;
+    -webkit-text-fill-color: transparent; color: transparent;
+  }
+}
 .supply-bag-count { font-size: 11.5px; color: var(--muted); }
 .supply-bag-needed {
   font-size: 10.5px; font-weight: 650; color: var(--red);
   background: var(--red-soft); padding: 2px 7px; border-radius: 99px;
+}
+
+/* --------------------------------------------- dashboard: new tiles */
+/* "Next donation": the one thing a returning member actually wants to know. */
+.ready-tile .ready-headline {
+  display: block; font-size: 23px; font-weight: 650;
+  letter-spacing: -.02em; margin: var(--s2) 0 var(--s1);
+}
+.ready-tile.is-ready { border-color: var(--good); background: var(--good-soft); }
+.ready-meta {
+  display: flex; gap: var(--s5); margin-top: auto; padding-top: var(--s4);
+}
+.ready-meta span {
+  display: block; font-size: 10.5px; letter-spacing: .08em;
+  text-transform: uppercase; color: var(--muted); font-weight: 650; margin-bottom: 2px;
+}
+.ready-meta strong { font-size: 17px; font-weight: 650; letter-spacing: -.01em; }
+.ready-tile.is-ready .ready-headline { color: var(--good); }
+
+/* Open requests this member's group can answer. */
+.req-mini-list { list-style: none; margin: var(--s2) 0 0; padding: 0; display: grid; gap: 7px; }
+.req-mini-list li {
+  display: flex; align-items: center; gap: var(--s3);
+  padding: 10px 12px; border-radius: var(--r-sm);
+  background: var(--line-soft);
+  transition: background .15s ease;
+}
+.req-mini-list li:hover { background: var(--brand-soft); }
+.req-mini-group {
+  flex: none; display: inline-grid; place-items: center;
+  min-width: 44px; padding: 4px 9px; border-radius: 8px;
+  background: var(--surface); border: 1px solid var(--brand-line);
+  color: var(--brand); font-size: 13px; font-weight: 700;
+}
+.req-mini-body { flex: 1; min-width: 0; }
+.req-mini-body strong {
+  display: block; font-size: 14px; font-weight: 600;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.req-mini-body small { display: block; font-size: 12px; color: var(--muted); }
+
+/* Plain-English eligibility facts, so the guide tile says something before
+   you click it. */
+.fact-list { list-style: none; margin: var(--s3) 0 0; padding: 0; display: grid; gap: 7px; }
+.fact-list li {
+  position: relative; padding-left: 18px;
+  font-size: 13.5px; color: var(--ink-2); line-height: 1.5;
+}
+.fact-list li::before {
+  content: ''; position: absolute; left: 0; top: 8px;
+  width: 6px; height: 6px; border-radius: 50%; background: var(--brand); opacity: .55;
+}
+
+/* ------------------------------------------------------- donor map tile */
+/* Replaces the dashboard's old shortcut grid. Sized to sit in a bento tile,
+   so the map is deliberately small: it is a way INTO the donor search, not a
+   mapping product. */
+.donor-map { display: flex; flex-direction: column; height: 100%; }
+.donor-map-total {
+  font-size: 11.5px; font-weight: 650; letter-spacing: .04em;
+  text-transform: uppercase; color: var(--muted);
+}
+.donor-map-body { display: flex; gap: var(--s3); margin-top: var(--s2); flex: 1; }
+.donor-map-body > .donor-map-frame { flex: 1 1 auto; min-width: 0; }
+.donor-map-frame {
+  position: relative;
+  background: linear-gradient(170deg, var(--brand-soft), var(--surface));
+  border: 1px solid var(--line); border-radius: var(--r-sm);
+  padding: var(--s3) var(--s3) 30px;
+}
+.donor-map-svg { width: 100%; height: auto; display: block; max-height: 290px; }
+.donor-map-land {
+  fill: color-mix(in srgb, var(--p-100) 55%, #fff);
+  stroke: var(--p-300); stroke-width: .7;
+  stroke-linejoin: round;
+}
+.donor-map-pin { cursor: pointer; }
+.donor-map-halo { fill: var(--brand); opacity: 0; transition: opacity .18s ease; }
+.donor-map-dot {
+  fill: var(--brand); opacity: .8;
+  transition: fill .18s ease, opacity .18s ease;
+}
+.donor-map-hit { fill: transparent; }
+.donor-map-pin:hover .donor-map-dot,
+.donor-map-pin.on .donor-map-dot { fill: var(--brand-ink); opacity: 1; }
+.donor-map-pin:hover .donor-map-halo,
+.donor-map-pin.on .donor-map-halo { opacity: .18; }
+.donor-map-readout {
+  position: absolute; left: var(--s3); right: var(--s3); bottom: 9px;
+  font-size: 12px; color: var(--muted); text-align: center;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.donor-map-readout strong { color: var(--brand-ink); }
+
+/* The keyboard route to the same places, and a ranked shortlist besides. */
+.donor-map-list {
+  list-style: none; margin: 0; padding: 0;
+  flex: 0 0 auto; display: flex; flex-direction: column; gap: 6px;
+  align-self: stretch; justify-content: center;
+}
+.donor-map-list button { width: 100%; justify-content: space-between; }
+.donor-map-list button {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 5px 11px; border-radius: 999px;
+  border: 1px solid var(--line); background: var(--surface);
+  color: var(--ink-2); font-size: 12.5px; font-weight: 550;
+  font-family: inherit; cursor: pointer;
+  transition: border-color .15s ease, background .15s ease, color .15s ease;
+}
+.donor-map-list button span {
+  font-size: 11px; font-weight: 700; color: var(--brand);
+  background: var(--brand-soft); padding: 1px 6px; border-radius: 99px;
+}
+.donor-map-list button:hover,
+.donor-map-list button:focus-visible {
+  border-color: var(--brand); color: var(--brand); background: var(--brand-soft);
+}
+
+@media (max-width: 680px) {
+  .donor-map-svg { max-height: 200px; }
+  .donor-map-body { flex-direction: column; }
+  .donor-map-list { flex-direction: row; flex-wrap: wrap; }
+  .donor-map-list button { width: auto; }
+}
+
+/* The tier ladder on the donor-status tile: without it that tile was a tall
+   column of empty space next to a much busier map. */
+.tier-ladder { margin-top: auto; padding-top: var(--s5); }
+.tier-ladder-track {
+  display: flex; gap: 3px; margin-bottom: var(--s2);
+}
+.tier-ladder-track span {
+  flex: 1; height: 5px; border-radius: 99px;
+  background: rgba(255, 255, 255, .14);
+}
+.tier-ladder-track span.done { background: var(--p-300); }
+.tier-ladder-track span.now { background: #fff; }
+.tier-ladder-names {
+  display: flex; justify-content: space-between; align-items: baseline; gap: var(--s3);
+  font-size: 11.5px; letter-spacing: .03em;
+  color: var(--on-deep-dim); font-weight: 600;
+}
+.tier-ladder-names b {
+  color: #fff; font-weight: 700; font-size: 13px;
+  letter-spacing: .06em; text-transform: uppercase;
 }
 
 /* ------------------------------------------------------------ donor map */
@@ -1795,7 +1972,11 @@ input[type="file"] { padding: 9px; font-size: 13.5px; background: var(--line-sof
 }
 
 /* ---------------------------------------- dashboard + portal tile extras */
-.donor-tile { align-items: flex-start; }
+/* This tile spans two rows, so its content has to be distributed down the
+   column rather than stacked at the top - otherwise the ring sits up by the
+   label with a long empty drop beneath it. */
+.donor-tile { align-items: flex-start; justify-content: space-between; }
+.donor-tile .tier-ladder { margin-top: 0; padding-top: 0; width: 100%; }
 .donor-tile .tier-badge.big { margin: 10px 0 6px; }
 .donor-tile .tile-ring { margin: 6px auto 10px; }
 .donor-tile .tile-ring .track { stroke: rgba(255, 255, 255, .18); }

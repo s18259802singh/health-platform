@@ -10,14 +10,19 @@
 // the multi-group match on the client - no API changes needed.
 
 import { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import api from '../api/axios';
 import CompatibilityChecker from '../components/CompatibilityChecker';
 
 const BLOOD_GROUPS = ['', 'A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
 
 export default function DonorSearch() {
-  const [bloodGroup, setBloodGroup] = useState('');
-  const [location, setLocation] = useState('');
+  // The dashboard map links straight here with ?location=<city>, so the
+  // search opens already filtered instead of making the member retype the
+  // place they just clicked.
+  const [params] = useSearchParams();
+  const [bloodGroup, setBloodGroup] = useState(params.get('bloodGroup') || '');
+  const [location, setLocation] = useState(params.get('location') || '');
   const [compatFor, setCompatFor] = useState(null); // recipient group in "compatible mode", or null
   const [compatGroups, setCompatGroups] = useState([]); // donor groups that match compatFor
   const [donors, setDonors] = useState([]);

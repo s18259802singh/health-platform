@@ -6,6 +6,17 @@
 
 const GROUPS = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
 const CITIES = ['Ahmedabad', 'Surat', 'Vadodara', 'Rajkot', 'Bhavnagar', 'Navsari', 'Valsad', 'Junagadh'];
+
+// The wider register the dashboard map draws from. Weights are rough
+// population shares, so Ahmedabad and Surat carry the most donors and the
+// map does not come out as 25 identical dots.
+const REGISTER = [
+  ['Ahmedabad', 26], ['Surat', 22], ['Vadodara', 14], ['Rajkot', 12], ['Bhavnagar', 8],
+  ['Jamnagar', 7], ['Junagadh', 6], ['Gandhinagar', 6], ['Navsari', 5], ['Anand', 5],
+  ['Bharuch', 5], ['Nadiad', 4], ['Mehsana', 4], ['Valsad', 4], ['Morbi', 3],
+  ['Surendranagar', 3], ['Vapi', 3], ['Bhuj', 3], ['Amreli', 2], ['Porbandar', 2],
+  ['Godhra', 2], ['Patan', 2], ['Palanpur', 2], ['Veraval', 2], ['Gandhidham', 2],
+];
 const NAMES = ['Priya Shah', 'Rahul Mehta', 'Anita Desai', 'Vikram Joshi', 'Neha Patel', 'Arjun Rao',
   'Kavita Nair', 'Sanjay Verma', 'Meera Iyer', 'Rohit Shah', 'Divya Menon', 'Amit Trivedi',
   'Farah Khan', 'Nikhil Bose', 'Sneha Gupta', 'Imran Qureshi', 'Pooja Rana', 'Karan Dave'];
@@ -139,10 +150,22 @@ const myDonations = Array.from({ length: 9 }, (_, i) => ({
   certificateNo: `LL-2026-${(10000 + i * 37).toString(36).toUpperCase()}`,
 }));
 
-const donors = NAMES.map((n, i) => ({
-  _id: `u${i}`, name: n, bloodGroup: GROUPS[i % 8],
-  phone: `09${100000000 + i * 7919}`, location: CITIES[i % CITIES.length],
-}));
+const donors = (() => {
+  const out = [];
+  let i = 0;
+  REGISTER.forEach(([city, n]) => {
+    for (let k = 0; k < n; k += 1, i += 1) {
+      out.push({
+        _id: `u${i}`,
+        name: NAMES[i % NAMES.length],
+        bloodGroup: GROUPS[(i * 3) % 8],
+        phone: `09${100000000 + i * 7919}`,
+        location: city,
+      });
+    }
+  });
+  return out;
+})();
 
 const blogs = [
   { _id: 'b1', title: 'Why platelet donors are needed every single week', excerpt: 'Platelets last about five days, which changes everything about how supply works.', author: 'LifeLink Team', imageUrl: '', createdAt: new Date(Date.now() - 4 * 864e5).toISOString(), content: GUIDE_BODY },
@@ -237,15 +260,35 @@ function resolve(url, config = {}) {
       return [];
 
     case 'hospitals': return hospitals;
-    case 'donors': return donors;
+    case 'donors': {
+      // Mirror the real endpoint's filters, otherwise clicking a city on the
+      // dashboard map appears to do nothing in the demo build.
+      let list = donors;
+      if (p.location) {
+        const q = String(p.location).toLowerCase();
+        list = list.filter((d) => d.location.toLowerCase().includes(q));
+      }
+      if (p.bloodGroup) list = list.filter((d) => d.bloodGroup === p.bloodGroup);
+      return list;
+    }
     case 'blogs': return seg[1] ? (blogs.find((b) => b._id === seg[1]) || blogs[0]) : blogs;
     case 'stats': return GROUPS.map((g, i) => ({ group: g, donors: [29, 8, 27, 14, 10, 12, 40, 13][i], pendingRequests: [1, 0, 0, 2, 1, 0, 0, 3][i] }));
-    case 'donation-requests':
-      return stories.slice(0, 6).map((s, i) => ({
-        _id: `rq${i}`, bloodGroupNeeded: GROUPS[(i * 3) % 8], location: CITIES[i % CITIES.length],
-        requesterId: { name: s.name, phone: `09${700000000 + i}`, location: s.city },
-        status: i % 3 === 0 ? 'fulfilled' : 'pending', createdAt: new Date(Date.now() - i * 864e5),
+    case 'donation-requests': {
+      const all = Array.from({ length: 18 }, (_, i) => ({
+        _id: `rq${i}`,
+        bloodGroupNeeded: GROUPS[(i * 5) % 8],
+        location: `${['New Civil Hospital', 'Sterling Hospital', 'Civil Hospital', 'Apollo Hospital', 'Red Cross Centre'][i % 5]}, ${REGISTER[i % REGISTER.length][0]}`,
+        requesterId: {
+          name: NAMES[i % NAMES.length],
+          phone: `09${700000000 + i * 131}`,
+          location: REGISTER[i % REGISTER.length][0],
+        },
+        status: i % 4 === 3 ? 'fulfilled' : 'pending',
+        createdAt: new Date(Date.now() - (i * 7 + 2) * 36e5),
       }));
+      const want = p.status;
+      return want ? all.filter((r) => r.status === want) : all;
+    }
     case 'profile':
       return { name: 'Dhruv Shah', email: 'dhruv@example.com', phone: '09876543210', bloodGroup: 'O-', allergies: 'Penicillin', location: 'Ahmedabad', isDonor: true, emergencyContact: { name: 'Next of kin', number: '09876500000' }, qrCodePath: '' };
     default:
