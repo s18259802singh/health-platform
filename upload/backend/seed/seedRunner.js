@@ -25,6 +25,9 @@ const blogData = require('./blogData');
 const campData = require('./campData');
 const storyData = require('./storyData');
 const guideData = require('./guideData');
+const requestData = require('./requestData');
+const { resolveRegion, tidyAddress } = require('./regionMap');
+const { stockFor } = require('./stockModel');
 
 const doctorFirstNames = ['Ansari', 'Mehta', 'Patel', 'Shah', 'Desai', 'Trivedi', 'Joshi', 'Rao', 'Iyer', 'Kapoor', 'Solanki', 'Vyas', 'Pandya', 'Bhatt'];
 const specializations = ['Cardiologist', 'General Physician', 'Orthopedic', 'Dermatologist', 'Pediatrician', 'ENT Specialist', 'Gynecologist', 'Neurologist'];
@@ -85,14 +88,26 @@ const runSeed = async () => {
   const createdDonors = await User.insertMany(donors);
 
   // Hospitals.
-  // The directory addresses end with the district, e.g. "... , Bilimora, Navsari".
-  // The availability search needs those as real fields, so derive them here
-  // rather than asking whoever maintains the list to retype every row.
+  // hospitalData.js is a plain directory - name, address, phone, type - so two
+  // things are added here rather than making whoever maintains that list
+  // retype 110 rows:
+  //   1) city/district/state, looked up from the address via regionMap so the
+  //      availability search can group by a real district (deriving it from
+  //      the last comma-separated token used to produce a district called
+  //      "Gujarat" and filed towns as districts of themselves);
+  //   2) availableBloodUnits, built by stockModel. Without this every centre
+  //      reported 0 units and the public availability portal - the main
+  //      feature - read "Out of stock" on all 110 rows.
   const withRegion = hospitalData.map((h) => {
-    const parts = String(h.address || '').split(',').map((x) => x.trim()).filter(Boolean);
-    const district = (parts[parts.length - 1] || '').replace(/\s*-\s*\d{6}$/, '').replace(/\s+District$/i, '').trim();
-    const city = (parts.length > 1 ? parts[parts.length - 2] : district).replace(/\s*-\s*\d{6}$/, '').trim();
-    return { ...h, district: district || 'Other', city: city || district || 'Other', state: h.state || 'Gujarat' };
+    const { city, district } = resolveRegion(h.address);
+    return {
+      ...h,
+      address: tidyAddress(h.address),
+      city,
+      district,
+      state: h.state || 'Gujarat',
+      availableBloodUnits: stockFor(h),
+    };
   });
   const hospitals = await Hospital.insertMany(withRegion);
 
@@ -150,8 +165,35 @@ const runSeed = async () => {
 
   // ---- Donation history (drives the leaderboard and certificates) ----
   // A realistic spread: a few long-standing donors with many donations, a
-  // long tail with one or two. Dates are spaced at least 90 days apart,
-  // matching the real interval between whole blood donations.
+  // long tail with one or two. Dates within a donor are spaced at least 90
+  // days apart, matching the real interval between whole blood donations.
+  //
+  // The FIRST gap varies per person (firstGap below). It used to be a flat 20
+  // days for everyone, which meant every donor's most recent donation landed
+  // on the same timestamp and the leaderboard showed one identical "last
+  // donated" date down the whole table.
+  const buildHistory = (person, i, count) => {
+    const docs = [];
+    const firstGap = 6 + ((i * 37) % 168);   // 6 - 173 days since last donation
+    for (let n = 0; n < count; n += 1) {
+      const daysAgo = firstGap + n * (92 + (i % 11));
+      const when = new Date();
+      when.setDate(when.getDate() - daysAgo);
+      when.setHours(8 + ((i + n) % 9), (i * 7 + n * 13) % 60, 0, 0);
+      const hospital = hospitals[(i + n) % hospitals.length];
+      docs.push({
+        userId: person._id,
+        donatedAt: when,
+        bloodGroup: person.bloodGroup || 'O+',
+        units: 1,
+        hospitalId: hospital?._id,
+        locationName: hospital?.name || '',
+        certificateNo: `LL-${when.getFullYear()}-${(i * 101 + n * 7).toString(36).toUpperCase().padStart(5, '0').slice(-5)}`,
+      });
+    }
+    return docs;
+  };
+
   const donationDocs = [];
   createdDonors.forEach((donor, i) => {
     // roughly 55% of donors have given at least once
@@ -160,24 +202,50 @@ const runSeed = async () => {
       : i % 11 === 0 ? 9 + (i % 5)
       : i % 5 === 0 ? 4 + (i % 4)
       : 1 + (i % 3);
-
-    for (let n = 0; n < count; n += 1) {
-      const daysAgo = 20 + n * (92 + (i % 11));
-      const when = new Date();
-      when.setDate(when.getDate() - daysAgo);
-      const hospital = hospitals[(i + n) % hospitals.length];
-      donationDocs.push({
-        userId: donor._id,
-        donatedAt: when,
-        bloodGroup: donor.bloodGroup,
-        units: 1,
-        hospitalId: hospital?._id,
-        locationName: hospital?.name || '',
-        certificateNo: `LL-${when.getFullYear()}-${(i * 101 + n * 7).toString(36).toUpperCase().padStart(5, '0').slice(-5)}`,
-      });
-    }
+    donationDocs.push(...buildHistory(donor, i, count));
   });
+
+  // Admin accounts survive a re-seed, and the admin account is what gets
+  // handed over for a demo. Without this, "My donations" and the dashboard
+  // donor-status tile read "0 donations" for the one person actually signing
+  // in, while the leaderboard beside it showed hundreds.
+  const admins = await User.find({ role: 'admin' }).select('_id bloodGroup name phone');
+  admins.forEach((admin, k) => {
+    donationDocs.push(...buildHistory(admin, 900 + k * 13, 7 + k));
+  });
+
   const donations = await Donation.insertMany(donationDocs, { ordered: false });
+
+  // Put each admin on an upcoming camp too, so "My camps" on the dashboard
+  // has a row rather than an empty state.
+  const upcomingForAdmins = camps.filter((c) => c.status === 'upcoming').slice(0, 2);
+  for (const camp of upcomingForAdmins) {
+    admins.forEach((admin) => {
+      const already = camp.registrations.some((r) => String(r.userId) === String(admin._id));
+      if (already) return;
+      camp.registrations.push({
+        userId: admin._id,
+        name: admin.name,
+        phone: admin.phone || '',
+        bloodGroup: admin.bloodGroup || 'O+',
+        registeredAt: new Date(Date.now() - 3 * 86400000),
+      });
+    });
+    await camp.save();
+  }
+
+  // ---- Blood requests (the public requests board) ----
+  // requestData holds an index into donorData; swap it for the real user so
+  // the board can populate a name and a contact number.
+  const requestDocs = requestData
+    .map(({ donorIndex, hoursAgo, ...rest }) => {
+      const requester = createdDonors[donorIndex];
+      if (!requester) return null;
+      const when = new Date(Date.now() - hoursAgo * 3600000);
+      return { ...rest, requesterId: requester._id, createdAt: when, updatedAt: when };
+    })
+    .filter(Boolean);
+  const requests = await DonationRequest.insertMany(requestDocs);
 
   return {
     donors: createdDonors.length,
@@ -188,6 +256,8 @@ const runSeed = async () => {
     stories: stories.length,
     guides: guides.length,
     donations: donations.length,
+    requests: requests.length,
+    bloodUnits: withRegion.reduce((a, h) => a + h.availableBloodUnits.reduce((x, u) => x + u.units, 0), 0),
   };
 };
 
