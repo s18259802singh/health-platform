@@ -14,10 +14,17 @@ const Doctor = require('../models/Doctor');
 const Blog = require('../models/Blog');
 const Appointment = require('../models/Appointment');
 const DonationRequest = require('../models/DonationRequest');
+const Camp = require('../models/Camp');
+const Story = require('../models/Story');
+const Guide = require('../models/Guide');
+const Donation = require('../models/Donation');
 
 const hospitalData = require('./hospitalData');
 const donorData = require('./donorData');
 const blogData = require('./blogData');
+const campData = require('./campData');
+const storyData = require('./storyData');
+const guideData = require('./guideData');
 
 const doctorFirstNames = ['Ansari', 'Mehta', 'Patel', 'Shah', 'Desai', 'Trivedi', 'Joshi', 'Rao', 'Iyer', 'Kapoor', 'Solanki', 'Vyas', 'Pandya', 'Bhatt'];
 const specializations = ['Cardiologist', 'General Physician', 'Orthopedic', 'Dermatologist', 'Pediatrician', 'ENT Specialist', 'Gynecologist', 'Neurologist'];
@@ -42,25 +49,25 @@ const runSeed = async () => {
   await Blog.deleteMany({});
   await Appointment.deleteMany({});
   await DonationRequest.deleteMany({});
+  await Camp.deleteMany({});
+  await Story.deleteMany({});
+  await Guide.deleteMany({});
+  await Donation.deleteMany({});
 
-  const hashedPassword = await bcrypt.hash('password123', 10);
+  // Password for the SAMPLE DONOR accounts only.
+  // Set SEED_DEMO_PASSWORD in the environment to change it; if it is not set,
+  // a random one is generated and nobody can sign in as a sample donor.
+  const demoPassword = process.env.SEED_DEMO_PASSWORD
+    || `seed-${Math.random().toString(36).slice(2)}${Date.now().toString(36)}`;
+  const hashedPassword = await bcrypt.hash(demoPassword, 10);
 
-  // Make sure the default admin exists (created only if missing).
-  const adminExists = await User.findOne({ email: 'admin@healthplatform.com' });
-  if (!adminExists) {
-    await User.create({
-      name: 'Admin User',
-      email: 'admin@healthplatform.com',
-      password: hashedPassword,
-      phone: '9000000000',
-      bloodGroup: 'O+',
-      allergies: 'None',
-      emergencyContact: { name: 'Office', number: '9000000001' },
-      isDonor: false,
-      role: 'admin',
-      location: 'Surat',
-    });
-  }
+  // NOTE: this script deliberately creates NO administrator account.
+  // A hard-coded admin email and password in source control is a way in for
+  // anyone who can read the repository. Create admins instead with either:
+  //   - scripts/createAdmin.js  (command line), or
+  //   - the Members page of the admin console (promote an existing account).
+  // Existing admin accounts are never deleted by this script, so re-seeding
+  // will not lock you out.
 
   // Donors
   const donors = donorData.map((d) => ({
@@ -77,8 +84,17 @@ const runSeed = async () => {
   }));
   const createdDonors = await User.insertMany(donors);
 
-  // Hospitals
-  const hospitals = await Hospital.insertMany(hospitalData);
+  // Hospitals.
+  // The directory addresses end with the district, e.g. "... , Bilimora, Navsari".
+  // The availability search needs those as real fields, so derive them here
+  // rather than asking whoever maintains the list to retype every row.
+  const withRegion = hospitalData.map((h) => {
+    const parts = String(h.address || '').split(',').map((x) => x.trim()).filter(Boolean);
+    const district = (parts[parts.length - 1] || '').replace(/\s*-\s*\d{6}$/, '').replace(/\s+District$/i, '').trim();
+    const city = (parts.length > 1 ? parts[parts.length - 2] : district).replace(/\s*-\s*\d{6}$/, '').trim();
+    return { ...h, district: district || 'Other', city: city || district || 'Other', state: h.state || 'Gujarat' };
+  });
+  const hospitals = await Hospital.insertMany(withRegion);
 
   // Doctors - 3 per hospital, so the appointment dropdowns always have options.
   const doctors = [];
@@ -100,11 +116,78 @@ const runSeed = async () => {
   // Blog articles
   const blogs = await Blog.insertMany(blogData);
 
+  // ---- Donor stories and the guide library (straight inserts) ----
+  const stories = await Story.insertMany(storyData);
+  const guides = await Guide.insertMany(guideData);
+
+  // ---- Camps ----
+  // campData stores an offset so the list is never stale; turn it into a date.
+  const isoDate = (offsetDays) => {
+    const d = new Date();
+    d.setDate(d.getDate() + offsetDays);
+    return d.toISOString().slice(0, 10);
+  };
+
+  const campDocs = campData.map(({ daysFromNow, status, ...rest }) => ({
+    ...rest,
+    date: isoDate(daysFromNow),
+    status: status || 'upcoming',
+  }));
+  const camps = await Camp.insertMany(campDocs);
+
+  // Fill upcoming camps to a believable 35-80% of capacity using real donors,
+  // so the slot counters on the public site are not all showing zero.
+  for (const camp of camps) {
+    if (camp.status !== 'upcoming') continue;
+    const take = Math.floor(camp.slots * (0.35 + Math.random() * 0.45));
+    const picked = [...createdDonors].sort(() => Math.random() - 0.5).slice(0, take);
+    camp.registrations = picked.map((d) => ({
+      userId: d._id, name: d.name, phone: d.phone, bloodGroup: d.bloodGroup,
+      registeredAt: new Date(Date.now() - Math.random() * 12 * 86400000),
+    }));
+    await camp.save();
+  }
+
+  // ---- Donation history (drives the leaderboard and certificates) ----
+  // A realistic spread: a few long-standing donors with many donations, a
+  // long tail with one or two. Dates are spaced at least 90 days apart,
+  // matching the real interval between whole blood donations.
+  const donationDocs = [];
+  createdDonors.forEach((donor, i) => {
+    // roughly 55% of donors have given at least once
+    if (i % 9 === 0) return;
+    const count = i % 23 === 0 ? 18 + (i % 9)
+      : i % 11 === 0 ? 9 + (i % 5)
+      : i % 5 === 0 ? 4 + (i % 4)
+      : 1 + (i % 3);
+
+    for (let n = 0; n < count; n += 1) {
+      const daysAgo = 20 + n * (92 + (i % 11));
+      const when = new Date();
+      when.setDate(when.getDate() - daysAgo);
+      const hospital = hospitals[(i + n) % hospitals.length];
+      donationDocs.push({
+        userId: donor._id,
+        donatedAt: when,
+        bloodGroup: donor.bloodGroup,
+        units: 1,
+        hospitalId: hospital?._id,
+        locationName: hospital?.name || '',
+        certificateNo: `LL-${when.getFullYear()}-${(i * 101 + n * 7).toString(36).toUpperCase().padStart(5, '0').slice(-5)}`,
+      });
+    }
+  });
+  const donations = await Donation.insertMany(donationDocs, { ordered: false });
+
   return {
     donors: createdDonors.length,
     hospitals: hospitals.length,
     doctors: createdDoctors.length,
     blogs: blogs.length,
+    camps: camps.length,
+    stories: stories.length,
+    guides: guides.length,
+    donations: donations.length,
   };
 };
 

@@ -7,6 +7,7 @@ const QRCode = require('qrcode');
 const path = require('path');
 const fs = require('fs');
 const User = require('../models/User');
+const clientUrl = require('../config/clientUrl');
 
 // helper: creates a signed JWT token for a user
 const generateToken = (user) => {
@@ -50,7 +51,7 @@ const registerUser = async (req, res) => {
 
     // Generate the emergency QR code for this user.
     // The QR just encodes a URL that opens the PUBLIC emergency info page for this user id.
-        const emergencyUrl = `${process.env.CLIENT_URL}/emergency/${user._id}`;
+        const emergencyUrl = `${clientUrl()}/emergency/${user._id}`;
     const qrDataUrl = await QRCode.toDataURL(emergencyUrl);
 
     user.qrCodePath = qrDataUrl;

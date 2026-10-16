@@ -28,7 +28,19 @@ connectDB().then(async () => {
 const app = express();
 
 // Middleware
-app.use(cors({ origin: process.env.CLIENT_URL || 'http://localhost:3000' }));
+// Allow one or more front-end origins (comma separated in CLIENT_URL),
+// so the user site and the admin panel can be hosted on different domains.
+const allowedOrigins = (process.env.CLIENT_URL || 'http://localhost:3000')
+  .split(',')
+  .map((o) => o.trim())
+  .filter(Boolean);
+
+app.use(cors({
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
+    return callback(new Error(`Origin ${origin} is not allowed by CORS`));
+  },
+}));
 // limit raised to 5mb because blog cover images are sent as base64 data URLs
 app.use(express.json({ limit: '5mb' }));
 
@@ -47,6 +59,13 @@ app.use('/api/donation-requests', require('./routes/donationRequestRoutes'));
 app.use('/api/blogs', require('./routes/blogRoutes')); // reading is public, writing is admin-only
 app.use('/api/admin', require('./routes/adminRoutes')); // admin-only utilities (reload sample data)
 app.use('/api/stats', require('./routes/statsRoutes')); // live blood-supply monitor
+
+// --- public content & services ------------------------------------------
+app.use('/api/camps', require('./routes/campRoutes'));           // donation camps
+app.use('/api/stories', require('./routes/storyRoutes'));        // donor stories
+app.use('/api/guides', require('./routes/guideRoutes'));         // donor guide hub
+app.use('/api/availability', require('./routes/availabilityRoutes')); // blood stock search
+app.use('/api/donations', require('./routes/donationRoutes'));   // leaderboard & certificates
 
 // Simple health check route, useful to confirm the server is running
 app.get('/', (req, res) => {

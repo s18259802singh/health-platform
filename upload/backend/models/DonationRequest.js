@@ -7,7 +7,7 @@ const donationRequestSchema = new mongoose.Schema(
     requesterId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     bloodGroupNeeded: { type: String, required: true },
     location: { type: String, required: true },
-    status: { type: String, enum: ['pending', 'fulfilled'], default: 'pending' },
+    status: { type: String, enum: ['pending', 'fulfilled', 'cancelled'], default: 'pending' },
   },
   { timestamps: true }
 );

@@ -8,6 +8,11 @@ const hospitalSchema = new mongoose.Schema(
     address: { type: String, required: true },
     contactNumber: { type: String, required: true },
     type: { type: String, enum: ['hospital', 'blood_bank'], default: 'hospital' },
+    // Location fields drive the state -> district -> blood group availability
+    // search. They are optional so older records keep working unchanged.
+    city: { type: String, default: '', trim: true },
+    district: { type: String, default: '', trim: true },
+    state: { type: String, default: '', trim: true },
     availableBloodUnits: [
       {
         bloodGroup: String,

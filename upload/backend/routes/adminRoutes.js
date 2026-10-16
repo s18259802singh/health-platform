@@ -1,53 +1,77 @@
-// Admin-only utilities.
-// POST /api/admin/seed lets the admin reload all sample data from the
-// dashboard with one click - no command line needed. It is protected by
-// BOTH the JWT check and the adminOnly check, so normal users can't touch it.
+// ============================================================================
+// ADMIN ROUTES - the API surface of the separate admin panel.
+// ----------------------------------------------------------------------------
+// /api/admin/login is the ONLY public endpoint here. Everything below it is
+// locked behind protect (valid JWT) + adminOnly (role must be 'admin'), so no
+// normal user token can reach any of it, even by guessing the URL.
+// ============================================================================
 
 const express = require('express');
 const router = express.Router();
+
 const { protect, adminOnly } = require('../middleware/auth');
 const runSeed = require('../seed/seedRunner');
-const User = require('../models/User');
-const Hospital = require('../models/Hospital');
-const Doctor = require('../models/Doctor');
-const Appointment = require('../models/Appointment');
-const DonationRequest = require('../models/DonationRequest');
-const Blog = require('../models/Blog');
+const admin = require('../controllers/adminController');
+const content = require('../controllers/adminContentController');
 
-// GET /api/admin/overview - live platform counts for the admin dashboard.
-router.get('/overview', protect, adminOnly, async (req, res) => {
-  try {
-    const [users, donors, hospitals, doctors, appointments, requests, pendingRequests, blogs] =
-      await Promise.all([
-        User.countDocuments({ role: 'user' }),
-        User.countDocuments({ isDonor: true }),
-        Hospital.countDocuments(),
-        Doctor.countDocuments(),
-        Appointment.countDocuments(),
-        DonationRequest.countDocuments(),
-        DonationRequest.countDocuments({ status: 'pending' }),
-        Blog.countDocuments(),
-      ]);
-    res.json({ users, donors, hospitals, doctors, appointments, requests, pendingRequests, blogs });
-  } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
-  }
-});
+// --- public: admin sign-in -------------------------------------------------
+router.post('/login', admin.adminLogin);
 
-// GET /api/admin/users - user list for the admin panel (never includes passwords).
-router.get('/users', protect, adminOnly, async (req, res) => {
-  try {
-    const users = await User.find()
-      .select('name email phone bloodGroup isDonor location role createdAt')
-      .sort({ createdAt: -1 })
-      .limit(300);
-    res.json(users);
-  } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
-  }
-});
+// --- everything below requires an admin token ------------------------------
+router.use(protect, adminOnly);
 
-router.post('/seed', protect, adminOnly, async (req, res) => {
+router.get('/me', admin.getMe);
+router.get('/overview', admin.getOverview);
+
+// members
+router.get('/users', admin.listUsers);
+router.post('/users', admin.createUser);
+router.get('/users/:id', admin.getUser);
+router.put('/users/:id', admin.updateUser);
+router.delete('/users/:id', admin.deleteUser);
+
+// blood requests
+router.get('/requests', admin.listRequests);
+router.put('/requests/:id', admin.updateRequestStatus);
+router.delete('/requests/:id', admin.deleteRequest);
+
+// appointments
+router.get('/appointments', admin.listAppointments);
+router.put('/appointments/:id', admin.updateAppointmentStatus);
+router.delete('/appointments/:id', admin.deleteAppointment);
+
+// doctors
+router.get('/doctors', admin.listDoctors);
+router.post('/doctors', admin.createDoctor);
+router.put('/doctors/:id', admin.updateDoctor);
+router.delete('/doctors/:id', admin.deleteDoctor);
+
+// camps
+router.get('/camps', content.listCamps);
+router.post('/camps', content.createCamp);
+router.get('/camps/:id/registrations', content.getCampRegistrations);
+router.put('/camps/:id', content.updateCamp);
+router.delete('/camps/:id', content.deleteCamp);
+
+// donor stories
+router.get('/stories', content.listStories);
+router.post('/stories', content.createStory);
+router.put('/stories/:id', content.updateStory);
+router.delete('/stories/:id', content.deleteStory);
+
+// guide library
+router.get('/guides', content.listGuides);
+router.post('/guides', content.createGuide);
+router.put('/guides/:id', content.updateGuide);
+router.delete('/guides/:id', content.deleteGuide);
+
+// donation records (these drive the leaderboard and certificates)
+router.get('/donations', content.listDonations);
+router.post('/donations', content.createDonation);
+router.delete('/donations/:id', content.deleteDonation);
+
+// maintenance: reload the demo dataset
+router.post('/seed', async (req, res) => {
   try {
     const counts = await runSeed();
     res.json({ message: 'Sample data loaded successfully', ...counts });

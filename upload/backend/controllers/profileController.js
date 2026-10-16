@@ -3,6 +3,7 @@
 
 const QRCode = require('qrcode');
 const User = require('../models/User');
+const clientUrl = require('../config/clientUrl');
 
 // GET /api/profile
 const getProfile = async (req, res) => {
@@ -13,7 +14,7 @@ const getProfile = async (req, res) => {
     // SELF-HEALING QR: users created by the seed script (or older accounts)
     // have no QR yet - generate it on first profile visit and save it.
     if (!user.qrCodePath) {
-      const emergencyUrl = `${process.env.CLIENT_URL}/emergency/${user._id}`;
+      const emergencyUrl = `${clientUrl()}/emergency/${user._id}`;
       user.qrCodePath = await QRCode.toDataURL(emergencyUrl);
       await user.save();
     }
