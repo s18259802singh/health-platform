@@ -9,6 +9,7 @@
 import { useState } from 'react';
 
 import { GROUPS, CAN_DONATE_TO, canReceiveFrom } from '../lib/blood';
+import BloodGroup from './BloodGroup';
 
 export default function CompatibilityChecker({ onFilterDonors }) {
   const [selected, setSelected] = useState(null);
@@ -29,7 +30,16 @@ export default function CompatibilityChecker({ onFilterDonors }) {
             key={g}
             type="button"
             className={`compat-tile ${selected === g ? 'active' : ''}`}
-            onClick={() => setSelected(g === selected ? null : g)}
+            onClick={() => {
+              const next = g === selected ? null : g;
+              setSelected(next);
+              // Tapping a group here now filters the list below straight away.
+              // It used to only draw the two pill rows, with a separate button
+              // underneath to actually apply it — so the row of group buttons
+              // sitting directly above the donor table looked like a filter
+              // and did nothing, which is exactly how it was read.
+              if (onFilterDonors) onFilterDonors(next, next ? canReceiveFrom(next) : []);
+            }}
           >
             {g}
           </button>
@@ -41,23 +51,19 @@ export default function CompatibilityChecker({ onFilterDonors }) {
           <div className="compat-col">
             <span className="compat-label">Can donate to</span>
             <div className="compat-pills">
-              {donateTo.map((g) => <span key={g} className="compat-pill">{g}</span>)}
+              {donateTo.map((g) => <BloodGroup key={g} group={g} variant="pill" />)}
             </div>
           </div>
           <div className="compat-col">
             <span className="compat-label">Can receive from</span>
             <div className="compat-pills">
-              {receiveFrom.map((g) => <span key={g} className="compat-pill alt">{g}</span>)}
+              {receiveFrom.map((g) => <BloodGroup key={g} group={g} variant="pill" className="alt" />)}
             </div>
           </div>
           {onFilterDonors && (
-            <button
-              type="button"
-              className="small-button compat-apply"
-              onClick={() => onFilterDonors(selected, receiveFrom)}
-            >
-              Show donors who can give to {selected} →
-            </button>
+            <p className="compat-apply hint">
+              The list below is already showing donors who can give to {selected}.
+            </p>
           )}
         </div>
       )}

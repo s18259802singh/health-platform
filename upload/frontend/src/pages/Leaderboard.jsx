@@ -7,6 +7,8 @@ import { Link } from 'react-router-dom';
 import api from '../api/axios';
 import Pagination, { usePagination } from '../components/Pagination';
 import { initials, avatarTint } from '../lib/people';
+import BloodGroup from '../components/BloodGroup';
+import SearchSelect from '../components/SearchSelect';
 
 const GROUPS = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
 
@@ -85,14 +87,19 @@ export default function Leaderboard() {
       )}
 
       <div className="search-bar">
-        <select value={filters.bloodGroup} onChange={(e) => setFilters((f) => ({ ...f, bloodGroup: e.target.value }))}>
-          <option value="">All blood groups</option>
-          {GROUPS.map((g) => <option key={g} value={g}>{g}</option>)}
-        </select>
-        <select value={filters.city} onChange={(e) => setFilters((f) => ({ ...f, city: e.target.value }))}>
-          <option value="">All cities</option>
-          {cities.map((c) => <option key={c} value={c}>{c}</option>)}
-        </select>
+        <SearchSelect
+          value={filters.bloodGroup}
+          onChange={(e) => setFilters((f) => ({ ...f, bloodGroup: e.target.value }))}
+          placeholder="All blood groups"
+          options={[{ value: '', label: 'All blood groups' }, ...GROUPS.map((g) => ({ value: g, label: g }))]}
+        />
+        <SearchSelect
+          value={filters.city}
+          onChange={(e) => setFilters((f) => ({ ...f, city: e.target.value }))}
+          placeholder="All cities"
+          searchPlaceholder="Search cities…"
+          options={[{ value: '', label: 'All cities' }, ...cities.map((c) => ({ value: c, label: c }))]}
+        />
       </div>
 
       {loading && <p className="hint">Loading the board…</p>}
@@ -107,7 +114,7 @@ export default function Leaderboard() {
               <tr key={e.rank}>
                 <td className="board-rank">{e.rank}</td>
                 <td className="adm-strong">{e.name}</td>
-                <td><span className="blood-badge">{e.bloodGroup}</span></td>
+                <td><BloodGroup group={e.bloodGroup} /></td>
                 <td>{e.city || '—'}</td>
                 <td><strong>{e.donations}</strong></td>
                 <td><span className={`tier-badge ${e.tier.toLowerCase()}`}>{e.tier}</span></td>

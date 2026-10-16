@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../api/axios';
 import { LoadMore, useLoadMore } from '../components/Pagination';
+import SearchSelect from '../components/SearchSelect';
 
 const dayLabel = (iso) => {
   const d = new Date(`${iso}T00:00:00`);
@@ -61,14 +62,21 @@ export default function Camps() {
       </div>
 
       <div className="search-bar">
-        <select value={when} onChange={(e) => setWhen(e.target.value)}>
-          <option value="upcoming">Upcoming camps</option>
-          <option value="all">All camps, including past</option>
-        </select>
-        <select value={city} onChange={(e) => setCity(e.target.value)}>
-          <option value="">All cities</option>
-          {cities.map((c) => <option key={c} value={c}>{c}</option>)}
-        </select>
+        <SearchSelect
+          value={when}
+          onChange={(e) => setWhen(e.target.value)}
+          options={[
+            { value: 'upcoming', label: 'Upcoming camps' },
+            { value: 'all', label: 'All camps, including past' },
+          ]}
+        />
+        <SearchSelect
+          value={city}
+          onChange={(e) => setCity(e.target.value)}
+          placeholder="All cities"
+          searchPlaceholder="Search cities…"
+          options={[{ value: '', label: 'All cities' }, ...cities.map((c) => ({ value: c, label: c }))]}
+        />
       </div>
 
       {loading && <p className="hint">Loading camps…</p>}

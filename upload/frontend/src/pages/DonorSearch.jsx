@@ -13,6 +13,8 @@ import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import api from '../api/axios';
 import CompatibilityChecker from '../components/CompatibilityChecker';
+import BloodGroup from '../components/BloodGroup';
+import SearchSelect from '../components/SearchSelect';
 
 const BLOOD_GROUPS = ['', 'A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
 
@@ -51,7 +53,7 @@ export default function DonorSearch() {
   const handleCompatibleFilter = (recipientGroup, donorGroups) => {
     setBloodGroup('');
     setCompatFor(recipientGroup);
-    setCompatGroups(donorGroups);
+    setCompatGroups(donorGroups || []);
   };
 
   const clearCompatFilter = () => {
@@ -66,13 +68,19 @@ export default function DonorSearch() {
       <CompatibilityChecker onFilterDonors={handleCompatibleFilter} />
 
       <div className="search-bar">
-        <select
+        <SearchSelect
           value={bloodGroup}
-          disabled={!!compatFor}
-          onChange={(e) => setBloodGroup(e.target.value)}
-        >
-          {BLOOD_GROUPS.map((bg) => <option key={bg} value={bg}>{bg || 'Any Blood Group'}</option>)}
-        </select>
+          placeholder="Any blood group"
+          onChange={(e) => {
+            // Picking an exact group is a different question from "who can
+            // give to me", so it replaces compatible mode rather than being
+            // ignored by it. The dropdown used to be disabled while compatible
+            // mode was on, which read as a broken filter.
+            if (e.target.value) clearCompatFilter();
+            setBloodGroup(e.target.value);
+          }}
+          options={BLOOD_GROUPS.map((bg) => ({ value: bg, label: bg || 'Any blood group' }))}
+        />
         <input
           placeholder="Search by city / location..."
           value={location}
@@ -97,7 +105,7 @@ export default function DonorSearch() {
           {donors.map((d) => (
             <tr key={d._id}>
               <td>{d.name}</td>
-              <td><span className="blood-badge">{d.bloodGroup}</span></td>
+              <td><BloodGroup group={d.bloodGroup} /></td>
               <td>{d.phone}</td>
               <td>{d.location}</td>
             </tr>

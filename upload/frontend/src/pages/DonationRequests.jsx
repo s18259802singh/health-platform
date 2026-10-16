@@ -12,6 +12,8 @@
 import { useEffect, useState } from 'react';
 import api from '../api/axios';
 import { useAuth } from '../context/AuthContext';
+import BloodGroup from '../components/BloodGroup';
+import SearchSelect from '../components/SearchSelect';
 
 const BLOOD_GROUPS = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
 
@@ -68,12 +70,11 @@ export default function DonationRequests() {
         <h3>Post a Request</h3>
         <form onSubmit={handleSubmit}>
           <label>Blood Group Needed</label>
-          <select
+          <SearchSelect
             value={form.bloodGroupNeeded}
             onChange={(e) => setForm((prev) => ({ ...prev, bloodGroupNeeded: e.target.value }))}
-          >
-            {BLOOD_GROUPS.map((bg) => <option key={bg} value={bg}>{bg}</option>)}
-          </select>
+            options={BLOOD_GROUPS.map((bg) => ({ value: bg, label: bg }))}
+          />
 
           <label>Location (city / area)</label>
           <input
@@ -89,10 +90,12 @@ export default function DonationRequests() {
 
       <h3>Open Requests</h3>
       <div className="search-bar">
-        <select value={filterGroup} onChange={(e) => setFilterGroup(e.target.value)}>
-          <option value="">All Blood Groups</option>
-          {BLOOD_GROUPS.map((bg) => <option key={bg} value={bg}>{bg}</option>)}
-        </select>
+        <SearchSelect
+          value={filterGroup}
+          onChange={(e) => setFilterGroup(e.target.value)}
+          placeholder="All blood groups"
+          options={[{ value: '', label: 'All blood groups' }, ...BLOOD_GROUPS.map((bg) => ({ value: bg, label: bg }))]}
+        />
       </div>
 
       <table className="data-table">
@@ -102,7 +105,7 @@ export default function DonationRequests() {
         <tbody>
           {requests.map((r) => (
             <tr key={r._id}>
-              <td><span className="blood-badge">{r.bloodGroupNeeded}</span></td>
+              <td><BloodGroup group={r.bloodGroupNeeded} /></td>
               <td>{r.location}</td>
               <td>{r.requesterId?.name}</td>
               <td>

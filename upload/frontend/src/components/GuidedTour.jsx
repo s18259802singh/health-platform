@@ -2,7 +2,7 @@
 // The in-app answer to "how do I use this thing?". It opens automatically
 // the first time a new user reaches the Dashboard, and can be reopened
 // any time from the "Help" button in the Navbar or the floating "?" button
-// (see HelpFab.jsx). Each step optionally NAVIGATES to the real page it is
+// (reopenable from the support chat). Each step optionally NAVIGATES to the page it is
 // describing, so the tour explains the app by actually walking through it -
 // every claim below matches a feature that exists in this codebase.
 

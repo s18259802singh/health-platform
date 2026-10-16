@@ -2,6 +2,7 @@
 // Nothing from the public site (navbar, bottom tab bar, guided tour, help
 // bubble) is rendered inside here - this is a deliberately different product.
 
+import './admin.css';
 import { useEffect, useState } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useAdminAuth } from './AdminAuthContext';

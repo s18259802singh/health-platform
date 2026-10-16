@@ -8,6 +8,7 @@ import { Link, Navigate, useNavigate } from 'react-router-dom';
 import api from '../api/axios';
 import { useAuth } from '../context/AuthContext';
 import { Reveal, Counter } from '../components/Motion';
+import SearchSelect from '../components/SearchSelect';
 
 const GROUPS = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
 
@@ -81,14 +82,13 @@ export default function Home() {
 
           <form className="hero-search" onSubmit={runQuickSearch}>
             <div className="hero-search-row">
-              <select
-                aria-label="Blood group"
+              <SearchSelect
+                id="hero-group"
                 value={quick.bloodGroup}
                 onChange={(e) => setQuick((q) => ({ ...q, bloodGroup: e.target.value }))}
-              >
-                <option value="">Any group</option>
-                {GROUPS.map((g) => <option key={g} value={g}>{g}</option>)}
-              </select>
+                placeholder="Any group"
+                options={[{ value: '', label: 'Any group' }, ...GROUPS.map((g) => ({ value: g, label: g }))]}
+              />
               <input
                 aria-label="City or blood centre"
                 placeholder="City or blood centre…"

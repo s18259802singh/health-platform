@@ -6,6 +6,7 @@ import { Link } from 'react-router-dom';
 import api from '../api/axios';
 import { LoadMore, useLoadMore } from '../components/Pagination';
 import { initials, avatarTint, excerpt } from '../lib/people';
+import SearchSelect from '../components/SearchSelect';
 
 const ROLE = { donor: 'Donor', recipient: 'Recipient', organiser: 'Organiser' };
 
@@ -40,12 +41,17 @@ export default function Stories() {
       </div>
 
       <div className="search-bar">
-        <select value={role} onChange={(e) => setRole(e.target.value)}>
-          <option value="">Everyone</option>
-          <option value="donor">Donors</option>
-          <option value="recipient">Recipients</option>
-          <option value="organiser">Organisers</option>
-        </select>
+        <SearchSelect
+          value={role}
+          onChange={(e) => setRole(e.target.value)}
+          placeholder="Everyone"
+          options={[
+            { value: '', label: 'Everyone' },
+            { value: 'donor', label: 'Donors' },
+            { value: 'recipient', label: 'Recipients' },
+            { value: 'organiser', label: 'Organisers' },
+          ]}
+        />
       </div>
 
       {loading && <p className="hint">Loading stories…</p>}

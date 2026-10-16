@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, Link, Navigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import SearchSelect from '../components/SearchSelect';
 
 const BLOOD_GROUPS = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
 
@@ -78,9 +79,11 @@ export default function Register() {
           <div className="field-pair">
             <div>
               <label>Blood group</label>
-              <select name="bloodGroup" value={form.bloodGroup} onChange={handleChange}>
-                {BLOOD_GROUPS.map((bg) => <option key={bg} value={bg}>{bg}</option>)}
-              </select>
+              <SearchSelect
+                value={form.bloodGroup}
+                onChange={(e) => handleChange({ target: { name: 'bloodGroup', value: e.target.value } })}
+                options={BLOOD_GROUPS.map((bg) => ({ value: bg, label: bg }))}
+              />
             </div>
             <div>
               <label>City / area</label>

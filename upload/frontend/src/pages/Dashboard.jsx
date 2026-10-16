@@ -9,6 +9,7 @@ import { useTour, hasSeenTour, markTourSeen } from '../context/TourContext';
 import BloodSupplyMonitor from '../components/BloodSupplyMonitor';
 import DonorMap from '../components/DonorMap';
 import { CAN_DONATE_TO, nextEligibleDate, daysUntil } from '../lib/blood';
+import BloodGroup from '../components/BloodGroup';
 
 // Mirrors the tiers the API awards, so the ladder below always matches the
 // badge the server sent.
@@ -103,6 +104,18 @@ export default function Dashboard() {
               <span><strong>{summary.units}</strong>units</span>
               <span><strong>{summary.livesTouched}</strong>helped</span>
             </div>
+            {/* A brand-new member has a 0 ring, a one-line note and nothing
+                else, which left most of this tall tile empty. These are the
+                three things that are true and useful on day one. */}
+            <ul className="donor-tile-facts">
+              <li><strong>{user?.bloodGroup || '—'}</strong><span>Your group</span></li>
+              <li><strong>{user?.location || '—'}</strong><span>Registered in</span></li>
+              <li>
+                <strong>{summary.count > 0 ? `#${summary.count}` : 'Not yet'}</strong>
+                <span>{summary.count > 0 ? 'Donations logged' : 'On the board'}</span>
+              </li>
+            </ul>
+
             <div className="tier-ladder">
               <div className="tier-ladder-track">
                 {TIERS.map((t, i) => {
@@ -218,7 +231,7 @@ export default function Dashboard() {
               <ul className="req-mini-list">
                 {canAnswer.map((r) => (
                   <li key={r._id}>
-                    <span className="req-mini-group">{r.bloodGroupNeeded}</span>
+                    <BloodGroup group={r.bloodGroupNeeded} className="req-mini-group" />
                     <span className="req-mini-body">
                       <strong>{r.location}</strong>
                       <small>

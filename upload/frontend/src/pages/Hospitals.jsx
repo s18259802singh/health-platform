@@ -4,6 +4,8 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import api from '../api/axios';
+import BloodGroup from '../components/BloodGroup';
+import SearchSelect from '../components/SearchSelect';
 
 export default function Hospitals() {
   const [hospitals, setHospitals] = useState([]);
@@ -32,11 +34,16 @@ export default function Hospitals() {
       <p className="app-subtext">Search the network, check stock and get directions.</p>
 
       <div className="search-bar">
-        <select value={type} onChange={(e) => setType(e.target.value)}>
-          <option value="">All locations</option>
-          <option value="hospital">Hospitals</option>
-          <option value="blood_bank">Blood banks</option>
-        </select>
+        <SearchSelect
+          value={type}
+          onChange={(e) => setType(e.target.value)}
+          placeholder="All locations"
+          options={[
+            { value: '', label: 'All locations' },
+            { value: 'hospital', label: 'Hospitals' },
+            { value: 'blood_bank', label: 'Blood banks' },
+          ]}
+        />
         <input
           placeholder="Search by name or address…"
           value={search}
@@ -65,7 +72,7 @@ export default function Hospitals() {
               {units.length > 0 && (
                 <div className="place-units">
                   {units.map((u) => (
-                    <span key={u.bloodGroup}><strong>{u.bloodGroup}</strong> {u.units}</span>
+                    <span key={u.bloodGroup}><BloodGroup group={u.bloodGroup} variant="bare" /> {u.units}</span>
                   ))}
                 </div>
               )}

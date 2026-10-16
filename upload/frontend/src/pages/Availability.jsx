@@ -8,6 +8,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import api from '../api/axios';
 import Pagination, { usePagination } from '../components/Pagination';
+import BloodGroup from '../components/BloodGroup';
+import SearchSelect from '../components/SearchSelect';
 
 const GROUPS = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
 
@@ -88,42 +90,57 @@ export default function Availability() {
       <form className="portal-filters" onSubmit={run}>
         <label>
           <span>State</span>
-          <select value={filters.state} onChange={(e) => set('state', e.target.value)}>
-            <option value="">All states</option>
-            {regions.states.map((s) => <option key={s.state} value={s.state}>{s.state}</option>)}
-          </select>
+          <SearchSelect
+            value={filters.state}
+            onChange={(e) => set('state', e.target.value)}
+            placeholder="All states"
+            options={[{ value: '', label: 'All states' }, ...regions.states.map((s) => ({ value: s.state, label: s.state }))]}
+          />
         </label>
 
         <label>
           <span>District</span>
-          <select value={filters.district} onChange={(e) => set('district', e.target.value)} disabled={!filters.state}>
-            <option value="">{filters.state ? 'All districts' : 'Select a state first'}</option>
-            {districts.map((d) => <option key={d} value={d}>{d}</option>)}
-          </select>
+          <SearchSelect
+            value={filters.district}
+            onChange={(e) => set('district', e.target.value)}
+            disabled={!filters.state}
+            placeholder={filters.state ? 'All districts' : 'Select a state first'}
+            searchPlaceholder="Search districts…"
+            options={[{ value: '', label: filters.state ? 'All districts' : 'Select a state first' }, ...districts.map((d) => ({ value: d, label: d }))]}
+          />
         </label>
 
         <label>
           <span>Blood group</span>
-          <select value={filters.bloodGroup} onChange={(e) => set('bloodGroup', e.target.value)}>
-            <option value="">All groups</option>
-            {GROUPS.map((g) => <option key={g} value={g}>{g}</option>)}
-          </select>
+          <SearchSelect
+            value={filters.bloodGroup}
+            onChange={(e) => set('bloodGroup', e.target.value)}
+            placeholder="All groups"
+            options={[{ value: '', label: 'All groups' }, ...GROUPS.map((g) => ({ value: g, label: g }))]}
+          />
         </label>
 
         <label>
           <span>Component</span>
-          <select value={filters.component} onChange={(e) => set('component', e.target.value)}>
-            {(regions.components || ['Whole Blood']).map((c) => <option key={c} value={c}>{c}</option>)}
-          </select>
+          <SearchSelect
+            value={filters.component}
+            onChange={(e) => set('component', e.target.value)}
+            options={(regions.components || ['Whole Blood']).map((c) => ({ value: c, label: c }))}
+          />
         </label>
 
         <label>
           <span>Centre type</span>
-          <select value={filters.type} onChange={(e) => set('type', e.target.value)}>
-            <option value="">All centres</option>
-            <option value="blood_bank">Blood banks</option>
-            <option value="hospital">Hospitals</option>
-          </select>
+          <SearchSelect
+            value={filters.type}
+            onChange={(e) => set('type', e.target.value)}
+            placeholder="All centres"
+            options={[
+              { value: '', label: 'All centres' },
+              { value: 'blood_bank', label: 'Blood banks' },
+              { value: 'hospital', label: 'Hospitals' },
+            ]}
+          />
         </label>
 
         <label className="grow">
@@ -196,7 +213,7 @@ export default function Availability() {
                     {!filters.bloodGroup && r.breakdown?.length > 0 && (
                       <div className="portal-breakdown">
                         {r.breakdown.filter((b) => b.units > 0).map((b) => (
-                          <span key={b.bloodGroup}><em>{b.bloodGroup}</em>{b.units}</span>
+                          <span key={b.bloodGroup}><BloodGroup group={b.bloodGroup} variant="bare" />{b.units}</span>
                         ))}
                       </div>
                     )}
@@ -230,9 +247,11 @@ export default function Availability() {
         <div className="pager-bar">
           <label className="per-page">
             <span>Rows</span>
-            <select value={perPage} onChange={(e) => setPerPage(Number(e.target.value))}>
-              {[10, 15, 25, 50].map((n) => <option key={n} value={n}>{n}</option>)}
-            </select>
+            <SearchSelect
+              value={String(perPage)}
+              onChange={(e) => setPerPage(Number(e.target.value))}
+              options={[10, 15, 25, 50].map((n) => ({ value: String(n), label: String(n) }))}
+            />
           </label>
           <Pagination {...pager} onChange={pager.setPage} label="blood centres" />
         </div>

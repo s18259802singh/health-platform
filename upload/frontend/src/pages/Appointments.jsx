@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import api from '../api/axios';
+import SearchSelect from '../components/SearchSelect';
 
 export default function Appointments() {
   const [hospitals, setHospitals] = useState([]);
@@ -61,25 +62,35 @@ export default function Appointments() {
       <div className="form-card">
         <form onSubmit={handleBook}>
           <label>Hospital</label>
-          <select name="hospitalId" value={form.hospitalId} onChange={handleChange} required>
-            <option value="">Select a hospital</option>
-            {hospitals.map((h) => <option key={h._id} value={h._id}>{h.name}</option>)}
-          </select>
+          <SearchSelect
+            value={form.hospitalId}
+            onChange={(e) => handleChange({ target: { name: 'hospitalId', value: e.target.value } })}
+            placeholder="Select a hospital"
+            searchPlaceholder="Search 110 hospitals…"
+            options={[{ value: '', label: 'Select a hospital' }, ...hospitals.map((h) => ({ value: h._id, label: h.name }))]}
+          />
 
           <label>Doctor</label>
-          <select name="doctorId" value={form.doctorId} onChange={handleChange} required disabled={!form.hospitalId}>
-            <option value="">Select a doctor</option>
-            {doctors.map((d) => <option key={d._id} value={d._id}>{d.name} - {d.specialization}</option>)}
-          </select>
+          <SearchSelect
+            value={form.doctorId}
+            onChange={(e) => handleChange({ target: { name: 'doctorId', value: e.target.value } })}
+            disabled={!form.hospitalId}
+            placeholder="Select a doctor"
+            searchPlaceholder="Search by name or specialism…"
+            options={[{ value: '', label: 'Select a doctor' }, ...doctors.map((d) => ({ value: d._id, label: `${d.name} — ${d.specialization}` }))]}
+          />
 
           <label>Date</label>
           <input type="date" name="appointmentDate" value={form.appointmentDate} onChange={handleChange} required />
 
           <label>Time Slot</label>
-          <select name="appointmentTime" value={form.appointmentTime} onChange={handleChange} required disabled={!selectedDoctor}>
-            <option value="">Select a time slot</option>
-            {selectedDoctor?.availableTimeSlots.map((t) => <option key={t} value={t}>{t}</option>)}
-          </select>
+          <SearchSelect
+            value={form.appointmentTime}
+            onChange={(e) => handleChange({ target: { name: 'appointmentTime', value: e.target.value } })}
+            disabled={!selectedDoctor}
+            placeholder="Select a time slot"
+            options={[{ value: '', label: 'Select a time slot' }, ...(selectedDoctor?.availableTimeSlots || []).map((t) => ({ value: t, label: t }))]}
+          />
 
           <button type="submit">Book Appointment</button>
         </form>

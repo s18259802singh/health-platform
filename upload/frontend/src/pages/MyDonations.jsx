@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../api/axios';
 import Certificate from '../components/Certificate';
+import BloodGroup from '../components/BloodGroup';
 
 export default function MyDonations() {
   const [data, setData] = useState(null);
@@ -132,7 +133,7 @@ export default function MyDonations() {
                 <tr key={d._id}>
                   <td>{donations.length - i}</td>
                   <td>{new Date(d.donatedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</td>
-                  <td><span className="blood-badge">{d.bloodGroup}</span></td>
+                  <td><BloodGroup group={d.bloodGroup} /></td>
                   <td>{d.units}</td>
                   <td>{d.locationName || d.hospitalId?.name || d.campId?.title || '—'}</td>
                   <td>

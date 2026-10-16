@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import api from '../api/axios';
+import SearchSelect from '../components/SearchSelect';
 
 const BLOOD_GROUPS = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
 
@@ -54,9 +55,11 @@ export default function Profile() {
         <input name="phone" value={profile.phone} onChange={handleChange} required />
 
         <label>Blood Group</label>
-        <select name="bloodGroup" value={profile.bloodGroup} onChange={handleChange}>
-          {BLOOD_GROUPS.map((bg) => <option key={bg} value={bg}>{bg}</option>)}
-        </select>
+        <SearchSelect
+          value={profile.bloodGroup}
+          onChange={(e) => handleChange({ target: { name: 'bloodGroup', value: e.target.value } })}
+          options={BLOOD_GROUPS.map((bg) => ({ value: bg, label: bg }))}
+        />
 
         <label>Allergies</label>
         <input name="allergies" value={profile.allergies} onChange={handleChange} />

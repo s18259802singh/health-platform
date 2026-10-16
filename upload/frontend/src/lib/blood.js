@@ -15,6 +15,14 @@ export const CAN_DONATE_TO = {
   'AB+': ['AB+'],                                           // universal recipient
 };
 
+// Split "AB+" into the ABO family and the Rh sign. The family drives the
+// colour used for every blood-group chip on the site; the sign is rendered
+// quieter so the letter leads.
+export function groupParts(group) {
+  const m = String(group || '').trim().toUpperCase().match(/^(AB|A|B|O)\s*([+-])?$/);
+  return m ? { family: m[1], sign: m[2] || '' } : { family: String(group || ''), sign: '' };
+}
+
 export const canReceiveFrom = (group) =>
   GROUPS.filter((donor) => CAN_DONATE_TO[donor].includes(group));
 

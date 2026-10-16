@@ -6,6 +6,7 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import api from '../api/axios';
+import BloodGroup from '../components/BloodGroup';
 
 export default function EmergencyPage() {
   const { userId } = useParams();
@@ -27,7 +28,7 @@ export default function EmergencyPage() {
       <h1 className="page-h1">Emergency Medical Information</h1>
       <p className="emergency-sub">Scanned from QR code - no login required</p>
       <div className="emergency-row"><span>Name</span><strong>{info.name}</strong></div>
-      <div className="emergency-row"><span>Blood Group</span><strong className="blood-badge">{info.bloodGroup}</strong></div>
+      <div className="emergency-row"><span>Blood Group</span><BloodGroup group={info.bloodGroup} /></div>
       <div className="emergency-row"><span>Allergies</span><strong>{info.allergies}</strong></div>
       <div className="emergency-row"><span>Emergency Contact</span><strong>{info.emergencyContact.name} - {info.emergencyContact.number}</strong></div>
     </div>

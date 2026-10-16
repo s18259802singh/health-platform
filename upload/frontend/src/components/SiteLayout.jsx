@@ -7,7 +7,8 @@ import BackLink from './BackLink';
 import Footer from './Footer';
 import BottomNav from './BottomNav';
 import GuidedTour from './GuidedTour';
-import HelpFab from './HelpFab';
+import ChatSupport from './ChatSupport';
+import ServerWaking from './ServerWaking';
 
 export default function SiteLayout() {
   const { pathname } = useLocation();
@@ -25,6 +26,7 @@ export default function SiteLayout() {
           skip the navigation instead of tabbing through it on every page. */}
       <a className="skip-link" href="#main">Skip to main content</a>
       <Navbar />
+      <ServerWaking />
       <main id="main" className={wide ? 'container wide' : 'container'}>
         <BackLink />
         <Outlet />
@@ -32,7 +34,7 @@ export default function SiteLayout() {
       <Footer />
       <BottomNav />
       <GuidedTour />
-      <HelpFab />
+      <ChatSupport />
     </>
   );
 }

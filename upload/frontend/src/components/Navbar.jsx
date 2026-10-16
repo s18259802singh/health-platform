@@ -52,6 +52,21 @@ export default function Navbar() {
   const [progress, setProgress] = useState(0);
   const menuRef = useRef(null);
   const moreRef = useRef(null);
+  // Hover opens the More menu, click still toggles it. The close is delayed
+  // so the pointer can cross the gap between the button and the panel without
+  // the menu vanishing underneath it.
+  const hoverTimer = useRef(null);
+  const openOnHover = () => {
+    if (window.matchMedia('(hover: none)').matches) return;  // touch: click only
+    clearTimeout(hoverTimer.current);
+    setMore(true);
+  };
+  const closeOnLeave = () => {
+    if (window.matchMedia('(hover: none)').matches) return;
+    clearTimeout(hoverTimer.current);
+    hoverTimer.current = setTimeout(() => setMore(false), 180);
+  };
+  useEffect(() => () => clearTimeout(hoverTimer.current), []);
 
   const close = () => { setOpen(false); setMore(false); };
   useEffect(close, [location.pathname]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -125,7 +140,12 @@ export default function Navbar() {
               <NavLink key={l.to} to={l.to} end={l.end} onClick={close}>{l.label}</NavLink>
             ))}
 
-            <div className="nav-more" ref={moreRef}>
+            <div
+              className="nav-more"
+              ref={moreRef}
+              onMouseEnter={openOnHover}
+              onMouseLeave={closeOnLeave}
+            >
               <button
                 type="button"
                 className="link-button nav-more-toggle"
