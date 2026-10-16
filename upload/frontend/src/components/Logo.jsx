@@ -16,9 +16,9 @@ export function LogoMark({ size = 32, title }) {
     >
       <defs>
         <linearGradient id="ll-drop" x1="0" y1="0" x2="0.3" y2="1">
-          <stop offset="0%" stopColor="#f2566f" />
-          <stop offset="55%" stopColor="#d7263d" />
-          <stop offset="100%" stopColor="#8f1526" />
+          <stop offset="0%" stopColor="#d58cc1" />
+          <stop offset="55%" stopColor="#a56ba6" />
+          <stop offset="100%" stopColor="#6d4178" />
         </linearGradient>
         {/* The pulse is punched out of the drop rather than drawn on top,
             so the mark still reads correctly on any background. */}
