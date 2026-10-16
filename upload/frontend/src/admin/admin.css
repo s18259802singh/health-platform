@@ -588,21 +588,37 @@
 .adm-thread header strong { display: block; font-size: 14px; }
 .adm-thread header small { display: block; font-size: 12px; margin-top: 1px; }
 
-.adm-thread-q {
-  margin: 0; padding: 11px 13px;
-  background: var(--adm-line-soft); border-radius: var(--adm-radius-sm);
-  font-size: 14px; line-height: 1.6; color: var(--adm-ink);
+/* A conversation, not a ticket: visitor on the left, us on the right, in
+   the order it happened so you can read the thing before answering it. */
+.adm-convo {
+  list-style: none; margin: 0; padding: 0;
+  display: grid; gap: 9px;
+  max-height: 340px; overflow-y: auto;
 }
-.adm-thread-a {
-  margin-top: 10px; padding: 11px 13px;
-  background: var(--adm-good-soft); border-radius: var(--adm-radius-sm);
+.adm-convo-msg { max-width: 84%; }
+.adm-convo-msg p {
+  margin: 0; padding: 10px 13px;
+  font-size: 13.5px; line-height: 1.6; color: var(--adm-ink);
+  border-radius: var(--adm-radius-sm); white-space: pre-wrap;
 }
-.adm-thread-a span {
-  display: block; margin-bottom: 4px;
-  font-size: 11px; letter-spacing: .06em; text-transform: uppercase;
-  font-weight: 700; color: var(--adm-good);
+.adm-convo-msg.visitor { justify-self: start; }
+.adm-convo-msg.visitor p { background: var(--adm-line-soft); }
+.adm-convo-msg.admin { justify-self: end; }
+.adm-convo-msg.admin p {
+  background: var(--adm-accent-soft);
+  border: 1px solid var(--adm-accent);
+  color: var(--adm-ink);
 }
-.adm-thread-a p { margin: 0; font-size: 13.5px; line-height: 1.6; color: var(--adm-ink-2); }
+.adm-convo-who {
+  display: block; margin-bottom: 3px;
+  font-size: 11px; font-weight: 700; letter-spacing: .04em;
+  text-transform: uppercase; color: var(--adm-muted);
+}
+.adm-convo-msg.admin .adm-convo-who { text-align: right; color: var(--adm-accent); }
+.adm-convo-who em {
+  font-style: normal; font-weight: 500; letter-spacing: 0;
+  text-transform: none; margin-left: 7px; color: var(--adm-muted);
+}
 
 .adm-thread-reply { margin-top: 12px; }
 .adm-thread-reply textarea {

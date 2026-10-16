@@ -203,7 +203,9 @@ const totalsFor = () => {
 function resolve(url, config = {}) {
   const [path, qs] = String(url).split('?');
   const q = Object.fromEntries(new URLSearchParams(qs || ''));
-  const p = { ...q, ...(config.params || {}) };
+  // Query string, axios params and a POST body all land in one bag: this
+  // router only ever needs to read values, never to tell them apart.
+  const p = { ...q, ...(config.params || {}), ...(config.data || {}) };
   const seg = path.split('/').filter(Boolean);   // e.g. ['camps','c1']
 
   const availability = () => {
@@ -356,19 +358,45 @@ function resolve(url, config = {}) {
         : hospitals.flatMap((h, i) => doctorsFor(h._id, i)).slice(0, 40);
 
     case 'support': {
+      // The demo has no admin console behind it, so a reply arrives on a
+      // timer instead — enough to show the conversation working end to end.
+      // On the real site this is a person typing in the admin inbox.
+      const KEY = 'demo.support.thread';
+      const read = () => {
+        try { return JSON.parse(sessionStorage.getItem(KEY) || 'null'); } catch { return null; }
+      };
+      const save = (t) => {
+        try { sessionStorage.setItem(KEY, JSON.stringify(t)); } catch { /* private mode */ }
+        return t;
+      };
+      // Drop in the demo's stand-in reply once a message has sat for 7s.
+      const settle = (t) => {
+        const last = t.messages[t.messages.length - 1];
+        if (last && last.from === 'visitor' && Date.now() - new Date(last.at).getTime() > 7000) {
+          t.messages.push({
+            from: 'admin', byName: 'LifeLink team (demo)',
+            body: 'This is the preview answering on a timer so you can see a reply land. On the live site an administrator writes this in the admin console and it appears here within a few seconds.',
+            at: new Date().toISOString(),
+          });
+          t.status = 'answered';
+          t.lastMessageAt = t.messages[t.messages.length - 1].at;
+          save(t);
+        }
+        return t;
+      };
+
       if (seg[1] === 'thread') {
-        // In the demo an answer arrives on its own after a few seconds, so the
-        // handoff can be seen working without an admin at the other end.
-        const asked = Number(sessionStorage.getItem('demo.support.at') || 0);
-        const waited = Date.now() - asked;
-        return waited > 8000
-          ? { message: 'demo question', status: 'answered',
-              reply: 'Thanks for waiting — this is what a reply from the team looks like. On the real site an administrator writes this in the console and it lands here.',
-              repliedAt: new Date().toISOString() }
-          : { message: 'demo question', status: 'open', reply: '' };
+        const t = read();
+        if (!t) return { threadKey: seg[2], status: 'open', messages: [] };
+        return settle(t);
       }
-      sessionStorage.setItem('demo.support.at', String(Date.now()));
-      return { threadKey: 'demo-thread', status: 'open', createdAt: new Date().toISOString() };
+
+      const t = read() || { threadKey: 'demo-thread', status: 'open', contact: '', messages: [] };
+      if (p.contact && !t.contact) t.contact = p.contact;
+      t.messages.push({ from: 'visitor', body: p.message, at: new Date().toISOString() });
+      t.status = 'open';
+      t.lastMessageAt = t.messages[t.messages.length - 1].at;
+      return save(t);
     }
 
     case 'profile':
@@ -385,9 +413,9 @@ const reply = (url, config) => new Promise((res) => {
 
 const demoApi = {
   get: (url, config) => reply(url, config),
-  post: (url) => reply(url),
-  put: (url) => reply(url),
-  delete: (url) => reply(url),
+  post: (url, data, config) => reply(url, { ...config, data }),
+  put: (url, data, config) => reply(url, { ...config, data }),
+  delete: (url, config) => reply(url, config),
   interceptors: { request: { use() {} }, response: { use() {} } },
 };
 

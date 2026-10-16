@@ -36,7 +36,7 @@ const NAV = [
     { to: '/admin/blogs', label: 'Health articles', icon: <IconArticle /> },
   ]},
   { section: 'System', items: [
-    { to: '/admin/support', label: 'Support inbox', icon: <IconMessage /> },
+    { to: '/admin/support', label: 'Live chat', icon: <IconMessage /> },
     { to: '/admin/settings', label: 'Settings & data', icon: <IconSettings /> },
   ]},
 ];

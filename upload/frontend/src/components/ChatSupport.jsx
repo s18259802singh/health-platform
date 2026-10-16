@@ -1,114 +1,96 @@
-// LIVE CHAT SUPPORT
+// LIVE CHAT SUPPORT — visitor side.
 //
-// A support panel that answers the questions this site actually gets asked —
-// eligibility, the 90-day wait, how to find stock, how the QR profile works,
-// what happens at a camp — and hands off to a phone number and an email for
-// anything it cannot answer.
+// WHAT CHANGED AND WHY
+// The first version of this answered by itself: it matched the question
+// against a list of canned topics, replied instantly, and only passed on
+// what it failed to match. That was wrong. It meant most questions never
+// reached a person — the widget answered them and the inbox stayed empty —
+// and the visitor was talking to a script while believing they had asked
+// the team. Nobody wants a bot standing between them and an answer.
 //
-// WHAT THIS IS AND IS NOT: there is no human on the other end and no third
-// party embedded. It is an on-site assistant that matches a question against
-// a known set of answers, plus a clearly-labelled handoff. It says so in its
-// first message, because a widget that implies a person is waiting when
-// nobody is will cost more trust than it earns.
+// So there is no automated answering here at all. Every message a visitor
+// types goes straight to the server, lands in the admin console, and the
+// administrator's reply comes back into this same window. The quick buttons
+// fill in the box for you to send, nothing more.
 //
-// Everything runs in the browser: no script from another company, nothing
-// about the visitor leaves the page, and nothing is stored on a server. That
-// also means it cannot slow the site down or go down separately from it.
+// HOW THE REPLY GETS BACK
+// The window polls its own conversation — 12 seconds while it is open, 45
+// while it is shut so the button can show that an answer has arrived. Polling
+// rather than websockets: this is a help window, not a trading floor, and a
+// socket server is one more thing that can be down at 2am on a free host.
 
-import { useEffect, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import api from '../api/axios';
 
-const PHONE = '1910';            // India's national blood helpline
+const PHONE = '1910';                       // India's national blood helpline
 const EMAIL = 'support@lifelink.example';
+const KEY_STORE = 'lifelink.support.thread';
+const POLL_OPEN_MS = 12000;
+const POLL_SHUT_MS = 45000;
 
-// Each topic: what to match on, what to say, and where to send them next.
-const TOPICS = [
-  {
-    id: 'eligible',
-    chip: 'Can I donate?',
-    match: /eligib|can i (give|donate)|qualif|allowed|age|weight|how old/i,
-    answer: `You can give whole blood if you are 18–65, weigh at least 45 kg and have haemoglobin of 12.5 g/dL or above. The centre checks your haemoglobin with a finger-prick on the day — it takes a minute.\n\nYou will be asked to wait if you have had a fever or infection in the last two weeks, a tattoo or piercing in the last six months, or are pregnant or breastfeeding.`,
-    link: { to: '/guides', label: 'Read the full eligibility guide' },
-  },
-  {
-    id: 'wait',
-    chip: 'How often can I give?',
-    match: /how often|wait|90 day|three month|again|interval|next donation/i,
-    answer: `90 days between whole blood donations. That is the time your body needs to replace the red cells — the plasma is back within about 24 hours.\n\nIf you are signed in, your dashboard counts the days down for you.`,
-    link: { to: '/dashboard', label: 'Check my next donation date' },
-  },
-  {
-    id: 'stock',
-    chip: 'Find blood near me',
-    match: /stock|availab|blood bank|near me|find blood|units|where can i get/i,
-    answer: `The availability page lists every licensed blood bank and hospital in the register with the units each one has recorded, filtered by district and group. No account needed.\n\nAlways ring the centre before you travel — stock moves faster than any portal updates.`,
-    link: { to: '/availability', label: 'Search availability' },
-  },
-  {
-    id: 'donors',
-    chip: 'Find a donor',
-    match: /find (a )?donor|search donor|who can give|compatib|match/i,
-    answer: `Search the donor register by group and city. If you are not sure which groups work for the patient, use the compatibility checker at the top — tap the patient's group and the list filters to everyone medically able to give to them.\n\nContact numbers are shown to signed-in members only.`,
-    link: { to: '/donors', label: 'Open donor search' },
-  },
-  {
-    id: 'camp',
-    chip: 'What happens at a camp?',
-    match: /camp|what happens|first time|nervous|scared|hurt|process|how long/i,
-    answer: `Registration and a short health questionnaire, the haemoglobin finger-prick, then the donation itself — about 8 to 10 minutes for one unit. Afterwards you sit for 10 minutes with a drink and something to eat.\n\nStart to finish it is usually under 45 minutes. Booking a slot in advance means you skip the queue.`,
-    link: { to: '/camps', label: 'Find a camp near me' },
-  },
-  {
-    id: 'qr',
-    chip: 'What is the emergency QR?',
-    match: /qr|emergency profile|paramedic|accident|scan/i,
-    answer: `A QR code you can keep in your wallet or on your phone's lock screen. Scanning it opens a page showing your blood group, allergies and next-of-kin number — and nothing else.\n\nIt does not need an account to read, which is the point: whoever reaches you first can see it.`,
-    link: { to: '/profile', label: 'Open my QR profile' },
-  },
-  {
-    id: 'account',
-    chip: 'Account and privacy',
-    match: /account|privacy|delete|data|phone number|personal|sign up|register/i,
-    answer: `Registering is free. Your phone number is shown only to signed-in members searching the register, and only if you opted in as a donor — you can turn that off in your profile at any time.\n\nTo have your record removed entirely, email ${EMAIL} from the address you registered with.`,
-    link: { to: '/profile', label: 'Open my profile' },
-  },
+// Starting points, not answers. Tapping one writes it into the box; the
+// visitor still presses send, and a person still reads it.
+const STARTERS = [
+  'Can I donate?',
+  'I need blood near me.',
+  'Tell me about the blood camps.',
+  'How do I book a slot?',
 ];
 
-const GREETING = {
-  from: 'bot',
-  text: `Hello. I am the LifeLink assistant — an automated one, not a person.\n\nI can answer questions about donating, finding blood, camps and your account. For anything urgent, call ${PHONE}.`,
+const timeOf = (at) => {
+  const d = new Date(at);
+  return Number.isNaN(d.getTime()) ? '' : d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 };
-
-const FALLBACK = `I could not match that to anything I know, so I can pass it to the team — they answer from the admin console, usually the same day.\n\nFor anything urgent, call ${PHONE} rather than waiting on a reply.`;
-
-// Where an unanswered question goes, and how we watch for the answer.
-const POLL_MS = 20000;
-const KEY_STORE = 'lifelink.support.thread';
 
 export default function ChatSupport() {
   const [open, setOpen] = useState(false);
-  const [msgs, setMsgs] = useState([GREETING]);
+  const [msgs, setMsgs] = useState([]);
   const [draft, setDraft] = useState('');
-  const [typing, setTyping] = useState(false);
-  // Handoff state: the last unanswered question's thread, plus the contact
-  // details the asker gave us so somebody can actually get back to them.
-  const [handoff, setHandoff] = useState(null);     // { message } while composing
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState('');
+  const [name, setName] = useState('');
   const [contact, setContact] = useState('');
+  const [wantContact, setWantContact] = useState(false);
+  const [haveContact, setHaveContact] = useState(false);
   const [threadKey, setThreadKey] = useState(() => {
     try { return localStorage.getItem(KEY_STORE) || ''; } catch { return ''; }
   });
-  const [answered, setAnswered] = useState(false);
+  const [unread, setUnread] = useState(0);
+  const seenRef = useRef(0);
   const bodyRef = useRef(null);
   const inputRef = useRef(null);
 
+  // ---------------------------------------------------------------- state --
+
+  // Count the admin messages the visitor has not had on screen, so a closed
+  // window can say "there is an answer in here" instead of staying silent.
+  const absorb = useCallback((thread, isOpen) => {
+    const list = thread?.messages || [];
+    setMsgs(list);
+    if (thread?.contact) setHaveContact(true);
+    const fromTeam = list.filter((m) => m.from === 'admin').length;
+    if (isOpen) {
+      seenRef.current = fromTeam;
+      setUnread(0);
+    } else {
+      setUnread(Math.max(0, fromTeam - seenRef.current));
+    }
+  }, []);
+
+  // --------------------------------------------------------------- effects --
+
+  // Stay at the newest message — but not before there is one, or the opening
+  // note gets scrolled off the top of a short panel.
   useEffect(() => {
-    if (bodyRef.current) bodyRef.current.scrollTop = bodyRef.current.scrollHeight;
-  }, [msgs, typing, open]);
+    if (msgs.length && bodyRef.current) bodyRef.current.scrollTop = bodyRef.current.scrollHeight;
+  }, [msgs, open, sending]);
 
   useEffect(() => {
-    if (open) inputRef.current?.focus();
-  }, [open]);
+    if (!open) return;
+    inputRef.current?.focus();
+    seenRef.current = msgs.filter((m) => m.from === 'admin').length;
+    setUnread(0);
+  }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!open) return undefined;
@@ -117,79 +99,68 @@ export default function ChatSupport() {
     return () => document.removeEventListener('keydown', onKey);
   }, [open]);
 
-  // Watch an outstanding question for its reply. Polling rather than sockets:
-  // this is a help widget, not a trading floor, and a socket server is one
-  // more thing that can be down at 2am.
+  // Watch the conversation for the team's replies.
   useEffect(() => {
-    if (!threadKey || answered) return undefined;
+    if (!threadKey) return undefined;
     let stop = false;
     const check = async () => {
       try {
         const { data } = await api.get(`/support/thread/${threadKey}`);
-        if (stop || !data?.reply) return;
-        setAnswered(true);
-        setMsgs((m) => [...m, {
-          from: 'bot', human: true,
-          text: data.reply,
-          at: data.repliedAt,
-        }]);
-        try { localStorage.removeItem(KEY_STORE); } catch { /* private mode */ }
-      } catch { /* not answered yet, or offline - try again next tick */ }
+        if (!stop && data?.messages) absorb(data, open);
+      } catch (err) {
+        // A 404 means the conversation is gone from the server — most likely
+        // a reseed. Forget the key rather than polling a dead thread forever.
+        if (err.response?.status === 404) {
+          try { localStorage.removeItem(KEY_STORE); } catch { /* private mode */ }
+          if (!stop) { setThreadKey(''); setMsgs([]); }
+        }
+      }
     };
     check();
-    const t = setInterval(check, POLL_MS);
+    const t = setInterval(check, open ? POLL_OPEN_MS : POLL_SHUT_MS);
     return () => { stop = true; clearInterval(t); };
-  }, [threadKey, answered]);
+  }, [threadKey, open, absorb]);
 
-  const sendToTeam = async (text) => {
+  // ----------------------------------------------------------------- send --
+
+  const send = async (text) => {
+    const body = text.trim();
+    if (!body || sending) return;
+    setSending(true);
+    setError('');
+    setDraft('');
+    // Show it straight away. The server's copy replaces this a moment later.
+    const mine = { from: 'visitor', body, at: new Date().toISOString(), pending: true };
+    setMsgs((m) => [...m, mine]);
     try {
       const { data } = await api.post('/support', {
-        message: text,
-        contact,
+        message: body,
+        threadKey: threadKey || undefined,
+        name: name.trim() || undefined,
+        contact: contact.trim() || undefined,
         page: window.location.pathname,
       });
-      try { localStorage.setItem(KEY_STORE, data.threadKey); } catch { /* private mode */ }
-      setThreadKey(data.threadKey);
-      setAnswered(false);
-      setHandoff(null);
-      setMsgs((m) => [...m, {
-        from: 'bot',
-        text: `Passed to the team. ${contact ? `They will reply to ${contact}.` : 'Keep this window open and the answer will appear here.'}\n\nFor anything urgent, call ${PHONE}.`,
-      }]);
-    } catch {
-      setMsgs((m) => [...m, {
-        from: 'bot',
-        text: `I could not send that just now. Please call ${PHONE} or email ${EMAIL}.`,
-      }]);
+      if (data?.threadKey && data.threadKey !== threadKey) {
+        try { localStorage.setItem(KEY_STORE, data.threadKey); } catch { /* private mode */ }
+        setThreadKey(data.threadKey);
+      }
+      absorb(data, true);
+      setWantContact(false);
+    } catch (err) {
+      setMsgs((m) => m.filter((x) => x !== mine));
+      setDraft(body);
+      setError(err.response?.status === 404
+        ? `The chat service is not reachable from this server yet. Please call ${PHONE} or email ${EMAIL}.`
+        : `That did not send. Check your connection, or call ${PHONE}.`);
+    } finally {
+      setSending(false);
     }
   };
 
-  const reply = (topic) => {
-    setTyping(true);
-    // A beat before answering: an instant wall of text reads as a dump, and
-    // people lose where the new message starts.
-    setTimeout(() => {
-      setTyping(false);
-      setMsgs((m) => [...m, topic
-        ? { from: 'bot', text: topic.answer, link: topic.link }
-        : { from: 'bot', text: FALLBACK, offerHandoff: true }]);
-    }, 420);
-  };
+  const started = msgs.length > 0;
+  const waiting = started && msgs[msgs.length - 1]?.from === 'visitor';
 
-  const ask = (text) => {
-    const q = text.trim();
-    if (!q) return;
-    setMsgs((m) => [...m, { from: 'me', text: q }]);
-    setDraft('');
-    const topic = TOPICS.find((t) => t.match.test(q));
-    if (!topic) setHandoff({ message: q });   // remember it, in case they hand it over
-    reply(topic);
-  };
-
-  const pick = (topic) => {
-    setMsgs((m) => [...m, { from: 'me', text: topic.chip }]);
-    reply(topic);
-  };
+  // ----------------------------------------------------------------- view --
 
   return (
     <>
@@ -212,6 +183,7 @@ export default function ChatSupport() {
               <path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 9 9 0 0 1-3.3-.6L3 21l1.8-5a8.3 8.3 0 0 1-.8-3.6 8.4 8.4 0 0 1 8.5-8.4 8.4 8.4 0 0 1 8.5 8.5Z" />
             </svg>
             <span>Help</span>
+            {unread > 0 && <i className="chat-fab-badge" aria-label={`${unread} new replies`}>{unread}</i>}
           </>
         )}
       </button>
@@ -220,86 +192,98 @@ export default function ChatSupport() {
         <section className="chat-panel" role="dialog" aria-label="Support chat">
           <header className="chat-head">
             <div>
-              <strong>LifeLink support</strong>
-              <small><i className="chat-dot" aria-hidden="true" /> Automated assistant · always on</small>
+              <strong>Chat with the team</strong>
+              <small>
+                <i className="chat-dot" aria-hidden="true" />
+                {waiting ? 'Sent — waiting for a reply' : 'Answered by the team, not a bot'}
+              </small>
             </div>
             <a className="chat-call" href={`tel:${PHONE}`}>Call {PHONE}</a>
           </header>
 
-          <div className="chat-body" ref={bodyRef}>
+          <div className="chat-body" ref={bodyRef} aria-live="polite">
+            {!started && (
+              <div className="chat-intro">
+                <strong>Ask us anything about donating or finding blood.</strong>
+                <p>
+                  Your message goes straight to the LifeLink team — nothing on
+                  this line is automated. Replies land right here, so you can
+                  close the window and come back to them.
+                </p>
+                <p className="chat-intro-urgent">
+                  If a patient needs blood now, call <a href={`tel:${PHONE}`}>{PHONE}</a> —
+                  do not wait on a chat reply.
+                </p>
+              </div>
+            )}
+
             {msgs.map((m, i) => (
-              <div key={i} className={`chat-msg ${m.from} ${m.human ? 'human' : ''}`}>
-                {m.human && <span className="chat-from-team">Reply from the team</span>}
-                <p>{m.text}</p>
-                {m.link && (
-                  <Link className="chat-msg-link" to={m.link.to} onClick={() => setOpen(false)}>
-                    {m.link.label} →
-                  </Link>
+              <div key={m._id || `${m.at}-${i}`}
+                   className={`chat-msg ${m.from === 'admin' ? 'bot human' : 'me'} ${m.pending ? 'is-pending' : ''}`}>
+                {m.from === 'admin' && (
+                  <span className="chat-from-team">{m.byName || 'LifeLink team'}</span>
                 )}
-                {m.offerHandoff && !threadKey && (
-                  <button type="button" className="chat-handoff-btn"
-                          onClick={() => setHandoff(handoff || { message: msgs.filter((x) => x.from === 'me').slice(-1)[0]?.text || '' })}>
-                    Ask the team instead →
-                  </button>
-                )}
+                <p>{m.body}</p>
+                <span className="chat-at">{m.pending ? 'Sending…' : timeOf(m.at)}</span>
               </div>
             ))}
 
-            {threadKey && !answered && (
+            {waiting && !sending && (
               <div className="chat-pending">
                 <span className="chat-pending-dot" aria-hidden="true" />
-                With the team — the answer appears here when they reply.
+                With the team. The answer appears here — you can close this window.
               </div>
             )}
-            {typing && (
-              <div className="chat-msg bot chat-typing" aria-label="Assistant is typing">
-                <span /><span /><span />
-              </div>
-            )}
+
+            {error && <div className="chat-error" role="alert">{error}</div>}
           </div>
 
-          {handoff && (
-            <form
-              className="chat-handoff"
-              onSubmit={(e) => { e.preventDefault(); sendToTeam(handoff.message); }}
-            >
-              <strong>Send this to the team</strong>
-              <blockquote>{handoff.message}</blockquote>
+          {/* Who you are: optional, and asked once rather than up front as a
+              gate. Most people type the question first and think about how
+              they can be reached second. */}
+          {(!started || (!haveContact && wantContact)) && (
+            <div className="chat-who">
+              <input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Your name (optional)"
+                aria-label="Your name"
+              />
               <input
                 value={contact}
                 onChange={(e) => setContact(e.target.value)}
                 placeholder="Phone or email (optional)"
                 aria-label="How the team can reach you"
               />
-              <small>
-                Leave it blank and the answer still comes back here — a contact just
-                means they can reach you if you close the page.
-              </small>
-              <div className="chat-handoff-row">
-                <button type="button" className="small-button" onClick={() => setHandoff(null)}>Cancel</button>
-                <button type="submit" className="btn-primary">Send to the team</button>
-              </div>
-            </form>
+            </div>
           )}
 
-          <div className="chat-chips">
-            {TOPICS.map((t) => (
-              <button key={t.id} type="button" onClick={() => pick(t)}>{t.chip}</button>
-            ))}
-          </div>
+          {started && !haveContact && !wantContact && (
+            <button type="button" className="chat-add-contact" onClick={() => setWantContact(true)}>
+              Add a phone or email so the team can reach you →
+            </button>
+          )}
 
-          <form
-            className="chat-input"
-            onSubmit={(e) => { e.preventDefault(); ask(draft); }}
-          >
+          {!started && (
+            <div className="chat-chips">
+              {STARTERS.map((s) => (
+                <button key={s} type="button"
+                        onClick={() => { setDraft(s); inputRef.current?.focus(); }}>
+                  {s}
+                </button>
+              ))}
+            </div>
+          )}
+
+          <form className="chat-input" onSubmit={(e) => { e.preventDefault(); send(draft); }}>
             <input
               ref={inputRef}
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
-              placeholder="Ask a question…"
-              aria-label="Your question"
+              placeholder={started ? 'Write a message…' : 'Type your question…'}
+              aria-label="Your message"
             />
-            <button type="submit" aria-label="Send" disabled={!draft.trim()}>
+            <button type="submit" aria-label="Send" disabled={sending || !draft.trim()}>
               <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                    strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <path d="M22 2 11 13M22 2l-7 20-4-9-9-4Z" />
