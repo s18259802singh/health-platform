@@ -260,23 +260,43 @@ const runSeed = async () => {
     .filter(Boolean);
   const requests = await DonationRequest.insertMany(requestDocs);
 
-  // ---- Support inbox ----
-  // Two questions the chat could not answer, so the console's inbox shows
-  // what an unanswered one looks like next to an answered one.
+  // ---- Live chat ----
+  // Three conversations so the console shows each state the inbox can be in:
+  // one waiting on an answer, one with a reply and a follow-up question after
+  // it, and one that was dealt with and closed.
+  const hrs = (n) => new Date(Date.now() - n * 3600000);
+  // Seeded replies are attributed to a real admin if one exists; the script
+  // creates none of its own, so on a fresh database there may be nobody.
+  const replier = admins[0];
+
   const supportSeed = [
     {
-      name: 'Rupal Mehta', contact: '9876543210',
-      message: 'I am on blood pressure tablets. Can I still donate at the camp on the 19th?',
-      page: '/camps', status: 'open',
-      createdAt: new Date(Date.now() - 5 * 3600000),
+      name: 'Rupal Mehta', contact: '9876543210', page: '/camps', status: 'open',
+      messages: [
+        { from: 'visitor', body: 'I am on blood pressure tablets. Can I still donate at the camp on the 19th?', at: hrs(5) },
+      ],
+      lastMessageAt: hrs(5), createdAt: hrs(5),
     },
     {
-      name: 'Kalpesh Patel', contact: 'kalpesh@example.com',
-      message: 'My father needs two units of B negative in Rajkot tomorrow. Does the portal hold them for us?',
-      page: '/availability', status: 'answered',
-      reply: 'The portal shows what each centre has recorded but cannot reserve units — call the centre directly and they will hold them against the patient name. Sterling Hospital Rajkot had B negative in stock this morning.',
-      repliedAt: new Date(Date.now() - 20 * 3600000),
-      createdAt: new Date(Date.now() - 26 * 3600000),
+      name: 'Kalpesh Patel', contact: 'kalpesh@example.com', page: '/availability', status: 'open',
+      messages: [
+        { from: 'visitor', body: 'My father needs two units of B negative in Rajkot tomorrow. Does the portal hold them for us?', at: hrs(26) },
+        { from: 'admin', byId: replier?._id, byName: replier?.name || 'LifeLink team',
+          body: 'The portal shows what each centre has recorded but cannot reserve units — call the centre directly and they will hold them against the patient name. Sterling Hospital Rajkot had B negative in stock this morning.',
+          at: hrs(20) },
+        { from: 'visitor', body: 'Thank you. If they have none left, which centre is nearest to Rajkot that might?', at: hrs(2) },
+      ],
+      lastMessageAt: hrs(2), createdAt: hrs(26),
+    },
+    {
+      name: 'Visitor', contact: '', page: '/donors', status: 'closed',
+      messages: [
+        { from: 'visitor', body: 'Why can I not see donor phone numbers?', at: hrs(70) },
+        { from: 'admin', byId: replier?._id, byName: replier?.name || 'LifeLink team',
+          body: 'Contact numbers are shown to signed-in members only, and only for donors who opted in. Register (it is free) and they appear on the donor cards.',
+          at: hrs(69) },
+      ],
+      lastMessageAt: hrs(69), createdAt: hrs(70),
     },
   ].map((m, i) => ({ ...m, threadKey: `seed${i}${Math.random().toString(36).slice(2, 10)}` }));
   const support = await SupportMessage.insertMany(supportSeed);

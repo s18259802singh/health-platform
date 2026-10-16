@@ -75,10 +75,11 @@ router.post('/donations/:id/certificate', content.issueCertificate);
 router.delete('/donations/:id/certificate', content.revokeCertificate);
 router.post('/certificates/issue-all', content.issueAllPending);
 
-// support inbox - questions the chat could not answer by itself
+// live chat - every message from the site's chat window, as conversations
 router.get('/support', content.listSupport);
 router.post('/support/:id/reply', content.replySupport);
 router.post('/support/:id/close', content.closeSupport);
+router.post('/support/:id/reopen', content.reopenSupport);
 
 // maintenance: reload the demo dataset
 router.post('/seed', async (req, res) => {

@@ -1,36 +1,64 @@
-// "supportmessages" collection — a question asked through the site's chat,
-// and the administrator's reply to it.
+// "supportmessages" collection — one live chat conversation.
 //
-// The chat widget answers common questions by itself. Anything it cannot
-// match becomes one of these: a real question, waiting for a real person in
-// the admin console. That is the difference between a help widget and
-// support — somebody is accountable for the ones it could not answer.
+// WHY THIS IS A THREAD, NOT A TICKET
+// The first version of this was a question-and-one-answer ticket, fronted by
+// a widget that tried to answer by itself and only passed on what it could
+// not match. That was the wrong shape twice over: most questions never
+// reached a person at all, and the ones that did could not be followed up on
+// — there was nowhere to put "which camp did you mean?".
+//
+// So this is a conversation. Every message a visitor sends lands here, an
+// administrator answers in the console, and either side can keep going.
 
 const mongoose = require('mongoose');
 
-const supportMessageSchema = new mongoose.Schema(
+const messageSchema = new mongoose.Schema(
   {
-    // Set when the asker was signed in; anonymous visitors can still ask.
+    from: { type: String, enum: ['visitor', 'admin'], required: true },
+    body: { type: String, required: true, trim: true, maxlength: 4000 },
+    byId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    byName: { type: String, default: '' },
+    at: { type: Date, default: Date.now },
+  },
+  { _id: true }
+);
+
+const supportThreadSchema = new mongoose.Schema(
+  {
+    // Set when the visitor was signed in; anonymous visitors can still chat.
     userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     name: { type: String, default: 'Visitor', trim: true },
-    contact: { type: String, default: '', trim: true },   // phone or email, optional
-    message: { type: String, required: true, trim: true, maxlength: 2000 },
-
-    // Where in the site the question was asked, so whoever answers has context.
+    contact: { type: String, default: '', trim: true },
     page: { type: String, default: '' },
 
-    status: { type: String, enum: ['open', 'answered', 'closed'], default: 'open' },
-    reply: { type: String, default: '', maxlength: 4000 },
-    repliedAt: { type: Date },
-    repliedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    messages: { type: [messageSchema], default: [] },
 
-    // A short random key so an anonymous asker can poll for their own answer
-    // without an account, and without being able to read anyone else's.
-    threadKey: { type: String, index: true },
+    // open      - the visitor has said something nobody has answered yet
+    // answered  - an administrator spoke last
+    // closed    - done with, hidden from the default view
+    status: { type: String, enum: ['open', 'answered', 'closed'], default: 'open' },
+
+    lastMessageAt: { type: Date, default: Date.now },
+
+    // The only thing that lets an anonymous visitor read their own
+    // conversation back, and nobody else's.
+    threadKey: { type: String, index: true, unique: true, sparse: true },
   },
   { timestamps: true }
 );
 
-supportMessageSchema.index({ status: 1, createdAt: -1 });
+supportThreadSchema.index({ status: 1, lastMessageAt: -1 });
 
-module.exports = mongoose.model('SupportMessage', supportMessageSchema);
+// Keep status and ordering in step with whoever spoke last, so the console
+// never has to work it out and a thread cannot be "answered" with an
+// unanswered question sitting at the bottom of it.
+supportThreadSchema.methods.push = function pushMessage(msg) {
+  this.messages.push(msg);
+  this.lastMessageAt = msg.at || new Date();
+  if (this.status !== 'closed') {
+    this.status = msg.from === 'visitor' ? 'open' : 'answered';
+  }
+  return this;
+};
+
+module.exports = mongoose.model('SupportMessage', supportThreadSchema);

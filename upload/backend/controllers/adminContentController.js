@@ -275,7 +275,7 @@ const issueAllPending = async (req, res) => {
 };
 
 // ---------------------------------------------------------------------------
-// SUPPORT INBOX
+// SUPPORT INBOX — live chat, administrator side
 // ---------------------------------------------------------------------------
 
 const listSupport = async (req, res) => {
@@ -285,15 +285,14 @@ const listSupport = async (req, res) => {
     if (status) filter.status = status;
     if (search) {
       filter.$or = [
-        { message: { $regex: search, $options: 'i' } },
+        { 'messages.body': { $regex: search, $options: 'i' } },
         { name: { $regex: search, $options: 'i' } },
         { contact: { $regex: search, $options: 'i' } },
       ];
     }
     const [rows, open] = await Promise.all([
-      SupportMessage.find(filter).sort({ status: 1, createdAt: -1 }).limit(300)
-        .populate('userId', 'name email phone')
-        .populate('repliedBy', 'name'),
+      SupportMessage.find(filter).sort({ status: 1, lastMessageAt: -1 }).limit(200)
+        .populate('userId', 'name email phone'),
       SupportMessage.countDocuments({ status: 'open' }),
     ]);
     res.json({ rows, openCount: open });
@@ -302,23 +301,25 @@ const listSupport = async (req, res) => {
   }
 };
 
+// POST /admin/support/:id/reply   { reply }
 const replySupport = async (req, res) => {
   try {
-    const { reply } = req.body;
-    if (!reply || !String(reply).trim()) {
-      return res.status(400).json({ message: 'A reply is required' });
-    }
-    const doc = await SupportMessage.findById(req.params.id);
-    if (!doc) return res.status(404).json({ message: 'Message not found' });
+    const body = String(req.body.reply || '').trim();
+    if (!body) return res.status(400).json({ message: 'Type a reply first' });
 
-    doc.reply = String(reply).trim().slice(0, 4000);
-    doc.status = 'answered';
-    doc.repliedAt = new Date();
-    doc.repliedBy = req.user.id;
-    await doc.save();
+    const thread = await SupportMessage.findById(req.params.id);
+    if (!thread) return res.status(404).json({ message: 'Conversation not found' });
 
-    const populated = await SupportMessage.findById(doc._id)
-      .populate('userId', 'name email phone').populate('repliedBy', 'name');
+    thread.push({
+      from: 'admin',
+      body: body.slice(0, 4000),
+      byId: req.user.id,
+      byName: req.user.name || 'LifeLink team',
+      at: new Date(),
+    });
+    await thread.save();
+
+    const populated = await SupportMessage.findById(thread._id).populate('userId', 'name email phone');
     res.json(populated);
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
@@ -327,11 +328,26 @@ const replySupport = async (req, res) => {
 
 const closeSupport = async (req, res) => {
   try {
-    const doc = await SupportMessage.findByIdAndUpdate(
+    const thread = await SupportMessage.findByIdAndUpdate(
       req.params.id, { status: 'closed' }, { new: true }
-    );
-    if (!doc) return res.status(404).json({ message: 'Message not found' });
-    res.json(doc);
+    ).populate('userId', 'name email phone');
+    if (!thread) return res.status(404).json({ message: 'Conversation not found' });
+    res.json(thread);
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
+// POST /admin/support/:id/reopen — closing was a judgement call, not a lock.
+const reopenSupport = async (req, res) => {
+  try {
+    const thread = await SupportMessage.findById(req.params.id);
+    if (!thread) return res.status(404).json({ message: 'Conversation not found' });
+    const last = thread.messages[thread.messages.length - 1];
+    thread.status = last && last.from === 'admin' ? 'answered' : 'open';
+    await thread.save();
+    const populated = await SupportMessage.findById(thread._id).populate('userId', 'name email phone');
+    res.json(populated);
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
   }
@@ -343,3 +359,4 @@ module.exports.issueAllPending = issueAllPending;
 module.exports.listSupport = listSupport;
 module.exports.replySupport = replySupport;
 module.exports.closeSupport = closeSupport;
+module.exports.reopenSupport = reopenSupport;
