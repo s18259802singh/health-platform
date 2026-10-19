@@ -17,8 +17,22 @@ const Doctor = require('../models/Doctor');
 const Blog = require('../models/Blog');
 const DonationRequest = require('../models/DonationRequest');
 const Appointment = require('../models/Appointment');
+const { rules, check, fail } = require('../utils/validate');
 
 const BLOOD_GROUPS = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
+
+// The console's edit forms send the whole record, but a row-level toggle sends
+// a single field. Checking only the keys that arrived lets both through
+// without a partial update tripping over the fields it never mentioned.
+const onlyPresent = (body, schema) => Object.fromEntries(
+  Object.entries(schema).filter(([field]) => body[field] !== undefined),
+);
+
+const trimmed = (v) => String(v == null ? '' : v).trim();
+
+// An ObjectId, as the browser's pickers always send. Spelled out rather than
+// left to Mongoose, whose cast error reads as a server fault.
+const isObjectId = (v) => /^[0-9a-fA-F]{24}$/.test(String(v || ''));
 
 const signAdminToken = (user) =>
   jwt.sign({ id: user._id, role: user.role, scope: 'admin' }, process.env.JWT_SECRET, {
@@ -213,16 +227,30 @@ const getUser = async (req, res) => {
 // PUT /api/admin/users/:id - admin edits a member record
 const updateUser = async (req, res) => {
   try {
+    // Same rules and same wording as frontend/src/admin/pages/Users.jsx.
+    const problems = check(req.body, onlyPresent(req.body, {
+      name: rules.name,
+      phone: rules.phone,
+      bloodGroup: rules.bloodGroup,
+      location: rules.optional(rules.place),
+      allergies: rules.optional(rules.text({ label: 'Allergies', max: 200 })),
+      emergencyContactName: rules.optional(rules.name),
+      emergencyContactNumber: rules.optional(rules.phone),
+      role: rules.oneOf(['user', 'admin'], 'Role'),
+    }));
+    if (Object.keys(problems).length) return fail(res, problems);
+
     const allowed = ['name', 'phone', 'bloodGroup', 'allergies', 'location', 'isDonor', 'role'];
     const payload = {};
     allowed.forEach((key) => {
-      if (req.body[key] !== undefined) payload[key] = req.body[key];
+      if (req.body[key] === undefined) return;
+      payload[key] = key === 'isDonor' ? !!req.body[key] : trimmed(req.body[key]);
     });
 
     if (req.body.emergencyContactName || req.body.emergencyContactNumber) {
       payload.emergencyContact = {
-        name: req.body.emergencyContactName || '',
-        number: req.body.emergencyContactNumber || '',
+        name: trimmed(req.body.emergencyContactName),
+        number: trimmed(req.body.emergencyContactNumber),
       };
     }
 
@@ -248,13 +276,33 @@ const updateUser = async (req, res) => {
 // POST /api/admin/users - admin creates an account (usually another admin)
 const createUser = async (req, res) => {
   try {
-    const { name, email, password, phone, bloodGroup, location, isDonor, role } = req.body;
-    if (!name || !email || !password || !phone || !bloodGroup) {
-      return res.status(400).json({ message: 'name, email, password, phone and bloodGroup are required' });
-    }
+    const { password, isDonor, role } = req.body;
 
-    const exists = await User.findOne({ email: String(email).toLowerCase() });
-    if (exists) return res.status(400).json({ message: 'An account with this email already exists' });
+    // Same rules and same wording as frontend/src/admin/pages/Users.jsx.
+    const problems = check(req.body, {
+      name: rules.name,
+      email: rules.email,
+      password: rules.password,
+      phone: rules.phone,
+      bloodGroup: rules.bloodGroup,
+      location: rules.optional(rules.place),
+      emergencyContactName: rules.optional(rules.name),
+      emergencyContactNumber: rules.optional(rules.phone),
+      role: rules.optional(rules.oneOf(['user', 'admin'], 'Role')),
+    });
+    if (Object.keys(problems).length) return fail(res, problems);
+
+    const name = trimmed(req.body.name);
+    const email = trimmed(req.body.email).toLowerCase();
+    const phone = trimmed(req.body.phone);
+
+    const exists = await User.findOne({ email });
+    // Returned as a field error as well as a message, so it lands on the email
+    // box rather than only in a toast the admin has to map back themselves.
+    if (exists) {
+      return fail(res, { email: 'An account with this email already exists' },
+        'An account with this email already exists');
+    }
 
     const hashed = await bcrypt.hash(password, await bcrypt.genSalt(10));
     const user = await User.create({
@@ -262,13 +310,13 @@ const createUser = async (req, res) => {
       email,
       password: hashed,
       phone,
-      bloodGroup,
-      location: location || '',
+      bloodGroup: req.body.bloodGroup,
+      location: trimmed(req.body.location),
       isDonor: !!isDonor,
       role: role === 'admin' ? 'admin' : 'user',
       emergencyContact: {
-        name: req.body.emergencyContactName || name,
-        number: req.body.emergencyContactNumber || phone,
+        name: trimmed(req.body.emergencyContactName) || name,
+        number: trimmed(req.body.emergencyContactNumber) || phone,
       },
     });
 
@@ -338,7 +386,16 @@ const updateRequestStatus = async (req, res) => {
     if (!['pending', 'fulfilled', 'cancelled'].includes(status)) {
       return res.status(400).json({ message: 'status must be pending, fulfilled or cancelled' });
     }
-    const request = await DonationRequest.findByIdAndUpdate(req.params.id, { status }, { new: true })
+    // Keep the two close dates in step with the status, so the board and the
+    // console never show "fulfilled" with no date against it. Reopening a
+    // request clears both, because it is open again.
+    const now = new Date();
+    const patch = {
+      status,
+      fulfilledAt: status === 'fulfilled' ? now : null,
+      cancelledAt: status === 'cancelled' ? now : null,
+    };
+    const request = await DonationRequest.findByIdAndUpdate(req.params.id, patch, { new: true })
       .populate('requesterId', 'name phone email location');
     if (!request) return res.status(404).json({ message: 'Request not found' });
     res.json(request);
@@ -430,9 +487,43 @@ const listDoctors = async (req, res) => {
   }
 };
 
+// Same rules and same wording as frontend/src/admin/pages/Doctors.jsx. Days
+// and slots are deliberately not required: a doctor with none is simply not
+// bookable yet, which the console shows as its own state.
+const doctorSchema = {
+  name: rules.name,
+  specialization: rules.text({ label: 'Speciality', min: 2, max: 60 }),
+  hospitalId: rules.all(
+    rules.required('Hospital'),
+    (v) => (isObjectId(v) ? '' : 'Choose a hospital from the list'),
+  ),
+};
+
+const DOCTOR_DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+const DOCTOR_SLOTS = ['09:00 AM', '10:00 AM', '11:00 AM', '12:00 PM', '02:00 PM', '03:00 PM', '04:00 PM', '05:00 PM'];
+
+// The console offers days and slots as a fixed set of chips, so anything else
+// came from somewhere that is not the form. Dropping it is better than a
+// complaint about a field nobody can see or correct.
+const onlyKnown = (allowed, value) =>
+  (Array.isArray(value) ? value.filter((v) => allowed.includes(v)) : []);
+
+const doctorFields = (body) => {
+  const payload = {};
+  if (body.name !== undefined) payload.name = trimmed(body.name);
+  if (body.specialization !== undefined) payload.specialization = trimmed(body.specialization);
+  if (body.hospitalId !== undefined) payload.hospitalId = body.hospitalId;
+  if (body.availableDays !== undefined) payload.availableDays = onlyKnown(DOCTOR_DAYS, body.availableDays);
+  if (body.availableTimeSlots !== undefined) payload.availableTimeSlots = onlyKnown(DOCTOR_SLOTS, body.availableTimeSlots);
+  return payload;
+};
+
 const createDoctor = async (req, res) => {
   try {
-    const doctor = await Doctor.create(req.body);
+    const problems = check(req.body, doctorSchema);
+    if (Object.keys(problems).length) return fail(res, problems);
+
+    const doctor = await Doctor.create(doctorFields(req.body));
     res.status(201).json(await doctor.populate('hospitalId', 'name address'));
   } catch (error) {
     res.status(400).json({ message: 'Could not save doctor', error: error.message });
@@ -441,7 +532,10 @@ const createDoctor = async (req, res) => {
 
 const updateDoctor = async (req, res) => {
   try {
-    const doctor = await Doctor.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true })
+    const problems = check(req.body, onlyPresent(req.body, doctorSchema));
+    if (Object.keys(problems).length) return fail(res, problems);
+
+    const doctor = await Doctor.findByIdAndUpdate(req.params.id, doctorFields(req.body), { new: true, runValidators: true })
       .populate('hospitalId', 'name address');
     if (!doctor) return res.status(404).json({ message: 'Doctor not found' });
     res.json(doctor);

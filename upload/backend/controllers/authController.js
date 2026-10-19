@@ -7,6 +7,7 @@ const QRCode = require('qrcode');
 const path = require('path');
 const fs = require('fs');
 const User = require('../models/User');
+const { rules, check, fail } = require('../utils/validate');
 const clientUrl = require('../config/clientUrl');
 
 // helper: creates a signed JWT token for a user
@@ -24,13 +25,26 @@ const registerUser = async (req, res) => {
       emergencyContactName, emergencyContactNumber, isDonor, location,
     } = req.body;
 
-    if (!name || !email || !password || !phone || !bloodGroup || !emergencyContactName || !emergencyContactNumber) {
-      return res.status(400).json({ message: 'Please fill all required fields' });
-    }
+    // Field-by-field, with the same rules and the same wording the form uses,
+    // so a bad value comes back attached to the field it belongs to rather
+    // than as one vague sentence about "required fields".
+    const problems = check(req.body, {
+      name: rules.name,
+      email: rules.email,
+      password: rules.password,
+      phone: rules.phone,
+      bloodGroup: rules.bloodGroup,
+      location: rules.optional(rules.place),
+      allergies: rules.optional(rules.text({ label: 'Allergies', max: 200 })),
+      emergencyContactName: rules.name,
+      emergencyContactNumber: rules.phone,
+    });
+    if (Object.keys(problems).length) return fail(res, problems);
 
-    const existingUser = await User.findOne({ email: email.toLowerCase() });
+    const existingUser = await User.findOne({ email: String(email).toLowerCase() });
     if (existingUser) {
-      return res.status(400).json({ message: 'An account with this email already exists' });
+      return fail(res, { email: 'An account with this email already exists' },
+        'That email address is already registered');
     }
 
     // hash the password before saving (10 = "salt rounds", a standard secure value)
@@ -38,15 +52,18 @@ const registerUser = async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, salt);
 
     const user = await User.create({
-      name,
-      email,
+      name: String(name).trim(),
+      email: String(email).trim().toLowerCase(),
       password: hashedPassword,
-      phone,
+      phone: String(phone).trim(),
       bloodGroup,
-      allergies: allergies || 'None',
-      emergencyContact: { name: emergencyContactName, number: emergencyContactNumber },
+      allergies: String(allergies || '').trim() || 'None',
+      emergencyContact: {
+        name: String(emergencyContactName).trim(),
+        number: String(emergencyContactNumber).trim(),
+      },
       isDonor: !!isDonor,
-      location: location || '',
+      location: String(location || '').trim(),
     });
 
     // Generate the emergency QR code for this user.

@@ -21,7 +21,9 @@ const Donation = require('../models/Donation');
 const SupportMessage = require('../models/SupportMessage');
 
 const hospitalData = require('./hospitalData');
+const hospitalDataIndia = require('./hospitalDataIndia');
 const donorData = require('./donorData');
+const donorDataIndia = require('./donorDataIndia');
 const blogData = require('./blogData');
 const campData = require('./campData');
 const storyData = require('./storyData');
@@ -75,7 +77,24 @@ const runSeed = async () => {
   // will not lock you out.
 
   // Donors
-  const donors = donorData.map((d) => ({
+  // Spread the join dates over the past few months rather than stamping the
+  // whole register with "now". A fresh seed otherwise produced a dashboard
+  // whose signup chart was a flat zero line and whose "new in 14 days" count
+  // read 0 with 385 members on the books, which looks broken.
+  const JOIN_SPREAD_DAYS = 150;
+  const joinedAt = (i, total) => {
+    // Weighted towards recent weeks, so the trend line rises rather than
+    // being uniform noise, and roughly a tenth land inside the last fortnight.
+    const share = (i + 1) / total;
+    const daysAgo = Math.round(JOIN_SPREAD_DAYS * (1 - share ** 0.6));
+    const d = new Date();
+    d.setDate(d.getDate() - daysAgo);
+    d.setHours(9 + (i % 10), (i * 7) % 60, 0, 0);
+    return d;
+  };
+
+  const allDonorRows = [...donorData, ...donorDataIndia];
+  const donors = allDonorRows.map((d, i) => ({
     name: d.name,
     email: d.email,
     password: hashedPassword,
@@ -86,6 +105,7 @@ const runSeed = async () => {
     isDonor: d.isDonor,
     role: 'user',
     location: d.location,
+    createdAt: joinedAt(i, allDonorRows.length),
   }));
   const createdDonors = await User.insertMany(donors);
 
@@ -100,13 +120,17 @@ const runSeed = async () => {
   //   2) availableBloodUnits, built by stockModel. Without this every centre
   //      reported 0 units and the public availability portal - the main
   //      feature - read "Out of stock" on all 110 rows.
-  const withRegion = hospitalData.map((h) => {
-    const { city, district } = resolveRegion(h.address);
+  // The Gujarat rows carry their region only inside the address string, so it
+  // is looked up; the national rows already state city, district and state,
+  // so those are trusted as given rather than re-derived from prose.
+  const allCentres = [...hospitalData, ...hospitalDataIndia];
+  const withRegion = allCentres.map((h) => {
+    const looked = resolveRegion(h.address);
     return {
       ...h,
       address: tidyAddress(h.address),
-      city,
-      district,
+      city: h.city || looked.city,
+      district: h.district || looked.district,
       state: h.state || 'Gujarat',
       availableBloodUnits: stockFor(h),
     };
@@ -247,15 +271,54 @@ const runSeed = async () => {
     await camp.save();
   }
 
+  // ---- Appointments ----
+  // Without these the console's Appointments page is empty on a fresh
+  // database, which reads as a broken feature rather than a quiet week.
+  const apptDocs = [];
+  const SLOT_TIMES = ['09:00 AM', '10:00 AM', '11:30 AM', '02:00 PM', '04:30 PM'];
+  const APPT_STATUS = ['confirmed', 'confirmed', 'pending', 'confirmed', 'pending', 'cancelled'];
+  const isoDay = (offset) => {
+    const d = new Date();
+    d.setDate(d.getDate() + offset);
+    return d.toISOString().slice(0, 10);
+  };
+  createdDoctors.slice(0, 40).forEach((doctor, i) => {
+    const patient = createdDonors[(i * 7 + 3) % createdDonors.length];
+    if (!patient) return;
+    apptDocs.push({
+      userId: patient._id,
+      doctorId: doctor._id,
+      // A spread either side of today, so the page shows a past week and a
+      // booked-up week rather than one clump.
+      appointmentDate: isoDay(((i % 14) - 5)),
+      appointmentTime: SLOT_TIMES[i % SLOT_TIMES.length],
+      status: APPT_STATUS[i % APPT_STATUS.length],
+    });
+  });
+  const appointments = await Appointment.insertMany(apptDocs);
+
   // ---- Blood requests (the public requests board) ----
   // requestData holds an index into donorData; swap it for the real user so
   // the board can populate a name and a contact number.
   const requestDocs = requestData
-    .map(({ donorIndex, hoursAgo, ...rest }) => {
+    .map(({ donorIndex, hoursAgo, closedHoursAgo, status, ...rest }) => {
       const requester = createdDonors[donorIndex];
       if (!requester) return null;
       const when = new Date(Date.now() - hoursAgo * 3600000);
-      return { ...rest, requesterId: requester._id, createdAt: when, updatedAt: when };
+      // A closed request needs the date it closed, not just the date it was
+      // raised — the board shows both, and "fulfilled, no date" reads as a bug.
+      const closed = closedHoursAgo != null
+        ? new Date(Date.now() - closedHoursAgo * 3600000)
+        : null;
+      return {
+        ...rest,
+        status,
+        requesterId: requester._id,
+        fulfilledAt: status === 'fulfilled' ? closed : null,
+        cancelledAt: status === 'cancelled' ? closed : null,
+        createdAt: when,
+        updatedAt: closed || when,
+      };
     })
     .filter(Boolean);
   const requests = await DonationRequest.insertMany(requestDocs);
@@ -311,6 +374,7 @@ const runSeed = async () => {
     guides: guides.length,
     donations: donations.length,
     requests: requests.length,
+    appointments: appointments.length,
     support: support.length,
     certificatesIssued: donationDocs.filter((d) => d.certificateIssued).length,
     certificatesPending: donationDocs.filter((d) => !d.certificateIssued).length,

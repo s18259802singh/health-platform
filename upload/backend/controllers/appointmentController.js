@@ -4,14 +4,27 @@
 //  2) A manual check here (so we can send back a friendly error message)
 
 const Appointment = require('../models/Appointment');
+const { rules, check, fail } = require('../utils/validate');
 
 // POST /api/appointments
 const bookAppointment = async (req, res) => {
   try {
     const { doctorId, appointmentDate, appointmentTime } = req.body;
-    if (!doctorId || !appointmentDate || !appointmentTime) {
-      return res.status(400).json({ message: 'doctorId, appointmentDate and appointmentTime are required' });
+
+    const problems = check(req.body, {
+      doctorId: rules.required('A doctor'),
+      appointmentDate: rules.isoDate({ label: 'Appointment date' }),
+      appointmentTime: rules.required('A time slot'),
+    });
+    // A booking in the past is not a booking. The date arrives as YYYY-MM-DD
+    // from the form, so compare at day precision rather than to the minute.
+    if (!problems.appointmentDate) {
+      const today = new Date(); today.setHours(0, 0, 0, 0);
+      if (new Date(`${appointmentDate}T00:00:00`) < today) {
+        problems.appointmentDate = 'Choose today or a later date';
+      }
     }
+    if (Object.keys(problems).length) return fail(res, problems);
 
     const alreadyBooked = await Appointment.findOne({
       doctorId,
