@@ -1,15 +1,17 @@
 // Camp management: create, edit, cancel, and see who has registered.
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import adminApi from '../../api/adminApi';
-import { usePagination } from '../../components/Pagination';
+import DataTable from '../../components/DataTable';
+import StatusTag from '../../components/StatusTag';
+import ContactActions from '../../components/ContactActions';
+import Field from '../../components/Field';
 import Modal, { ConfirmDialog } from '../components/Modal';
 import { useToast } from '../components/Toast';
-import { Pagination,
-  PageHeader, Card, Toolbar, SearchInput, Badge, Spinner, EmptyState,
-  TableWrap, StatCard, formatDate,
-} from '../components/ui';
+import { PageHeader, Card, Spinner, TableWrap, StatCard, formatDate } from '../components/ui';
 import { IconPlus, IconEdit, IconTrash, IconUsers, IconCalendar, IconCheck } from '../components/Icons';
+import useForm from '../../lib/useForm';
+import { rules } from '../../lib/validate';
 
 const EMPTY = {
   title: '', organiser: '', venue: '', city: '', state: 'Gujarat',
@@ -17,14 +19,58 @@ const EMPTY = {
   slots: 100, contactNumber: '', description: '', status: 'upcoming',
 };
 
+// Times are stored as free text ("09:00 AM") because that is what the public
+// pages render, so they have to be parsed before they can be compared.
+// Returns minutes since midnight, or null when the text is not a time.
+const minutesOf = (v) => {
+  const m = /^(\d{1,2}):(\d{2})\s*(AM|PM)?$/.exec(String(v || '').trim().toUpperCase());
+  if (!m) return null;
+  let hours = Number(m[1]);
+  const mins = Number(m[2]);
+  if (mins > 59) return null;
+  if (m[3]) {
+    if (hours < 1 || hours > 12) return null;
+    hours = (hours % 12) + (m[3] === 'PM' ? 12 : 0);
+  } else if (hours > 23) return null;
+  return (hours * 60) + mins;
+};
+
+const timeRule = (label) => (v) => {
+  if (!String(v || '').trim()) return `${label} is required`;
+  return minutesOf(v) === null ? 'Use a time like 09:00 AM' : '';
+};
+
+// The capacity floor depends on the camp being edited, so the schema is built
+// per camp rather than declared once at module level.
+const schemaFor = (taken) => ({
+  title: rules.text({ label: 'Camp title', min: 3, max: 120 }),
+  organiser: rules.text({ label: 'Organiser', min: 2, max: 120 }),
+  venue: rules.text({ label: 'Venue', min: 3, max: 160 }),
+  city: rules.place,
+  state: rules.optional(rules.place),
+  date: rules.date({ label: 'Date' }),
+  startTime: timeRule('Start time'),
+  endTime: rules.all(timeRule('End time'), (v, all) => {
+    const from = minutesOf(all.startTime);
+    const to = minutesOf(v);
+    return from !== null && to !== null && to <= from ? 'The end time must be after the start time' : '';
+  }),
+  slots: rules.all(
+    rules.number({ label: 'Slots', min: 1, max: 2000 }),
+    // Shrinking a camp below the people already on its list would silently
+    // turn confirmed registrations into over-booking.
+    (v) => (Number(v) < taken ? `Slots cannot be fewer than the ${taken} already registered` : ''),
+  ),
+  contactNumber: rules.optional(rules.anyPhone),
+  description: rules.optional(rules.text({ label: 'Description', max: 2000 })),
+});
+
 export default function Camps() {
   const toast = useToast();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [filters, setFilters] = useState({ search: '', status: '' });
+  const [loadError, setLoadError] = useState('');
   const [editing, setEditing] = useState(null);
-  const [form, setForm] = useState(EMPTY);
-  const [saving, setSaving] = useState(false);
   const [confirm, setConfirm] = useState(null);
   const [deleting, setDeleting] = useState(false);
   const [roster, setRoster] = useState(null);
@@ -32,48 +78,56 @@ export default function Camps() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const { data } = await adminApi.get('/admin/camps', { params: filters });
-      setItems(data);
+      const { data } = await adminApi.get('/admin/camps');
+      setItems(Array.isArray(data) ? data : data.items || []);
+      setLoadError('');
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Could not load camps.');
+      const msg = err.response?.data?.message || 'Could not load camps.';
+      setLoadError(msg);
+      toast.error(msg);
     } finally {
       setLoading(false);
     }
-  }, [filters]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  useEffect(() => {
-    const t = setTimeout(load, 250);
-    return () => clearTimeout(t);
-  }, [load]);
+  useEffect(() => { load(); }, [load]);
 
-  const openNew = () => { setForm(EMPTY); setEditing('new'); };
-  const openEdit = (c) => {
-    setForm({
-      title: c.title, organiser: c.organiser, venue: c.venue, city: c.city, state: c.state || '',
-      date: c.date, startTime: c.startTime, endTime: c.endTime, slots: c.slots,
-      contactNumber: c.contactNumber || '', description: c.description || '', status: c.status,
-    });
-    setEditing(c);
-  };
+  const isNew = editing === 'new';
+  const alreadyRegistered = isNew ? 0 : (editing?.registrations?.length || 0);
+  const schema = useMemo(() => schemaFor(alreadyRegistered), [alreadyRegistered]);
 
-  const save = async (e) => {
-    e.preventDefault();
-    setSaving(true);
-    try {
-      if (editing === 'new') {
-        await adminApi.post('/admin/camps', form);
-        toast.success('Camp created.');
-      } else {
-        await adminApi.put(`/admin/camps/${editing._id}`, form);
-        toast.success('Camp updated.');
+  const form = useForm(EMPTY, schema, {
+    onSubmit: async (values) => {
+      try {
+        if (isNew) {
+          await adminApi.post('/admin/camps', values);
+          toast.success('Camp created.');
+        } else {
+          await adminApi.put(`/admin/camps/${editing._id}`, values);
+          toast.success('Camp updated.');
+        }
+      } catch (err) {
+        toast.error(err.response?.data?.message || 'Could not save the camp.');
+        throw err; // useForm puts the server's field messages back on the fields
       }
       setEditing(null);
       load();
-    } catch (err) {
-      toast.error(err.response?.data?.message || 'Could not save the camp.');
-    } finally {
-      setSaving(false);
-    }
+    },
+  });
+
+  const closeForm = () => { setEditing(null); form.reset(EMPTY); };
+
+  const openNew = () => { form.reset(EMPTY); setEditing('new'); };
+  const openEdit = (c) => {
+    form.reset({
+      title: c.title || '', organiser: c.organiser || '', venue: c.venue || '',
+      city: c.city || '', state: c.state || '',
+      date: c.date || '', startTime: c.startTime || '', endTime: c.endTime || '',
+      slots: c.slots ?? 100,
+      contactNumber: c.contactNumber || '', description: c.description || '',
+      status: c.status || 'upcoming',
+    });
+    setEditing(c);
   };
 
   const openRoster = async (c) => {
@@ -104,8 +158,7 @@ export default function Camps() {
   const upcoming = items.filter((c) => c.status === 'upcoming');
   const totalRegistered = items.reduce((a, c) => a + (c.registrations?.length || 0), 0);
 
-  // Admin tables page at 12 rows so the console stays scannable.
-  const pager = usePagination(items, 12);
+  const taken = (c) => c.registrations?.length || 0;
 
   return (
     <>
@@ -121,121 +174,191 @@ export default function Camps() {
         <StatCard icon={<IconCheck />} label="Completed" value={items.filter((c) => c.status === 'completed').length} />
       </div>
 
-      <Card>
-        <Toolbar>
-          <SearchInput value={filters.search} onChange={(v) => setFilters((f) => ({ ...f, search: v }))} placeholder="Search title, organiser or city…" />
-          <select className="adm-select" value={filters.status} onChange={(e) => setFilters((f) => ({ ...f, status: e.target.value }))}>
-            <option value="">All statuses</option>
-            <option value="upcoming">Upcoming</option>
-            <option value="completed">Completed</option>
-            <option value="cancelled">Cancelled</option>
-          </select>
-        </Toolbar>
-
-        {loading ? <Spinner /> : items.length === 0 ? (
-          <EmptyState title="No camps yet" message="Create your first camp so members can register." />
-        ) : (
-          <>
-          <TableWrap>
-            <table className="adm-table">
-              <thead>
-                <tr><th>Camp</th><th>Date</th><th>City</th><th>Registered</th><th>Status</th><th aria-label="Actions" /></tr>
-              </thead>
-              <tbody>
-                {pager.slice.map((c) => {
-                  const taken = c.registrations?.length || 0;
-                  const pct = c.slots ? Math.round((taken / c.slots) * 100) : 0;
-                  return (
-                    <tr key={c._id}>
-                      <td>
-                        <strong>{c.title}</strong>
-                        <small className="adm-block adm-muted">{c.organiser} · {c.venue}</small>
-                      </td>
-                      <td>
-                        {formatDate(`${c.date}T00:00:00`)}
-                        <small className="adm-block adm-muted">{c.startTime}–{c.endTime}</small>
-                      </td>
-                      <td>{c.city}</td>
-                      <td>
-                        <button type="button" className="adm-link" onClick={() => openRoster(c)}>
-                          {taken} / {c.slots}
-                        </button>
-                        <span className="adm-mini-bar"><span style={{ width: `${Math.min(100, pct)}%` }} /></span>
-                      </td>
-                      <td>
-                        <Badge tone={c.status === 'upcoming' ? 'good' : c.status === 'cancelled' ? 'warn' : 'neutral'}>
-                          {c.status}
-                        </Badge>
-                      </td>
-                      <td className="adm-row-actions">
-                        <button type="button" className="adm-icon-btn" title="Registrations" onClick={() => openRoster(c)}><IconUsers width={17} height={17} /></button>
-                        <button type="button" className="adm-icon-btn" title="Edit" onClick={() => openEdit(c)}><IconEdit width={17} height={17} /></button>
-                        <button type="button" className="adm-icon-btn danger" title="Delete" onClick={() => setConfirm(c)}><IconTrash width={17} height={17} /></button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </TableWrap>
-        <Pagination page={pager.page} pages={pager.pages} onChange={pager.setPage} />
-        </>
-        )}
+      <Card className="has-table">
+        <DataTable
+          caption="camps"
+          rows={items}
+          loading={loading}
+          error={loadError}
+          rowKey={(c) => c._id}
+          exportName="camps"
+          initialSort={{ key: 'date', dir: 'desc' }}
+          defaultPerPage={12}
+          searchKeys={['title', 'organiser', 'venue', 'city', 'contactNumber']}
+          searchPlaceholder="Search title, organiser, venue or city…"
+          filters={[
+            {
+              key: 'status',
+              label: 'Status',
+              options: [
+                { value: 'upcoming', label: 'Upcoming' },
+                { value: 'completed', label: 'Completed' },
+                { value: 'cancelled', label: 'Cancelled' },
+              ],
+            },
+            { key: 'city', label: 'City', options: [...new Set(items.map((c) => c.city).filter(Boolean))].sort() },
+            { key: 'organiser', label: 'Organiser', options: [...new Set(items.map((c) => c.organiser).filter(Boolean))].sort() },
+          ]}
+          empty={{ title: 'No camps match', message: 'Create a camp so members can register, or clear a filter.' }}
+          columns={[
+            {
+              key: 'title',
+              header: 'Camp',
+              render: (c) => (
+                <>
+                  <strong>{c.title}</strong>
+                  <small className="adm-block adm-muted">{c.organiser} · {c.venue}</small>
+                </>
+              ),
+              csv: (c) => [c.title, c.organiser, c.venue].filter(Boolean).join(' - '),
+            },
+            {
+              key: 'date',
+              header: 'Date',
+              width: '150px',
+              // Camp dates are stored as plain yyyy-mm-dd, so anchor them to
+              // midnight before formatting or they drift a day on some zones.
+              render: (c) => (
+                <>
+                  {formatDate(`${c.date}T00:00:00`)}
+                  <small className="adm-block adm-muted">{c.startTime}–{c.endTime}</small>
+                </>
+              ),
+              sortValue: (c) => new Date(`${c.date}T00:00:00`).getTime(),
+              csv: (c) => formatDate(`${c.date}T00:00:00`),
+            },
+            { key: 'city', header: 'City', width: '130px' },
+            {
+              key: 'registered',
+              header: 'Registered', defaultDir: 'desc',
+              width: '130px',
+              render: (c) => {
+                const pct = c.slots ? Math.round((taken(c) / c.slots) * 100) : 0;
+                return (
+                  <>
+                    <button type="button" className="adm-link" onClick={() => openRoster(c)}>
+                      {taken(c)} / {c.slots}
+                    </button>
+                    <span className="adm-mini-bar"><span style={{ width: `${Math.min(100, pct)}%` }} /></span>
+                  </>
+                );
+              },
+              // Sorted by how full the camp is, which is the question an
+              // organiser is actually asking of this column.
+              sortValue: (c) => (c.slots ? taken(c) / c.slots : 0),
+              csv: (c) => `${taken(c)} / ${c.slots}`,
+            },
+            {
+              key: 'contactNumber',
+              header: 'Contact',
+              width: '110px',
+              sortable: false,
+              render: (c) => <ContactActions size="sm" phone={c.contactNumber} name={c.organiser} />,
+              csv: (c) => c.contactNumber || '',
+            },
+            {
+              key: 'status',
+              header: 'Status',
+              width: '120px',
+              render: (c) => <StatusTag status={c.status} />,
+            },
+            {
+              key: 'actions',
+              header: '',
+              sortable: false,
+              export: false,
+              align: 'right',
+              width: '140px',
+              render: (c) => (
+                <div className="adm-row-actions">
+                  <button type="button" className="adm-icon-btn" title="Registrations" onClick={() => openRoster(c)}><IconUsers width={17} height={17} /></button>
+                  <button type="button" className="adm-icon-btn" title="Edit" onClick={() => openEdit(c)}><IconEdit width={17} height={17} /></button>
+                  <button type="button" className="adm-icon-btn danger" title="Delete" onClick={() => setConfirm(c)}><IconTrash width={17} height={17} /></button>
+                </div>
+              ),
+            },
+          ]}
+        />
       </Card>
 
       <Modal
         open={!!editing}
-        title={editing === 'new' ? 'Create a camp' : `Edit ${editing?.title || ''}`}
-        onClose={() => setEditing(null)}
+        title={isNew ? 'Create a camp' : `Edit ${editing?.title || ''}`}
+        onClose={closeForm}
         wide
         footer={(
           <>
-            <button type="button" className="adm-btn ghost" onClick={() => setEditing(null)}>Cancel</button>
-            <button type="submit" form="camp-form" className="adm-btn primary" disabled={saving}>{saving ? 'Saving…' : 'Save camp'}</button>
+            <button type="button" className="adm-btn ghost" onClick={closeForm}>Cancel</button>
+            <button type="submit" form="camp-form" className="adm-btn primary" disabled={form.busy}>{form.busy ? 'Saving…' : 'Save camp'}</button>
           </>
         )}
       >
-        <form id="camp-form" className="adm-form grid-2" onSubmit={save}>
-          <label className="adm-field span-2"><span>Camp title</span>
-            <input required value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
-          </label>
-          <label className="adm-field span-2"><span>Organiser</span>
-            <input required value={form.organiser} onChange={(e) => setForm({ ...form, organiser: e.target.value })} />
-          </label>
-          <label className="adm-field span-2"><span>Venue</span>
-            <input required value={form.venue} onChange={(e) => setForm({ ...form, venue: e.target.value })} />
-          </label>
-          <label className="adm-field"><span>City</span>
-            <input required value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} />
-          </label>
-          <label className="adm-field"><span>State</span>
-            <input value={form.state} onChange={(e) => setForm({ ...form, state: e.target.value })} />
-          </label>
-          <label className="adm-field"><span>Date</span>
-            <input type="date" required value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} />
-          </label>
-          <label className="adm-field"><span>Slots</span>
-            <input type="number" min="1" required value={form.slots} onChange={(e) => setForm({ ...form, slots: Number(e.target.value) })} />
-          </label>
-          <label className="adm-field"><span>Start time</span>
-            <input required value={form.startTime} onChange={(e) => setForm({ ...form, startTime: e.target.value })} placeholder="09:00 AM" />
-          </label>
-          <label className="adm-field"><span>End time</span>
-            <input required value={form.endTime} onChange={(e) => setForm({ ...form, endTime: e.target.value })} placeholder="04:00 PM" />
-          </label>
-          <label className="adm-field"><span>Contact number</span>
-            <input value={form.contactNumber} onChange={(e) => setForm({ ...form, contactNumber: e.target.value })} />
-          </label>
-          <label className="adm-field"><span>Status</span>
-            <select value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}>
+        {form.status.message && (
+          <p className={`form-status is-${form.status.type === 'error' ? 'error' : 'ok'}`}>
+            {form.status.message}
+          </p>
+        )}
+
+        <form id="camp-form" className="adm-form grid-2" onSubmit={form.submit} ref={form.formRef} noValidate>
+          <Field label="Camp title" htmlFor="title" required className="span-2" error={form.errorFor('title')}>
+            <input id="title" {...form.field('title')} />
+          </Field>
+
+          <Field label="Organiser" htmlFor="organiser" required className="span-2" error={form.errorFor('organiser')}>
+            <input id="organiser" {...form.field('organiser')} />
+          </Field>
+
+          <Field label="Venue" htmlFor="venue" required className="span-2" error={form.errorFor('venue')}>
+            <input id="venue" {...form.field('venue')} />
+          </Field>
+
+          <Field label="City" htmlFor="city" required error={form.errorFor('city')}>
+            <input id="city" autoComplete="address-level2" {...form.field('city')} />
+          </Field>
+
+          <Field label="State" htmlFor="state" optional error={form.errorFor('state')}>
+            <input id="state" {...form.field('state')} />
+          </Field>
+
+          <Field label="Date" htmlFor="date" required error={form.errorFor('date')}>
+            <input id="date" type="date" {...form.field('date')} />
+          </Field>
+
+          <Field label="Slots" htmlFor="slots" required error={form.errorFor('slots')}
+                 hint={alreadyRegistered > 0
+                   ? `${alreadyRegistered} ${alreadyRegistered === 1 ? 'person has' : 'people have'} already registered.`
+                   : 'How many donors the camp can take.'}>
+            <input id="slots" type="number" min="1" max="2000" step="1" inputMode="numeric"
+                   {...form.field('slots')} />
+          </Field>
+
+          <Field label="Start time" htmlFor="startTime" required error={form.errorFor('startTime')}>
+            <input id="startTime" placeholder="09:00 AM" {...form.field('startTime')} />
+          </Field>
+
+          <Field label="End time" htmlFor="endTime" required error={form.errorFor('endTime')}>
+            <input id="endTime" placeholder="04:00 PM" {...form.field('endTime')} />
+          </Field>
+
+          <Field label="Contact number" htmlFor="contactNumber" optional
+                 error={form.errorFor('contactNumber')}
+                 hint="A landline or switchboard is fine.">
+            <input id="contactNumber" inputMode="tel" {...form.field('contactNumber')} />
+          </Field>
+
+          <Field label="Status" htmlFor="status">
+            <select id="status" {...form.field('status')}>
               <option value="upcoming">Upcoming</option>
               <option value="completed">Completed</option>
               <option value="cancelled">Cancelled</option>
             </select>
-          </label>
-          <label className="adm-field span-2"><span>Description — blank line between paragraphs</span>
-            <textarea rows={6} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
-          </label>
+          </Field>
+
+          <Field label="Description" htmlFor="description" optional className="span-2"
+                 error={form.errorFor('description')}
+                 hint="Blank line between paragraphs.">
+            <textarea id="description" rows={6} maxLength={2000} {...form.field('description')} />
+          </Field>
         </form>
       </Modal>
 

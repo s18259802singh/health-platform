@@ -8,6 +8,7 @@ import api from '../api/axios';
 import Pagination, { usePagination } from '../components/Pagination';
 import { initials, avatarTint } from '../lib/people';
 import BloodGroup from '../components/BloodGroup';
+import DataTable from '../components/DataTable';
 import SearchSelect from '../components/SearchSelect';
 
 const GROUPS = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
@@ -102,31 +103,35 @@ export default function Leaderboard() {
         />
       </div>
 
-      {loading && <p className="hint">Loading the board…</p>}
-
-      {rest.length > 0 && (
-        <table className="data-table board-table">
-          <thead>
-            <tr><th>#</th><th>Donor</th><th>Group</th><th>City</th><th>Donations</th><th>Tier</th></tr>
-          </thead>
-          <tbody>
-            {rest.map((e) => (
-              <tr key={e.rank}>
-                <td className="board-rank">{e.rank}</td>
-                <td className="adm-strong">{e.name}</td>
-                <td><BloodGroup group={e.bloodGroup} /></td>
-                <td>{e.city || '—'}</td>
-                <td><strong>{e.donations}</strong></td>
-                <td><span className={`tier-badge ${e.tier.toLowerCase()}`}>{e.tier}</span></td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
-
-      {!loading && (data?.entries?.length ?? 0) === 0 && (
-        <p className="hint">No donations recorded yet for that filter.</p>
-      )}
+      <DataTable
+        caption="donors"
+        rows={rest}
+        loading={loading}
+        rowKey={(e) => e.rank}
+        exportName="donor-leaderboard"
+        initialSort={{ key: 'rank', dir: 'asc' }}
+        defaultPerPage={25}
+        searchKeys={['name', 'city']}
+        searchPlaceholder="Search the board…"
+        filters={[
+          { key: 'tier', label: 'Tier', options: [...new Set(rest.map((e) => e.tier))] },
+          { key: 'bloodGroup', label: 'Blood group', options: [...new Set(rest.map((e) => e.bloodGroup).filter(Boolean))].sort() },
+          { key: 'city', label: 'City', options: [...new Set(rest.map((e) => e.city).filter(Boolean))].sort() },
+        ]}
+        empty={{ title: 'Nothing on the board yet', message: 'No donations are recorded for that filter.' }}
+        columns={[
+          { key: 'rank', header: '#', width: '70px', align: 'center',
+            render: (e) => <span className="board-rank">{e.rank}</span> },
+          { key: 'name', header: 'Donor', render: (e) => <strong>{e.name}</strong> },
+          { key: 'bloodGroup', header: 'Group', width: '96px',
+            render: (e) => <BloodGroup group={e.bloodGroup} variant="badge" /> },
+          { key: 'city', header: 'City', width: '160px', render: (e) => e.city || '—' },
+          { key: 'donations', header: 'Donations', defaultDir: 'desc', align: 'right', width: '110px',
+            render: (e) => <strong>{e.donations}</strong> },
+          { key: 'tier', header: 'Tier', width: '120px',
+            render: (e) => <span className={`tier-badge ${e.tier.toLowerCase()}`}>{e.tier}</span> },
+        ]}
+      />
 
       {data?.tiers?.length > 0 && (
         <>

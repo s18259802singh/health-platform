@@ -7,7 +7,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import api from '../api/axios';
-import Pagination, { usePagination } from '../components/Pagination';
+import DataTable from '../components/DataTable';
+import StatusTag from '../components/StatusTag';
+import ContactActions from '../components/ContactActions';
+import PageLoader from '../components/PageLoader';
 import BloodGroup from '../components/BloodGroup';
 import SearchSelect from '../components/SearchSelect';
 
@@ -34,10 +37,8 @@ export default function Availability() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
-  const [perPage, setPerPage] = useState(15);
-
-  // The results table is long, so it pages rather than scrolling forever.
-  const pager = usePagination(data?.results || [], perPage);
+  // Paging, sorting and in-table filtering all live in DataTable now.
+  const [error, setError] = useState('');
 
   useEffect(() => {
     api.get('/availability/regions')
@@ -58,8 +59,10 @@ export default function Availability() {
       const { component, ...params } = filters;
       const { data: res } = await api.get('/availability', { params });
       setData(res);
-    } catch {
+      setError('');
+    } catch (err) {
       setData({ results: [], count: 0, withStock: 0, totalUnits: 0 });
+      setError(err.response?.data?.message || 'Could not reach the directory just now. Check your connection and try again.');
     } finally {
       setLoading(false);
     }
@@ -197,83 +200,109 @@ export default function Availability() {
         </div>
       )}
 
-      {loading && <p className="hint">Searching the directory…</p>}
-
-      {!loading && data && data.results.length === 0 && searched && (
-        <div className="portal-empty">
-          <strong>No centres match that search</strong>
-          <p>Try widening the region, or clearing the blood group filter to see the full directory.</p>
-        </div>
-      )}
-
-      {!loading && data && data.results.length > 0 && (
-        <div className="portal-table-wrap">
-          <table className="portal-table">
-            <thead>
-              <tr>
-                <th>#</th>
-                <th>Blood centre</th>
-                <th>District</th>
-                <th>Type</th>
-                <th>{filters.bloodGroup ? `${filters.bloodGroup} units` : 'Total units'}</th>
-                <th>Status</th>
-                <th>Contact</th>
-                <th aria-label="Directions" />
-              </tr>
-            </thead>
-            <tbody>
-              {pager.slice.map((r, i) => (
-                <tr key={r._id}>
-                  <td className="portal-num">{pager.from + i}</td>
-                  <td>
-                    <strong>{r.name}</strong>
-                    <small>{r.address}</small>
-                    {!filters.bloodGroup && r.breakdown?.length > 0 && (
-                      <div className="portal-breakdown">
-                        {r.breakdown.filter((b) => b.units > 0).map((b) => (
-                          <span key={b.bloodGroup}><BloodGroup group={b.bloodGroup} variant="bare" />{b.units}</span>
-                        ))}
-                      </div>
-                    )}
-                  </td>
-                  <td>{r.district || '—'}</td>
-                  <td>{r.type === 'blood_bank' ? 'Blood bank' : 'Hospital'}</td>
-                  <td className="portal-units">{r.units}</td>
-                  <td><span className={`portal-status ${r.availability}`}>{LABEL[r.availability]}</span></td>
-                  <td>
-                    {r.contactNumber && r.contactNumber !== 'N/A'
-                      ? <a href={`tel:${r.contactNumber}`}>{r.contactNumber}</a>
-                      : <span className="hint">Not listed</span>}
-                  </td>
-                  <td>
-                    <a
-                      className="small-button"
-                      target="_blank" rel="noopener noreferrer"
-                      href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(r.address)}`}
-                    >
-                      Map
-                    </a>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-
-      {!loading && data && data.results.length > 0 && (
-        <div className="pager-bar">
-          <label className="per-page">
-            <span>Rows</span>
-            <SearchSelect
-              value={String(perPage)}
-              onChange={(e) => setPerPage(Number(e.target.value))}
-              options={[10, 15, 25, 50].map((n) => ({ value: String(n), label: String(n) }))}
-            />
-          </label>
-          <Pagination {...pager} onChange={pager.setPage} label="blood centres" />
-        </div>
-      )}
+      {/* One table, the same component the rest of the site uses, so sorting,
+          the filter button, paging and CSV export all behave identically
+          here. The form above still drives the server-side region query; the
+          table's own filters narrow what came back. */}
+      <DataTable
+        caption="blood centres"
+        rows={data?.results || []}
+        loading={loading}
+        error={error}
+        rowKey={(r) => r._id}
+        exportName="blood-availability"
+        initialSort={{ key: 'units', dir: 'desc' }}
+        defaultPerPage={15}
+        perPageOptions={[10, 15, 25, 50, 100]}
+        searchKeys={['name', 'address', 'district', 'city']}
+        searchPlaceholder="Search within these results…"
+        filters={[
+          {
+            key: 'availability',
+            label: 'Stock level',
+            options: [
+              { value: 'in_stock', label: 'In stock' },
+              { value: 'low', label: 'Low stock' },
+              { value: 'out', label: 'Out of stock' },
+            ],
+          },
+          {
+            key: 'type',
+            label: 'Centre type',
+            options: [
+              { value: 'blood_bank', label: 'Blood banks' },
+              { value: 'hospital', label: 'Hospitals' },
+            ],
+          },
+          {
+            key: 'district',
+            label: 'District',
+            options: [...new Set((data?.results || []).map((r) => r.district).filter(Boolean))].sort(),
+          },
+        ]}
+        empty={{
+          title: searched ? 'No centres match that search' : 'Choose a region to begin',
+          message: searched
+            ? 'Try widening the region, or clearing the blood group filter to see the full directory.'
+            : 'Pick a state above, or search by name to see the whole directory.',
+        }}
+        columns={[
+          {
+            key: 'name',
+            header: 'Blood centre',
+            render: (r) => (
+              <>
+                <strong>{r.name}</strong>
+                <br /><small className="muted-note">{r.address}</small>
+                {!filters.bloodGroup && r.breakdown?.length > 0 && (
+                  <div className="portal-breakdown">
+                    {r.breakdown.filter((b) => b.units > 0).map((b) => (
+                      <span key={b.bloodGroup}><BloodGroup group={b.bloodGroup} variant="bare" />{b.units}</span>
+                    ))}
+                  </div>
+                )}
+              </>
+            ),
+            csv: (r) => r.name,
+          },
+          { key: 'district', header: 'District', width: '150px',
+            render: (r) => r.district || '—' },
+          { key: 'type', header: 'Type', width: '120px',
+            render: (r) => (r.type === 'blood_bank' ? 'Blood bank' : 'Hospital') },
+          {
+            key: 'units',
+            header: filters.bloodGroup ? `${filters.bloodGroup} units` : 'Total units',
+            defaultDir: 'desc',
+            align: 'right',
+            width: '110px',
+            render: (r) => <strong className="portal-units">{r.units}</strong>,
+          },
+          {
+            key: 'availability',
+            header: 'Status',
+            width: '130px',
+            render: (r) => (
+              <StatusTag
+                label={LABEL[r.availability]}
+                tone={r.availability === 'in_stock' ? 'good' : r.availability === 'low' ? 'warn' : 'dead'}
+              />
+            ),
+            sortValue: (r) => ({ in_stock: 0, low: 1, out: 2 }[r.availability] ?? 3),
+          },
+          {
+            key: 'contactNumber',
+            header: 'Contact',
+            sortable: false,
+            width: '120px',
+            render: (r) => (
+              <ContactActions size="sm" name={r.name}
+                              phone={r.contactNumber && r.contactNumber !== 'N/A' ? r.contactNumber : ''}
+                              address={r.address} />
+            ),
+            csv: (r) => (r.contactNumber === 'N/A' ? '' : r.contactNumber),
+          },
+        ]}
+      />
 
       <p className="portal-note">
         Stock levels are recorded by each centre and can change within minutes.

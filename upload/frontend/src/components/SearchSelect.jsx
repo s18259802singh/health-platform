@@ -10,6 +10,17 @@
 // Accessibility: the listbox is wired with aria-activedescendant rather than
 // moving focus, which keeps the typed query in the input where screen readers
 // expect it.
+//
+// ONE THING TO KNOW BEFORE EDITING THIS FILE
+// Every page wraps this control in a <label>. A click anywhere inside a
+// <label> is forwarded by the browser to that label's control - here, the
+// trigger button. So a click on an option used to fire twice: once to choose
+// and close, and once more on the trigger, which re-opened the panel. The
+// value changed but the list never shut, which read as "the dropdown does not
+// close and the selection does not work".
+//
+// Every click inside the panel therefore stops propagating. Do not remove
+// those stopPropagation calls without wrapping the control differently.
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 
@@ -36,6 +47,7 @@ export default function SearchSelect({
   const rootRef = useRef(null);
   const inputRef = useRef(null);
   const listRef = useRef(null);
+  const triggerRef = useRef(null);
 
   const selected = items.find((o) => o.value === value);
   const showSearch = items.length >= searchThreshold;
@@ -79,6 +91,9 @@ export default function SearchSelect({
   const pick = (opt) => {
     onChange?.({ target: { value: opt.value } });
     setOpen(false);
+    // Return focus to the trigger so the keyboard does not fall back to the
+    // top of the page after choosing with the mouse.
+    requestAnimationFrame(() => triggerRef.current?.focus());
   };
 
   const onKeyDown = (e) => {
@@ -88,8 +103,8 @@ export default function SearchSelect({
     if (!open) return;
     if (e.key === 'ArrowDown') { e.preventDefault(); setCursor((c) => Math.min(shown.length - 1, c + 1)); }
     else if (e.key === 'ArrowUp') { e.preventDefault(); setCursor((c) => Math.max(0, c - 1)); }
-    else if (e.key === 'Home') { e.preventDefault(); setCursor(0); }
-    else if (e.key === 'End') { e.preventDefault(); setCursor(shown.length - 1); }
+    else if (e.key === 'Home' && e.target !== inputRef.current) { e.preventDefault(); setCursor(0); }
+    else if (e.key === 'End' && e.target !== inputRef.current) { e.preventDefault(); setCursor(shown.length - 1); }
     else if (e.key === 'Enter') { e.preventDefault(); if (shown[cursor]) pick(shown[cursor]); }
     else if (e.key === 'Escape') { e.preventDefault(); setOpen(false); }
     else if (e.key === 'Tab') setOpen(false);
@@ -111,7 +126,8 @@ export default function SearchSelect({
         aria-haspopup="listbox"
         aria-expanded={open}
         aria-controls={listId}
-        onClick={() => setOpen((v) => !v)}
+        ref={triggerRef}
+        onClick={(e) => { e.preventDefault(); e.stopPropagation(); setOpen((v) => !v); }}
       >
         <span className={selected && selected.value !== '' ? 'ss-value' : 'ss-value ss-placeholder'}>
           {selected ? selected.label : placeholder}
@@ -123,7 +139,12 @@ export default function SearchSelect({
       </button>
 
       {open && (
-        <div className="ss-panel">
+        <div
+          className="ss-panel"
+          role="presentation"
+          onMouseDown={(e) => e.stopPropagation()}
+          onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
+        >
           {showSearch && (
             <div className="ss-search">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -140,7 +161,9 @@ export default function SearchSelect({
                 aria-activedescendant={shown[cursor] ? `${id || 'ss'}-opt-${cursor}` : undefined}
               />
               {query && (
-                <button type="button" className="ss-clear" onClick={() => setQuery('')} aria-label="Clear search">×</button>
+                <button type="button" className="ss-clear"
+                      onClick={(e) => { e.preventDefault(); e.stopPropagation(); setQuery(''); inputRef.current?.focus(); }}
+                      aria-label="Clear search">×</button>
               )}
             </div>
           )}
@@ -156,7 +179,8 @@ export default function SearchSelect({
                 data-on={i === cursor ? '1' : '0'}
                 className={`ss-opt ${i === cursor ? 'on' : ''} ${o.value === value ? 'sel' : ''}`}
                 onMouseEnter={() => setCursor(i)}
-                onClick={() => pick(o)}
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={(e) => { e.preventDefault(); e.stopPropagation(); pick(o); }}
               >
                 {o.label}
               </li>

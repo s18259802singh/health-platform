@@ -15,10 +15,14 @@ import api from '../api/axios';
 import CompatibilityChecker from '../components/CompatibilityChecker';
 import BloodGroup from '../components/BloodGroup';
 import SearchSelect from '../components/SearchSelect';
+import DataTable from '../components/DataTable';
+import ContactActions from '../components/ContactActions';
+import { useAuth } from '../context/AuthContext';
 
 const BLOOD_GROUPS = ['', 'A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
 
 export default function DonorSearch() {
+  const { user } = useAuth();
   // The dashboard map links straight here with ?location=<city>, so the
   // search opens already filtered instead of making the member retype the
   // place they just clicked.
@@ -95,26 +99,54 @@ export default function DonorSearch() {
         </p>
       )}
 
-      {loading && <p>Searching...</p>}
-
-      <table className="data-table">
-        <thead>
-          <tr><th>Name</th><th>Blood Group</th><th>Phone</th><th>Location</th></tr>
-        </thead>
-        <tbody>
-          {donors.map((d) => (
-            <tr key={d._id}>
-              <td>{d.name}</td>
-              <td><BloodGroup group={d.bloodGroup} /></td>
-              <td>{d.phone}</td>
-              <td>{d.location}</td>
-            </tr>
-          ))}
-          {!loading && donors.length === 0 && (
-            <tr><td colSpan={4}>No donors found matching your search.</td></tr>
-          )}
-        </tbody>
-      </table>
+      <DataTable
+        caption="donors"
+        rows={donors}
+        loading={loading}
+        rowKey={(d) => d._id}
+        exportName="donors"
+        initialSort={{ key: 'name', dir: 'asc' }}
+        defaultPerPage={25}
+        searchKeys={['name', 'location', 'bloodGroup']}
+        searchPlaceholder="Search this list by name or town…"
+        filters={[
+          { key: 'bloodGroup', label: 'Blood group', options: BLOOD_GROUPS.filter(Boolean) },
+          {
+            key: 'location',
+            label: 'Town',
+            options: [...new Set(donors.map((d) => d.location).filter(Boolean))].sort(),
+          },
+        ]}
+        empty={{
+          title: 'No donors match that search',
+          message: 'Try a different town, or widen the blood group with the compatibility checker above.',
+        }}
+        columns={[
+          { key: 'name', header: 'Donor', render: (d) => <strong>{d.name}</strong> },
+          {
+            key: 'bloodGroup',
+            header: 'Group',
+            width: '100px',
+            render: (d) => <BloodGroup group={d.bloodGroup} variant="badge" />,
+          },
+          { key: 'location', header: 'Town', width: '180px', render: (d) => d.location || '—' },
+          {
+            key: 'contact',
+            header: 'Contact',
+            sortable: false,
+            width: '140px',
+            render: (d) => (
+              <ContactActions
+                size="sm" phone={d.phone} name={d.name}
+                locked={!user}
+                lockedHint="Sign in to see numbers"
+                message={`Hello ${d.name}, I found you on the LifeLink donor register. Would you be able to donate ${d.bloodGroup} blood?`}
+              />
+            ),
+            csv: (d) => d.phone || '',
+          },
+        ]}
+      />
     </div>
   );
 }

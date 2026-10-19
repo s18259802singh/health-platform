@@ -9,6 +9,7 @@
 // ============================================================================
 
 import { lazy, Suspense } from 'react';
+import PageLoader from './components/PageLoader';
 import { BrowserRouter, HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { DEMO } from './api/axios';
 
@@ -67,8 +68,11 @@ const AdminSupport = lazy(() => import('./admin/pages/Support'));
 
 // Shown for the moment a route's code is in flight. Deliberately quiet: a
 // spinner that flashes for 80ms is worse than a blank space.
+// A whole-page loader rather than a thin bar at the top. A route change
+// swaps the entire body, so half a rendered page with an empty middle is
+// what the thin bar produced, and it read as a stall rather than a load.
 function RouteFallback() {
-  return <div className="route-loading" role="status" aria-live="polite"><span /></div>;
+  return <PageLoader label="Loading" />;
 }
 
 export default function App() {

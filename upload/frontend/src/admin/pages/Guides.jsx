@@ -2,11 +2,14 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import adminApi from '../../api/adminApi';
-import { usePagination } from '../../components/Pagination';
+import DataTable from '../../components/DataTable';
+import Field from '../../components/Field';
 import Modal, { ConfirmDialog } from '../components/Modal';
 import { useToast } from '../components/Toast';
-import { Pagination, PageHeader, Card, Toolbar, Badge, Spinner, EmptyState, TableWrap } from '../components/ui';
+import { PageHeader, Card, Badge } from '../components/ui';
 import { IconPlus, IconEdit, IconTrash, IconExternal } from '../components/Icons';
+import useForm from '../../lib/useForm';
+import { rules } from '../../lib/validate';
 
 const CATEGORIES = [
   { value: 'education', label: 'Donor education' },
@@ -18,58 +21,72 @@ const CATEGORIES = [
 
 const EMPTY = { category: 'education', title: '', summary: '', body: '', readMinutes: 3, order: 1 };
 
+// Order positions a guide within its category, so zero and negatives would
+// put it nowhere the public hub can show it.
+const schema = {
+  title: rules.text({ label: 'Title', min: 4, max: 120 }),
+  summary: rules.text({ label: 'Summary', min: 10, max: 200 }),
+  body: rules.text({ label: 'Guide body', min: 60, max: 8000 }),
+  readMinutes: rules.number({ label: 'Read time', min: 1, max: 60 }),
+  order: rules.number({ label: 'Order', min: 1, max: 99 }),
+};
+
 export default function Guides() {
   const toast = useToast();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [category, setCategory] = useState('');
+  const [loadError, setLoadError] = useState('');
   const [editing, setEditing] = useState(null);
-  const [form, setForm] = useState(EMPTY);
-  const [saving, setSaving] = useState(false);
   const [confirm, setConfirm] = useState(null);
   const [deleting, setDeleting] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const { data } = await adminApi.get('/admin/guides', { params: { category } });
-      setItems(data);
+      const { data } = await adminApi.get('/admin/guides');
+      setItems(Array.isArray(data) ? data : data.items || []);
+      setLoadError('');
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Could not load guides.');
+      const msg = err.response?.data?.message || 'Could not load guides.';
+      setLoadError(msg);
+      toast.error(msg);
     } finally {
       setLoading(false);
     }
-  }, [category]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => { load(); }, [load]);
 
-  const openNew = () => { setForm({ ...EMPTY, order: items.length + 1 }); setEditing('new'); };
-  const openEdit = (g) => {
-    setForm({
-      category: g.category, title: g.title, summary: g.summary,
-      body: g.body, readMinutes: g.readMinutes, order: g.order,
-    });
-    setEditing(g);
-  };
+  const isNew = editing === 'new';
 
-  const save = async (e) => {
-    e.preventDefault();
-    setSaving(true);
-    try {
-      if (editing === 'new') {
-        await adminApi.post('/admin/guides', form);
-        toast.success('Guide published.');
-      } else {
-        await adminApi.put(`/admin/guides/${editing._id}`, form);
-        toast.success('Guide updated.');
+  const form = useForm(EMPTY, schema, {
+    onSubmit: async (values) => {
+      try {
+        if (isNew) {
+          await adminApi.post('/admin/guides', values);
+          toast.success('Guide published.');
+        } else {
+          await adminApi.put(`/admin/guides/${editing._id}`, values);
+          toast.success('Guide updated.');
+        }
+      } catch (err) {
+        toast.error(err.response?.data?.message || 'Could not save.');
+        throw err; // useForm puts the server's field messages back on the fields
       }
       setEditing(null);
       load();
-    } catch (err) {
-      toast.error(err.response?.data?.message || 'Could not save.');
-    } finally {
-      setSaving(false);
-    }
+    },
+  });
+
+  const closeForm = () => { setEditing(null); form.reset(EMPTY); };
+
+  const openNew = () => { form.reset({ ...EMPTY, order: items.length + 1 }); setEditing('new'); };
+  const openEdit = (g) => {
+    form.reset({
+      category: g.category || 'education', title: g.title || '', summary: g.summary || '',
+      body: g.body || '', readMinutes: g.readMinutes ?? 3, order: g.order ?? 1,
+    });
+    setEditing(g);
   };
 
   const remove = async () => {
@@ -88,89 +105,142 @@ export default function Guides() {
 
   const label = (v) => CATEGORIES.find((c) => c.value === v)?.label || v;
 
-  // Admin tables page at 12 rows so the console stays scannable.
-  const pager = usePagination(items, 12);
-
   return (
     <>
       <PageHeader title="Guide library" subtitle={`${items.length} guide${items.length === 1 ? '' : 's'} across five categories.`}>
         <button type="button" className="adm-btn primary" onClick={openNew}><IconPlus width={16} height={16} /> Write guide</button>
       </PageHeader>
 
-      <Card>
-        <Toolbar>
-          <select className="adm-select" value={category} onChange={(e) => setCategory(e.target.value)}>
-            <option value="">All categories</option>
-            {CATEGORIES.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
-          </select>
-        </Toolbar>
-
-        {loading ? <Spinner /> : items.length === 0 ? (
-          <EmptyState title="No guides here" message="Add a guide to this category." />
-        ) : (
-          <>
-          <TableWrap>
-            <table className="adm-table">
-              <thead><tr><th>Order</th><th>Guide</th><th>Category</th><th>Read time</th><th aria-label="Actions" /></tr></thead>
-              <tbody>
-                {pager.slice.map((g) => (
-                  <tr key={g._id}>
-                    <td className="adm-muted">{g.order}</td>
-                    <td>
-                      <strong>{g.title}</strong>
-                      <small className="adm-block adm-muted">{g.summary}</small>
-                    </td>
-                    <td><Badge>{label(g.category)}</Badge></td>
-                    <td>{g.readMinutes} min</td>
-                    <td className="adm-row-actions">
-                      <a className="adm-icon-btn" href={`/guides/${g._id}`} target="_blank" rel="noreferrer" title="View on site"><IconExternal width={17} height={17} /></a>
-                      <button type="button" className="adm-icon-btn" title="Edit" onClick={() => openEdit(g)}><IconEdit width={17} height={17} /></button>
-                      <button type="button" className="adm-icon-btn danger" title="Delete" onClick={() => setConfirm(g)}><IconTrash width={17} height={17} /></button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </TableWrap>
-        <Pagination page={pager.page} pages={pager.pages} onChange={pager.setPage} />
-        </>
-        )}
+      <Card className="has-table">
+        <DataTable
+          caption="guides"
+          rows={items}
+          loading={loading}
+          error={loadError}
+          rowKey={(g) => g._id}
+          exportName="donor-guides"
+          initialSort={{ key: 'order', dir: 'asc' }}
+          defaultPerPage={12}
+          searchKeys={['title', 'summary']}
+          searchPlaceholder="Search by title or summary…"
+          filters={[
+            { key: 'category', label: 'Category', options: CATEGORIES },
+            {
+              key: 'readMinutes',
+              label: 'Read time',
+              options: [
+                { value: 'short', label: 'Under 5 minutes' },
+                { value: 'long', label: '5 minutes or more' },
+              ],
+              match: (g, v) => (v === 'short' ? (g.readMinutes || 0) < 5 : (g.readMinutes || 0) >= 5),
+            },
+          ]}
+          empty={{ title: 'No guides match', message: 'Add a guide, or clear a filter to see the rest of the library.' }}
+          columns={[
+            {
+              key: 'order',
+              header: 'Order',
+              width: '80px',
+              render: (g) => <span className="adm-muted">{g.order}</span>,
+            },
+            {
+              key: 'title',
+              header: 'Guide',
+              render: (g) => (
+                <>
+                  <strong>{g.title}</strong>
+                  <small className="adm-block adm-muted">{g.summary}</small>
+                </>
+              ),
+              csv: (g) => [g.title, g.summary].filter(Boolean).join(' - '),
+            },
+            {
+              key: 'category',
+              header: 'Category',
+              width: '170px',
+              render: (g) => <Badge>{label(g.category)}</Badge>,
+              csv: (g) => label(g.category),
+            },
+            {
+              key: 'readMinutes',
+              header: 'Read time', defaultDir: 'desc',
+              width: '110px',
+              render: (g) => `${g.readMinutes} min`,
+              csv: (g) => `${g.readMinutes} min`,
+            },
+            {
+              key: 'actions',
+              header: '',
+              sortable: false,
+              export: false,
+              align: 'right',
+              width: '140px',
+              render: (g) => (
+                <div className="adm-row-actions">
+                  <a className="adm-icon-btn" href={`/guides/${g._id}`} target="_blank" rel="noreferrer" title="View on site"><IconExternal width={17} height={17} /></a>
+                  <button type="button" className="adm-icon-btn" title="Edit" onClick={() => openEdit(g)}><IconEdit width={17} height={17} /></button>
+                  <button type="button" className="adm-icon-btn danger" title="Delete" onClick={() => setConfirm(g)}><IconTrash width={17} height={17} /></button>
+                </div>
+              ),
+            },
+          ]}
+        />
       </Card>
 
       <Modal
         open={!!editing}
-        title={editing === 'new' ? 'Write a guide' : 'Edit guide'}
+        title={isNew ? 'Write a guide' : 'Edit guide'}
         subtitle="Plain English. Blank line between paragraphs."
-        onClose={() => setEditing(null)}
+        onClose={closeForm}
         wide
         footer={(
           <>
-            <button type="button" className="adm-btn ghost" onClick={() => setEditing(null)}>Cancel</button>
-            <button type="submit" form="guide-form" className="adm-btn primary" disabled={saving}>{saving ? 'Saving…' : 'Publish'}</button>
+            <button type="button" className="adm-btn ghost" onClick={closeForm}>Cancel</button>
+            <button type="submit" form="guide-form" className="adm-btn primary" disabled={form.busy}>{form.busy ? 'Saving…' : 'Publish'}</button>
           </>
         )}
       >
-        <form id="guide-form" className="adm-form grid-2" onSubmit={save}>
-          <label className="adm-field"><span>Category</span>
-            <select value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}>
+        {form.status.message && (
+          <p className={`form-status is-${form.status.type === 'error' ? 'error' : 'ok'}`}>
+            {form.status.message}
+          </p>
+        )}
+
+        <form id="guide-form" className="adm-form grid-2" onSubmit={form.submit} ref={form.formRef} noValidate>
+          <Field label="Category" htmlFor="category">
+            <select id="category" {...form.field('category')}>
               {CATEGORIES.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
             </select>
-          </label>
-          <label className="adm-field"><span>Order within category</span>
-            <input type="number" min="1" value={form.order} onChange={(e) => setForm({ ...form, order: Number(e.target.value) })} />
-          </label>
-          <label className="adm-field span-2"><span>Title</span>
-            <input required value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
-          </label>
-          <label className="adm-field span-2"><span>One-line summary</span>
-            <input required value={form.summary} onChange={(e) => setForm({ ...form, summary: e.target.value })} />
-          </label>
-          <label className="adm-field"><span>Read time (minutes)</span>
-            <input type="number" min="1" value={form.readMinutes} onChange={(e) => setForm({ ...form, readMinutes: Number(e.target.value) })} />
-          </label>
-          <label className="adm-field span-2"><span>Guide body</span>
-            <textarea required rows={14} value={form.body} onChange={(e) => setForm({ ...form, body: e.target.value })} />
-          </label>
+          </Field>
+
+          <Field label="Order within category" htmlFor="order" required
+                 error={form.errorFor('order')}
+                 hint="1 shows first in its category.">
+            <input id="order" type="number" min="1" max="99" step="1" inputMode="numeric"
+                   {...form.field('order')} />
+          </Field>
+
+          <Field label="Title" htmlFor="title" required className="span-2" error={form.errorFor('title')}>
+            <input id="title" {...form.field('title')} />
+          </Field>
+
+          <Field label="One-line summary" htmlFor="summary" required className="span-2"
+                 error={form.errorFor('summary')}
+                 hint="Shown under the title in the library list.">
+            <input id="summary" {...form.field('summary')} />
+          </Field>
+
+          <Field label="Read time (minutes)" htmlFor="readMinutes" required
+                 error={form.errorFor('readMinutes')}>
+            <input id="readMinutes" type="number" min="1" max="60" step="1" inputMode="numeric"
+                   {...form.field('readMinutes')} />
+          </Field>
+
+          <Field label="Guide body" htmlFor="body" required className="span-2"
+                 error={form.errorFor('body')}
+                 hint={`${String(form.values.body || '').length}/8000 characters`}>
+            <textarea id="body" rows={14} maxLength={8000} {...form.field('body')} />
+          </Field>
         </form>
       </Modal>
 

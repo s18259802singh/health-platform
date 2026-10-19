@@ -1,151 +1,381 @@
-// Blood donation requests - the "donationrequests" collection from the DB design.
-// Any logged-in user can post a request ("I need B+ in Surat").
-// Everyone logged in sees the list with the requester's phone number,
-// so a willing donor can call directly. The requester can mark it fulfilled.
+// BLOOD REQUESTS BOARD
 //
-// NEW: one-tap Call / WhatsApp links on every request (so reaching a
-// requester takes one tap, not a manual copy-paste of their number), plus
-// a Share button that opens WhatsApp with the request already written out -
-// built for how blood requests actually spread in India, through WhatsApp
-// family and neighbourhood groups.
+// Somebody says what they need and where; everybody signed in can see it and
+// ring them. The requester closes their own request when it is answered.
+//
+// This page was the weakest on the site: a bare table with no sorting, no
+// filtering beyond blood group, text links where icons belong, a form that
+// checked nothing, and a single date column. It is now the standard data
+// table used everywhere else, with the request date and the date it was
+// answered both shown, because "raised 9 days ago, still pending" is the
+// thing a board like this exists to make obvious.
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import api from '../api/axios';
 import { useAuth } from '../context/AuthContext';
 import BloodGroup from '../components/BloodGroup';
+import DataTable from '../components/DataTable';
+import StatusTag from '../components/StatusTag';
+import ContactActions from '../components/ContactActions';
 import SearchSelect from '../components/SearchSelect';
+import Field from '../components/Field';
+import PageLoader from '../components/PageLoader';
+import useForm from '../lib/useForm';
+import { rules, BLOOD_GROUPS } from '../lib/validate';
 
-const BLOOD_GROUPS = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
+const URGENCY = [
+  { value: 'routine', label: 'Planned — within a week' },
+  { value: 'urgent', label: 'Urgent — within 48 hours' },
+  { value: 'critical', label: 'Critical — today' },
+];
+const URGENCY_LABEL = Object.fromEntries(URGENCY.map((u) => [u.value, u.label.split(' —')[0]]));
 
-// Best-effort E.164-ish formatting for wa.me links: strip everything but
-// digits, and assume a bare 10-digit number is Indian (+91) since that's
-// the format this app's own seed data uses.
-function toWhatsAppNumber(phone) {
-  const digits = (phone || '').replace(/\D/g, '');
-  if (digits.length === 10) return `91${digits}`;
-  return digits;
-}
+const dmy = (v) => (v ? new Date(v).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '');
+
+// "9 days ago" is what tells you a request has gone stale; a date alone does not.
+const ago = (v) => {
+  if (!v) return '';
+  const mins = Math.round((Date.now() - new Date(v).getTime()) / 60000);
+  if (mins < 60) return `${Math.max(1, mins)} min ago`;
+  if (mins < 1440) return `${Math.round(mins / 60)} h ago`;
+  const days = Math.round(mins / 1440);
+  return days === 1 ? 'yesterday' : `${days} days ago`;
+};
+
+const schema = {
+  bloodGroupNeeded: rules.bloodGroup,
+  location: rules.place,
+  unitsNeeded: rules.number({ label: 'Units', min: 1, max: 20 }),
+  hospital: rules.optional(rules.text({ label: 'Hospital', max: 120 })),
+  note: rules.optional(rules.text({ label: 'Note', max: 300 })),
+};
 
 export default function DonationRequests() {
   const { user } = useAuth();
   const [requests, setRequests] = useState([]);
-  const [filterGroup, setFilterGroup] = useState('');
-  const [form, setForm] = useState({ bloodGroupNeeded: 'A+', location: '' });
-  const [message, setMessage] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
+  const [busyId, setBusyId] = useState(null);
+  const [posted, setPosted] = useState('');
 
-  const loadRequests = () => {
-    const params = filterGroup ? { bloodGroup: filterGroup } : {};
-    api.get('/donation-requests', { params }).then((res) => setRequests(res.data));
-  };
-
-  useEffect(loadRequests, [filterGroup]);
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setMessage('');
+  const load = useCallback(async () => {
     try {
-      await api.post('/donation-requests', form);
-      setMessage('Your request has been posted. Donors can now see it and contact you.');
-      setForm({ bloodGroupNeeded: 'A+', location: '' });
-      loadRequests();
+      const { data } = await api.get('/donation-requests');
+      setRequests(Array.isArray(data) ? data : []);
+      setLoadError('');
     } catch (err) {
-      setMessage(err.response?.data?.message || 'Could not post the request.');
+      setLoadError(err.response?.data?.message || 'Could not load the requests board.');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  const form = useForm(
+    { bloodGroupNeeded: '', location: '', unitsNeeded: 1, hospital: '', note: '', urgency: 'urgent' },
+    schema,
+    {
+      onSubmit: async (values) => {
+        await api.post('/donation-requests', values);
+        setPosted('Your request is on the board. Donors signed in can see it and call you.');
+        form.reset();
+        await load();
+      },
+    },
+  );
+
+  const close = async (row, how) => {
+    setBusyId(row._id);
+    try {
+      await api.put(`/donation-requests/${row._id}/${how}`);
+      await load();
+    } catch {
+      setLoadError('Could not update that request. Try again.');
+    } finally {
+      setBusyId(null);
     }
   };
 
-  const handleFulfil = async (id) => {
-    await api.put(`/donation-requests/${id}/fulfil`);
-    loadRequests();
-  };
+  const mine = (row) => row.requesterId?._id === user?.id;
 
-  const shareText = (r) =>
-    `🩸 Blood needed: ${r.bloodGroupNeeded} in ${r.location}. If you can help, contact ${r.requesterId?.name} at ${r.requesterId?.phone}. Shared via LifeLink.`;
+  // Seven columns, not ten. Units rides with the group, the contact icons sit
+  // with the name they belong to, and urgency sits under the status — the
+  // earlier split pushed Status and the actions off the right-hand edge.
+  const columns = useMemo(() => [
+    {
+      key: 'bloodGroupNeeded',
+      header: 'Needed',
+      width: '110px',
+      render: (r) => (
+        <div className="req-need">
+          <BloodGroup group={r.bloodGroupNeeded} variant="badge" />
+          <small>{r.unitsNeeded || 1} {(r.unitsNeeded || 1) === 1 ? 'unit' : 'units'}</small>
+        </div>
+      ),
+      csv: (r) => `${r.bloodGroupNeeded} x${r.unitsNeeded || 1}`,
+    },
+    {
+      key: 'location',
+      header: 'Where',
+      render: (r) => (
+        <>
+          <strong>{r.location}</strong>
+          {r.hospital && <><br /><small className="muted-note">{r.hospital}</small></>}
+        </>
+      ),
+      csv: (r) => [r.location, r.hospital].filter(Boolean).join(' - '),
+    },
+    {
+      key: 'requesterId.name',
+      header: 'Raised by',
+      render: (r) => (
+        <div className="req-who">
+          <span>{r.requesterId?.name || 'Member'}</span>
+          <ContactActions
+            size="sm"
+            phone={r.requesterId?.phone}
+            name={r.requesterId?.name}
+            locked={!user}
+            lockedHint="Sign in to contact"
+            message={`Hello, I saw your LifeLink request for ${r.unitsNeeded || 1} unit(s) of ${r.bloodGroupNeeded} in ${r.location}. I may be able to help.`}
+          />
+        </div>
+      ),
+      csv: (r) => `${r.requesterId?.name || ''} ${r.requesterId?.phone || ''}`.trim(),
+    },
+    {
+      key: 'createdAt',
+      header: 'Requested',
+      defaultDir: 'desc',
+      width: '120px',
+      render: (r) => (
+        <>
+          {dmy(r.createdAt)}
+          <br /><small className="muted-note">{ago(r.createdAt)}</small>
+        </>
+      ),
+      sortValue: (r) => new Date(r.createdAt).getTime(),
+      csv: (r) => dmy(r.createdAt),
+    },
+    {
+      key: 'fulfilledAt',
+      header: 'Closed',
+      width: '120px',
+      render: (r) => {
+        const when = r.fulfilledAt || r.cancelledAt;
+        if (!when) return <span className="muted-note">Still open</span>;
+        return (
+          <>
+            {dmy(when)}
+            <br /><small className="muted-note">{r.fulfilledAt ? 'fulfilled' : 'cancelled'}</small>
+          </>
+        );
+      },
+      sortValue: (r) => (r.fulfilledAt || r.cancelledAt ? new Date(r.fulfilledAt || r.cancelledAt).getTime() : null),
+      csv: (r) => dmy(r.fulfilledAt || r.cancelledAt),
+    },
+    {
+      key: 'status',
+      header: 'Status',
+      width: '132px',
+      render: (r) => (
+        <div className="req-status">
+          <StatusTag status={r.status} />
+          {r.status === 'pending' && (
+            <StatusTag
+              size="sm"
+              label={URGENCY_LABEL[r.urgency] || 'Urgent'}
+              tone={r.urgency === 'critical' ? 'bad' : r.urgency === 'routine' ? 'info' : 'warn'}
+            />
+          )}
+        </div>
+      ),
+      csv: (r) => `${r.status}${r.status === 'pending' ? ` (${r.urgency})` : ''}`,
+    },
+    {
+      key: 'actions',
+      header: '',
+      sortable: false,
+      export: false,
+      align: 'right',
+      width: '150px',
+      render: (r) => (
+        <div className="req-actions">
+          {r.status === 'pending' && mine(r) && (
+            <>
+              <button type="button" className="small-button" disabled={busyId === r._id}
+                      onClick={() => close(r, 'fulfil')}>
+                {busyId === r._id ? 'Saving…' : 'Fulfilled'}
+              </button>
+              <button type="button" className="small-button ghost" disabled={busyId === r._id}
+                      onClick={() => close(r, 'cancel')}>
+                Cancel
+              </button>
+            </>
+          )}
+          {r.status === 'pending' && !mine(r) && (
+            <a
+              className="small-button share"
+              target="_blank" rel="noopener noreferrer"
+              href={`https://wa.me/?text=${encodeURIComponent(
+                `Blood needed: ${r.unitsNeeded || 1} unit(s) of ${r.bloodGroupNeeded} in ${r.location}` +
+                `${r.hospital ? ` (${r.hospital})` : ''}. ` +
+                `If you can help, contact ${r.requesterId?.name || 'the requester'} on ${r.requesterId?.phone || ''}. Shared via LifeLink.`)}`}
+              title="Forward this request to a WhatsApp contact or group"
+            >
+              Share
+            </a>
+          )}
+        </div>
+      ),
+    },
+  ], [user, busyId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const open = requests.filter((r) => r.status === 'pending').length;
+
+  if (loading) return <PageLoader label="Loading the requests board" />;
 
   return (
     <div className="page">
-      <h1 className="page-h1">Blood Donation Requests</h1>
-      {message && <p className="hint">{message}</p>}
-
-      <div className="form-card">
-        <h3>Post a Request</h3>
-        <form onSubmit={handleSubmit}>
-          <label>Blood Group Needed</label>
-          <SearchSelect
-            value={form.bloodGroupNeeded}
-            onChange={(e) => setForm((prev) => ({ ...prev, bloodGroupNeeded: e.target.value }))}
-            options={BLOOD_GROUPS.map((bg) => ({ value: bg, label: bg }))}
-          />
-
-          <label>Location (city / area)</label>
-          <input
-            value={form.location}
-            onChange={(e) => setForm((prev) => ({ ...prev, location: e.target.value }))}
-            placeholder="e.g. Surat"
-            required
-          />
-
-          <button type="submit">Post Request</button>
-        </form>
+      <div className="page-head">
+        <div>
+          <p className="app-eyebrow">Requests</p>
+          <h1 className="page-h1">Who needs blood right now</h1>
+          <p>
+            {open > 0
+              ? `${open} open ${open === 1 ? 'request' : 'requests'} across the network. If you are a match and nearby, one call is all it takes.`
+              : 'Nothing is outstanding at the moment. Post a request below if you need blood.'}
+          </p>
+        </div>
       </div>
 
-      <h3>Open Requests</h3>
-      <div className="search-bar">
-        <SearchSelect
-          value={filterGroup}
-          onChange={(e) => setFilterGroup(e.target.value)}
-          placeholder="All blood groups"
-          options={[{ value: '', label: 'All blood groups' }, ...BLOOD_GROUPS.map((bg) => ({ value: bg, label: bg }))]}
-        />
-      </div>
+      <div className="req-layout">
+        <section className="form-card" ref={form.formRef}>
+          <h3>Post a request</h3>
+          <p className="muted-note">
+            It appears on this board straight away. Everyone signed in can see
+            your name and number so they can call you directly.
+          </p>
 
-      <table className="data-table">
-        <thead>
-          <tr><th>Blood Group</th><th>Location</th><th>Requested By</th><th>Contact</th><th>Date</th><th>Status</th><th></th></tr>
-        </thead>
-        <tbody>
-          {requests.map((r) => (
-            <tr key={r._id}>
-              <td><BloodGroup group={r.bloodGroupNeeded} /></td>
-              <td>{r.location}</td>
-              <td>{r.requesterId?.name}</td>
-              <td>
-                <div className="contact-actions">
-                  <a className="small-button" href={`tel:${r.requesterId?.phone}`}>Call</a>
-                  <a
-                    className="small-button whatsapp"
-                    href={`https://wa.me/${toWhatsAppNumber(r.requesterId?.phone)}?text=${encodeURIComponent(`Hi, I saw your LifeLink request for ${r.bloodGroupNeeded} in ${r.location}. I may be able to help.`)}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    WhatsApp
-                  </a>
-                </div>
-              </td>
-              <td>{new Date(r.createdAt).toLocaleDateString('en-GB')}</td>
-              <td>{r.status}</td>
-              <td>
-                <div className="request-row-actions">
-                  {r.status === 'pending' && r.requesterId?._id === user?.id && (
-                    <button className="small-button" onClick={() => handleFulfil(r._id)}>Mark Fulfilled</button>
-                  )}
-                  {r.status === 'pending' && (
-                    <a
-                      className="small-button share"
-                      href={`https://wa.me/?text=${encodeURIComponent(shareText(r))}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      title="Forward this request to a WhatsApp contact or group"
-                    >
-                      Share →
-                    </a>
-                  )}
-                </div>
-              </td>
-            </tr>
-          ))}
-          {requests.length === 0 && <tr><td colSpan={7}>No requests yet.</td></tr>}
-        </tbody>
-      </table>
+          {posted && <p className="form-status is-ok">{posted}</p>}
+          {form.status.message && (
+            <p className={`form-status is-${form.status.type === 'error' ? 'error' : 'ok'}`}>
+              {form.status.message}
+            </p>
+          )}
+
+          <form onSubmit={form.submit} noValidate>
+            <Field label="Blood group needed" htmlFor="bloodGroupNeeded" required
+                   error={form.errorFor('bloodGroupNeeded')}>
+              <SearchSelect
+                id="bloodGroupNeeded"
+                value={form.values.bloodGroupNeeded}
+                onChange={(e) => { form.setField('bloodGroupNeeded', e.target.value); form.setTouched((t) => ({ ...t, bloodGroupNeeded: true })); }}
+                placeholder="Choose a group"
+                options={[{ value: '', label: 'Choose a group' }, ...BLOOD_GROUPS.map((g) => ({ value: g, label: g }))]}
+              />
+            </Field>
+
+            <Field label="Units needed" htmlFor="unitsNeeded" required
+                   error={form.errorFor('unitsNeeded')}
+                   hint="One unit is about 450 ml. Most transfusions need one or two.">
+              <input id="unitsNeeded" type="number" min="1" max="20" step="1"
+                     inputMode="numeric" {...form.field('unitsNeeded')} />
+            </Field>
+
+            <Field label="Town or city" htmlFor="location" required
+                   error={form.errorFor('location')}>
+              <input id="location" placeholder="e.g. Surat" autoComplete="address-level2"
+                     {...form.field('location')} />
+            </Field>
+
+            <Field label="Hospital" htmlFor="hospital" optional
+                   error={form.errorFor('hospital')}
+                   hint="Where the patient is, if you know it.">
+              <input id="hospital" placeholder="e.g. New Civil Hospital" {...form.field('hospital')} />
+            </Field>
+
+            <Field label="How urgent" htmlFor="urgency" error={form.errorFor('urgency')}>
+              <SearchSelect
+                id="urgency"
+                value={form.values.urgency}
+                onChange={(e) => form.setField('urgency', e.target.value)}
+                options={URGENCY}
+              />
+            </Field>
+
+            <Field label="Anything else" htmlFor="note" optional
+                   error={form.errorFor('note')}
+                   hint={`${String(form.values.note || '').length}/300 characters`}>
+              <textarea id="note" rows={3} maxLength={300}
+                        placeholder="Ward, patient name, best time to call…"
+                        {...form.field('note')} />
+            </Field>
+
+            <button type="submit" disabled={form.busy}>
+              {form.busy ? 'Posting…' : 'Post request'}
+            </button>
+          </form>
+
+          {/* The board is long; this keeps the column beside it useful
+              instead of leaving a tall empty space. */}
+          <dl className="req-summary">
+            <div><dt>Open now</dt><dd className="is-open">{open}</dd></div>
+            <div><dt>Fulfilled</dt><dd className="is-done">{requests.filter((r) => r.status === 'fulfilled').length}</dd></div>
+            <div><dt>Towns covered</dt><dd>{new Set(requests.map((r) => r.location)).size}</dd></div>
+          </dl>
+        </section>
+
+        <section className="req-board">
+          <DataTable
+            caption="requests"
+            columns={columns}
+            rows={requests}
+            loading={loading}
+            error={loadError}
+            rowKey={(r) => r._id}
+            searchKeys={['location', 'hospital', 'bloodGroupNeeded', (r) => r.requesterId?.name]}
+            searchPlaceholder="Search by place, hospital or name…"
+            initialSort={{ key: 'createdAt', dir: 'desc' }}
+            exportName="blood-requests"
+            rowClass={(r) => (r.status === 'pending' ? 'is-open-request' : '')}
+            filters={[
+              { key: 'bloodGroupNeeded', label: 'Blood group', options: BLOOD_GROUPS },
+              {
+                key: 'status',
+                label: 'Status',
+                options: [
+                  { value: 'pending', label: 'Pending' },
+                  { value: 'fulfilled', label: 'Fulfilled' },
+                  { value: 'cancelled', label: 'Cancelled' },
+                ],
+              },
+              { key: 'urgency', label: 'Urgency', options: URGENCY },
+              {
+                key: 'location',
+                label: 'Town',
+                options: [...new Set(requests.map((r) => r.location).filter(Boolean))].sort(),
+              },
+              {
+                key: 'age',
+                label: 'Raised',
+                placeholder: 'Any time',
+                options: [
+                  { value: '1', label: 'In the last 24 hours' },
+                  { value: '7', label: 'In the last 7 days' },
+                  { value: '30', label: 'In the last 30 days' },
+                ],
+                match: (r, v) => Date.now() - new Date(r.createdAt).getTime() <= Number(v) * 86400000,
+              },
+            ]}
+            empty={{
+              title: 'No requests on the board',
+              message: 'When somebody needs blood, their request appears here.',
+            }}
+          />
+        </section>
+      </div>
     </div>
   );
 }

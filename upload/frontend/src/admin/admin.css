@@ -636,3 +636,61 @@
   outline: 0; border-color: var(--adm-accent); box-shadow: 0 0 0 3px var(--adm-accent-soft);
 }
 .adm-thread-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 9px; }
+
+
+/* ===========================================================================
+   DATA TABLE inside the console
+   The same component as the public site (components/DataTable.jsx), re-themed
+   with the console's tokens rather than reimplemented.
+   =========================================================================== */
+
+.adm-shell .dt-search,
+.adm-shell .dt-btn,
+.adm-shell .dt-filter-panel,
+.adm-shell .dt-scroll,
+.adm-shell .dt-skeleton,
+.adm-shell .dt-empty,
+.adm-shell .dt-perpage select {
+  border-color: var(--adm-line); background: var(--adm-surface);
+}
+.adm-shell .dt-search { color: var(--adm-muted); }
+.adm-shell .dt-search input { color: var(--adm-ink); }
+.adm-shell .dt-search:focus-within {
+  border-color: var(--adm-accent); box-shadow: 0 0 0 3px var(--adm-accent-soft);
+}
+.adm-shell .dt-btn { color: var(--adm-ink-2); }
+.adm-shell .dt-btn:hover:not(:disabled),
+.adm-shell .dt-btn.on {
+  border-color: var(--adm-accent); color: var(--adm-accent); background: var(--adm-accent-soft);
+}
+.adm-shell .dt-filter-count { background: var(--adm-accent); }
+.adm-shell .dt-link { color: var(--adm-accent); }
+.adm-shell .dt-chip {
+  border-color: var(--adm-accent); background: var(--adm-accent-soft); color: var(--adm-accent);
+}
+.adm-shell .dt-chip:hover { background: var(--adm-accent); color: #fff; }
+
+.adm-shell .dt-table thead th {
+  background: var(--adm-line-soft); border-bottom-color: var(--adm-line); color: var(--adm-muted);
+}
+.adm-shell .dt-table thead th.is-sorted,
+.adm-shell .dt-table thead th.is-sortable button:hover { color: var(--adm-accent); }
+.adm-shell .dt-table tbody tr { border-top-color: var(--adm-line-soft); }
+.adm-shell .dt-table tbody tr:nth-child(even) { background: color-mix(in srgb, var(--adm-line-soft) 50%, transparent); }
+.adm-shell .dt-table tbody tr:hover { background: var(--adm-accent-soft); }
+.adm-shell .dt-table td { color: var(--adm-ink-2); }
+.adm-shell .dt-table td strong { color: var(--adm-ink); }
+.adm-shell .dt-skel-row { border-bottom-color: var(--adm-line-soft); }
+.adm-shell .dt-skel-row span {
+  background: linear-gradient(90deg, var(--adm-line-soft) 25%, var(--adm-line) 37%, var(--adm-line-soft) 63%);
+  background-size: 400% 100%;
+}
+.adm-shell .dt-cards li { border-color: var(--adm-line); background: var(--adm-surface); }
+.adm-shell .dt-card-label { color: var(--adm-muted); }
+.adm-shell .dt-card-value { color: var(--adm-ink-2); }
+.adm-shell .dt-empty strong { color: var(--adm-ink); }
+.adm-shell .dt-empty p { color: var(--adm-muted); }
+
+/* The console sits inside cards that clip, which would cut the filter
+   popover off. Let the card that holds a table overflow. */
+.adm-card.has-table { overflow: visible; }

@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { useNavigate, useLocation, Link, Navigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import Field from '../components/Field';
+import { rules } from '../lib/validate';
 
 export default function Login() {
   const location = useLocation();
@@ -11,6 +13,11 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  // Sign-in is deliberately lighter than registration: the only thing worth
+  // checking before a round trip is whether the address could exist at all.
+  // Anything stricter risks locking somebody out of their own account.
+  const [touched, setTouched] = useState({});
+  const emailError = rules.email(email);
   const navigate = useNavigate();
 
   if (user) return <Navigate to={from || '/dashboard'} replace />;
@@ -18,6 +25,11 @@ export default function Login() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setTouched({ email: true, password: true });
+    if (emailError || !password) {
+      setError('Enter your email address and password.');
+      return;
+    }
     setBusy(true);
     try {
       await login(email, password);
@@ -35,20 +47,29 @@ export default function Login() {
       <div className="form-card">
         <p className="app-eyebrow">Welcome back</p>
         <h1 className="page-h1">Sign in to LifeLink</h1>
-        {error && <p className="error-text">{error}</p>}
+        {error && <p className="form-status is-error" role="alert">{error}</p>}
 
-        <form onSubmit={handleSubmit}>
-          <label>Email</label>
-          <input type="email" autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} required />
+        <form onSubmit={handleSubmit} noValidate>
+          <Field label="Email" htmlFor="login-email" required error={touched.email ? emailError : ''}>
+            <input
+              id="login-email" type="email" autoComplete="username"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              onBlur={() => setTouched((t) => ({ ...t, email: true }))}
+              aria-invalid={touched.email && emailError ? true : undefined}
+            />
+          </Field>
 
-          <label>Password</label>
+          <Field label="Password" htmlFor="login-password" required
+                 error={touched.password && !password ? 'Enter your password' : ''}>
           <div className="password-field">
             <input
+              id="login-password"
               type={showPassword ? 'text' : 'password'}
               autoComplete="current-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              required
+              onBlur={() => setTouched((t) => ({ ...t, password: true }))}
             />
             <button
               type="button"
@@ -59,6 +80,7 @@ export default function Login() {
               {showPassword ? 'Hide' : 'Show'}
             </button>
           </div>
+          </Field>
 
           <button type="submit" disabled={busy}>{busy ? 'Signing in…' : 'Sign in'}</button>
         </form>

@@ -2,18 +2,19 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import adminApi from '../../api/adminApi';
-import { usePagination } from '../../components/Pagination';
+import DataTable from '../../components/DataTable';
+import StatusTag from '../../components/StatusTag';
+import ContactActions from '../../components/ContactActions';
 import { ConfirmDialog } from '../components/Modal';
 import { useToast } from '../components/Toast';
-import { Pagination, PageHeader, Card, Toolbar, SearchInput, Badge, Spinner, EmptyState, TableWrap, StatCard } from '../components/ui';
+import { PageHeader, Card, StatCard, formatDate } from '../components/ui';
 import { IconTrash, IconCalendar, IconCheck, IconClose, IconRefresh } from '../components/Icons';
 
 export default function Appointments() {
   const toast = useToast();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [status, setStatus] = useState('');
-  const [search, setSearch] = useState('');
+  const [loadError, setLoadError] = useState('');
   const [confirm, setConfirm] = useState(null);
   const [deleting, setDeleting] = useState(false);
   const [busyId, setBusyId] = useState(null);
@@ -21,14 +22,17 @@ export default function Appointments() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const { data } = await adminApi.get('/admin/appointments', { params: { status } });
-      setItems(data);
+      const { data } = await adminApi.get('/admin/appointments');
+      setItems(Array.isArray(data) ? data : data.items || []);
+      setLoadError('');
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Could not load appointments.');
+      const msg = err.response?.data?.message || 'Could not load appointments.';
+      setLoadError(msg);
+      toast.error(msg);
     } finally {
       setLoading(false);
     }
-  }, [status]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => { load(); }, [load]);
 
@@ -59,17 +63,7 @@ export default function Appointments() {
     }
   };
 
-  const q = search.trim().toLowerCase();
-  const filtered = q
-    ? items.filter((a) =>
-      (a.userId?.name || '').toLowerCase().includes(q) ||
-      (a.doctorId?.name || '').toLowerCase().includes(q))
-    : items;
-
   const count = (s) => items.filter((a) => a.status === s).length;
-
-  // Admin tables page at 12 rows so the console stays scannable.
-  const pager = usePagination(filtered, 12);
 
   return (
     <>
@@ -83,55 +77,97 @@ export default function Appointments() {
         <StatCard icon={<IconClose />} label="Cancelled" value={count('cancelled')} />
       </div>
 
-      <Card>
-        <Toolbar>
-          <SearchInput value={search} onChange={setSearch} placeholder="Search by member or doctor…" />
-          <select className="adm-select" value={status} onChange={(e) => setStatus(e.target.value)}>
-            <option value="">All statuses</option>
-            <option value="pending">Pending</option>
-            <option value="confirmed">Confirmed</option>
-            <option value="cancelled">Cancelled</option>
-          </select>
-        </Toolbar>
-
-        {loading ? <Spinner /> : filtered.length === 0 ? (
-          <EmptyState title="No appointments" message="Nothing booked with these filters." />
-        ) : (
-          <>
-          <TableWrap>
-            <table className="adm-table">
-              <thead><tr><th>Member</th><th>Doctor</th><th>Hospital</th><th>Date</th><th>Time</th><th>Status</th><th aria-label="Actions" /></tr></thead>
-              <tbody>
-                {pager.slice.map((a) => (
-                  <tr key={a._id} className={busyId === a._id ? 'busy' : ''}>
-                    <td>
-                      <strong>{a.userId?.name || 'Deleted member'}</strong>
-                      <small className="adm-block adm-muted">{a.userId?.phone || a.userId?.email || ''}</small>
-                    </td>
-                    <td>{a.doctorId?.name || '—'}<small className="adm-block adm-muted">{a.doctorId?.specialization || ''}</small></td>
-                    <td className="adm-muted">{a.doctorId?.hospitalId?.name || '—'}</td>
-                    <td>{a.appointmentDate}</td>
-                    <td>{a.appointmentTime}</td>
-                    <td>
-                      <Badge tone={a.status === 'confirmed' ? 'good' : a.status === 'cancelled' ? 'neutral' : 'warn'}>{a.status}</Badge>
-                    </td>
-                    <td className="adm-row-actions">
-                      {a.status !== 'confirmed' && (
-                        <button type="button" className="adm-btn small" onClick={() => changeStatus(a, 'confirmed')} disabled={busyId === a._id}>Confirm</button>
-                      )}
-                      {a.status !== 'cancelled' && (
-                        <button type="button" className="adm-btn small ghost" onClick={() => changeStatus(a, 'cancelled')} disabled={busyId === a._id}>Cancel</button>
-                      )}
-                      <button type="button" className="adm-icon-btn danger" title="Delete" onClick={() => setConfirm(a)}><IconTrash width={17} height={17} /></button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </TableWrap>
-        <Pagination page={pager.page} pages={pager.pages} onChange={pager.setPage} />
-        </>
-        )}
+      <Card className="has-table">
+        <DataTable
+          caption="appointments"
+          rows={items}
+          loading={loading}
+          error={loadError}
+          rowKey={(a) => a._id}
+          exportName="appointments"
+          initialSort={{ key: 'appointmentDate', dir: 'desc' }}
+          defaultPerPage={12}
+          searchKeys={['userId.name', 'userId.phone', 'userId.email',
+                       'doctorId.name', 'doctorId.specialization', 'doctorId.hospitalId.name']}
+          searchPlaceholder="Search by member, doctor or hospital…"
+          rowClass={(a) => (busyId === a._id ? 'busy' : '')}
+          filters={[
+            {
+              key: 'status',
+              label: 'Status',
+              options: [
+                { value: 'pending', label: 'Pending' },
+                { value: 'confirmed', label: 'Confirmed' },
+                { value: 'cancelled', label: 'Cancelled' },
+              ],
+            },
+            { key: 'doctorId.name', label: 'Doctor', options: [...new Set(items.map((a) => a.doctorId?.name).filter(Boolean))].sort() },
+            { key: 'doctorId.hospitalId.name', label: 'Hospital', options: [...new Set(items.map((a) => a.doctorId?.hospitalId?.name).filter(Boolean))].sort() },
+          ]}
+          empty={{ title: 'No appointments', message: 'Nothing booked with these filters.' }}
+          columns={[
+            {
+              key: 'userId.name',
+              header: 'Member',
+              render: (a) => (a.userId ? (
+                <div className="req-who">
+                  <span>{a.userId.name}</span>
+                  <ContactActions size="sm" phone={a.userId.phone} email={a.userId.email} name={a.userId.name} />
+                </div>
+              ) : <span className="adm-muted">Deleted member</span>),
+              csv: (a) => `${a.userId?.name || ''} ${a.userId?.phone || a.userId?.email || ''}`.trim(),
+            },
+            {
+              key: 'doctorId.name',
+              header: 'Doctor',
+              render: (a) => (
+                <>
+                  <strong>{a.doctorId?.name || '—'}</strong>
+                  {a.doctorId?.specialization && <><br /><small className="adm-muted">{a.doctorId.specialization}</small></>}
+                </>
+              ),
+              csv: (a) => [a.doctorId?.name, a.doctorId?.specialization].filter(Boolean).join(' - '),
+            },
+            {
+              key: 'doctorId.hospitalId.name',
+              header: 'Hospital',
+              render: (a) => <span className="adm-muted">{a.doctorId?.hospitalId?.name || '—'}</span>,
+            },
+            {
+              key: 'appointmentDate',
+              header: 'Date',
+              width: '130px',
+              render: (a) => formatDate(a.appointmentDate),
+              csv: (a) => formatDate(a.appointmentDate),
+            },
+            { key: 'appointmentTime', header: 'Time', width: '110px' },
+            {
+              key: 'status',
+              header: 'Status',
+              width: '120px',
+              render: (a) => <StatusTag status={a.status} />,
+            },
+            {
+              key: 'actions',
+              header: '',
+              sortable: false,
+              export: false,
+              align: 'right',
+              width: '190px',
+              render: (a) => (
+                <div className="adm-row-actions">
+                  {a.status !== 'confirmed' && (
+                    <button type="button" className="adm-btn small" onClick={() => changeStatus(a, 'confirmed')} disabled={busyId === a._id}>Confirm</button>
+                  )}
+                  {a.status !== 'cancelled' && (
+                    <button type="button" className="adm-btn small ghost" onClick={() => changeStatus(a, 'cancelled')} disabled={busyId === a._id}>Cancel</button>
+                  )}
+                  <button type="button" className="adm-icon-btn danger" title="Delete" onClick={() => setConfirm(a)}><IconTrash width={17} height={17} /></button>
+                </div>
+              ),
+            },
+          ]}
+        />
       </Card>
 
       <ConfirmDialog

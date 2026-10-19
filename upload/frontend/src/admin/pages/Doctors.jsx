@@ -1,27 +1,36 @@
 // Doctors directory: CRUD, tied to a hospital, with availability.
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import adminApi from '../../api/adminApi';
-import { usePagination } from '../../components/Pagination';
+import DataTable from '../../components/DataTable';
+import SearchSelect from '../../components/SearchSelect';
+import Field from '../../components/Field';
 import Modal, { ConfirmDialog } from '../components/Modal';
 import { useToast } from '../components/Toast';
-import { Pagination, PageHeader, Card, Toolbar, SearchInput, Spinner, EmptyState, TableWrap, Badge } from '../components/ui';
+import { PageHeader, Card, Badge } from '../components/ui';
 import { IconPlus, IconEdit, IconTrash } from '../components/Icons';
+import useForm from '../../lib/useForm';
+import { rules } from '../../lib/validate';
 
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 const SLOTS = ['09:00 AM', '10:00 AM', '11:00 AM', '12:00 PM', '02:00 PM', '03:00 PM', '04:00 PM', '05:00 PM'];
 const EMPTY = { name: '', specialization: '', hospitalId: '', availableDays: [], availableTimeSlots: [] };
+
+// Days and slots are deliberately not required: a doctor with none is simply
+// not yet bookable, and the table has a filter for exactly that case.
+const schema = {
+  name: rules.name,
+  specialization: rules.text({ label: 'Speciality', min: 2, max: 60 }),
+  hospitalId: rules.required('Hospital'),
+};
 
 export default function Doctors() {
   const toast = useToast();
   const [items, setItems] = useState([]);
   const [hospitals, setHospitals] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
-  const [hospitalFilter, setHospitalFilter] = useState('');
+  const [loadError, setLoadError] = useState('');
   const [editing, setEditing] = useState(null);
-  const [form, setForm] = useState(EMPTY);
-  const [saving, setSaving] = useState(false);
   const [confirm, setConfirm] = useState(null);
   const [deleting, setDeleting] = useState(false);
 
@@ -29,10 +38,13 @@ export default function Doctors() {
     setLoading(true);
     try {
       const [d, h] = await Promise.all([adminApi.get('/admin/doctors'), adminApi.get('/hospitals')]);
-      setItems(d.data);
-      setHospitals(h.data);
+      setItems(Array.isArray(d.data) ? d.data : d.data.items || []);
+      setHospitals(Array.isArray(h.data) ? h.data : h.data.items || []);
+      setLoadError('');
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Could not load doctors.');
+      const msg = err.response?.data?.message || 'Could not load doctors.';
+      setLoadError(msg);
+      toast.error(msg);
     } finally {
       setLoading(false);
     }
@@ -40,48 +52,42 @@ export default function Doctors() {
 
   useEffect(() => { load(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const filtered = useMemo(() => items.filter((d) => {
-    const q = search.trim().toLowerCase();
-    const matchesText = !q || d.name.toLowerCase().includes(q) || (d.specialization || '').toLowerCase().includes(q);
-    const matchesHospital = !hospitalFilter || d.hospitalId?._id === hospitalFilter;
-    return matchesText && matchesHospital;
-  }), [items, search, hospitalFilter]);
+  const isNew = editing === 'new';
 
-  const openNew = () => { setForm({ ...EMPTY, hospitalId: hospitals[0]?._id || '' }); setEditing('new'); };
+  const form = useForm(EMPTY, schema, {
+    onSubmit: async (values) => {
+      try {
+        if (isNew) {
+          await adminApi.post('/admin/doctors', values);
+          toast.success('Doctor added.');
+        } else {
+          await adminApi.put(`/admin/doctors/${editing._id}`, values);
+          toast.success('Doctor updated.');
+        }
+      } catch (err) {
+        toast.error(err.response?.data?.message || 'Could not save.');
+        throw err; // useForm puts the server's field messages back on the fields
+      }
+      setEditing(null);
+      load();
+    },
+  });
+
+  const closeForm = () => { setEditing(null); form.reset(EMPTY); };
+
+  const openNew = () => { form.reset({ ...EMPTY, hospitalId: hospitals[0]?._id || '' }); setEditing('new'); };
   const openEdit = (d) => {
-    setForm({
-      name: d.name, specialization: d.specialization,
+    form.reset({
+      name: d.name || '', specialization: d.specialization || '',
       hospitalId: d.hospitalId?._id || d.hospitalId || '',
       availableDays: d.availableDays || [], availableTimeSlots: d.availableTimeSlots || [],
     });
     setEditing(d);
   };
 
-  const toggle = (key, value) => setForm((f) => ({
-    ...f,
-    [key]: f[key].includes(value) ? f[key].filter((v) => v !== value) : [...f[key], value],
-  }));
-
-  const save = async (e) => {
-    e.preventDefault();
-    if (!form.hospitalId) return toast.error('Pick a hospital for this doctor.');
-    setSaving(true);
-    try {
-      if (editing === 'new') {
-        await adminApi.post('/admin/doctors', form);
-        toast.success('Doctor added.');
-      } else {
-        await adminApi.put(`/admin/doctors/${editing._id}`, form);
-        toast.success('Doctor updated.');
-      }
-      setEditing(null);
-      load();
-    } catch (err) {
-      toast.error(err.response?.data?.message || 'Could not save.');
-    } finally {
-      setSaving(false);
-    }
-    return undefined;
+  const toggle = (key, value) => {
+    const current = form.values[key] || [];
+    form.setField(key, current.includes(value) ? current.filter((v) => v !== value) : [...current, value]);
   };
 
   const remove = async () => {
@@ -98,9 +104,6 @@ export default function Doctors() {
     }
   };
 
-  // Admin tables page at 12 rows so the console stays scannable.
-  const pager = usePagination(filtered, 12);
-
   return (
     <>
       <PageHeader title="Doctors" subtitle={`${items.length} doctor${items.length === 1 ? '' : 's'} bookable by members.`}>
@@ -109,75 +112,121 @@ export default function Doctors() {
         </button>
       </PageHeader>
 
-      <Card>
-        <Toolbar>
-          <SearchInput value={search} onChange={setSearch} placeholder="Search by name or speciality…" />
-          <select className="adm-select" value={hospitalFilter} onChange={(e) => setHospitalFilter(e.target.value)}>
-            <option value="">All hospitals</option>
-            {hospitals.map((h) => <option key={h._id} value={h._id}>{h.name}</option>)}
-          </select>
-        </Toolbar>
-
-        {loading ? <Spinner /> : filtered.length === 0 ? (
-          <EmptyState title="No doctors listed" message="Add a doctor so members can book appointments." />
-        ) : (
-          <>
-          <TableWrap>
-            <table className="adm-table">
-              <thead><tr><th>Doctor</th><th>Speciality</th><th>Hospital</th><th>Days</th><th>Slots</th><th aria-label="Actions" /></tr></thead>
-              <tbody>
-                {pager.slice.map((d) => (
-                  <tr key={d._id}>
-                    <td className="adm-strong">{d.name}</td>
-                    <td>{d.specialization}</td>
-                    <td className="adm-muted">{d.hospitalId?.name || '—'}</td>
-                    <td>{d.availableDays?.length ? <Badge>{d.availableDays.length} days</Badge> : <span className="adm-muted">—</span>}</td>
-                    <td>{d.availableTimeSlots?.length ? <Badge>{d.availableTimeSlots.length} slots</Badge> : <span className="adm-muted">—</span>}</td>
-                    <td className="adm-row-actions">
-                      <button type="button" className="adm-icon-btn" title="Edit" onClick={() => openEdit(d)}><IconEdit width={17} height={17} /></button>
-                      <button type="button" className="adm-icon-btn danger" title="Delete" onClick={() => setConfirm(d)}><IconTrash width={17} height={17} /></button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </TableWrap>
-        <Pagination page={pager.page} pages={pager.pages} onChange={pager.setPage} />
-        </>
-        )}
+      <Card className="has-table">
+        <DataTable
+          caption="doctors"
+          rows={items}
+          loading={loading}
+          error={loadError}
+          rowKey={(d) => d._id}
+          exportName="doctors"
+          initialSort={{ key: 'name', dir: 'asc' }}
+          defaultPerPage={12}
+          searchKeys={['name', 'specialization', 'hospitalId.name']}
+          searchPlaceholder="Search by name, speciality or hospital…"
+          filters={[
+            { key: 'hospitalId.name', label: 'Hospital', options: [...new Set(items.map((d) => d.hospitalId?.name).filter(Boolean))].sort() },
+            { key: 'specialization', label: 'Speciality', options: [...new Set(items.map((d) => d.specialization).filter(Boolean))].sort() },
+            {
+              key: 'availability',
+              label: 'Availability',
+              placeholder: 'Any availability',
+              options: [
+                { value: 'yes', label: 'Has days set' },
+                { value: 'no', label: 'No days set' },
+              ],
+              // A doctor with no days cannot be booked, so make them findable.
+              match: (d, v) => (v === 'yes' ? !!d.availableDays?.length : !d.availableDays?.length),
+            },
+          ]}
+          empty={{ title: 'No doctors listed', message: 'Add a doctor so members can book appointments.' }}
+          columns={[
+            { key: 'name', header: 'Doctor', render: (d) => <strong>{d.name}</strong> },
+            { key: 'specialization', header: 'Speciality' },
+            {
+              key: 'hospitalId.name',
+              header: 'Hospital',
+              render: (d) => <span className="adm-muted">{d.hospitalId?.name || '—'}</span>,
+            },
+            {
+              key: 'availableDays',
+              header: 'Days',
+              width: '120px',
+              sortValue: (d) => d.availableDays?.length || 0,
+              render: (d) => (d.availableDays?.length ? <Badge>{d.availableDays.length} days</Badge> : <span className="adm-muted">—</span>),
+              csv: (d) => (d.availableDays || []).join(' '),
+            },
+            {
+              key: 'availableTimeSlots',
+              header: 'Slots',
+              width: '120px',
+              sortValue: (d) => d.availableTimeSlots?.length || 0,
+              render: (d) => (d.availableTimeSlots?.length ? <Badge>{d.availableTimeSlots.length} slots</Badge> : <span className="adm-muted">—</span>),
+              csv: (d) => (d.availableTimeSlots || []).join(' '),
+            },
+            {
+              key: 'actions',
+              header: '',
+              sortable: false,
+              export: false,
+              align: 'right',
+              width: '96px',
+              render: (d) => (
+                <div className="adm-row-actions">
+                  <button type="button" className="adm-icon-btn" title="Edit" onClick={() => openEdit(d)}><IconEdit width={17} height={17} /></button>
+                  <button type="button" className="adm-icon-btn danger" title="Delete" onClick={() => setConfirm(d)}><IconTrash width={17} height={17} /></button>
+                </div>
+              ),
+            },
+          ]}
+        />
       </Card>
 
       <Modal
         open={!!editing}
-        title={editing === 'new' ? 'Add a doctor' : `Edit ${editing?.name || ''}`}
-        onClose={() => setEditing(null)}
+        title={isNew ? 'Add a doctor' : `Edit ${editing?.name || ''}`}
+        onClose={closeForm}
         wide
         footer={(
           <>
-            <button type="button" className="adm-btn ghost" onClick={() => setEditing(null)}>Cancel</button>
-            <button type="submit" form="doctor-form" className="adm-btn primary" disabled={saving}>{saving ? 'Saving…' : 'Save doctor'}</button>
+            <button type="button" className="adm-btn ghost" onClick={closeForm}>Cancel</button>
+            <button type="submit" form="doctor-form" className="adm-btn primary" disabled={form.busy}>{form.busy ? 'Saving…' : 'Save doctor'}</button>
           </>
         )}
       >
-        <form id="doctor-form" className="adm-form grid-2" onSubmit={save}>
-          <label className="adm-field"><span>Name</span>
-            <input required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Dr A. Mehta" />
-          </label>
-          <label className="adm-field"><span>Speciality</span>
-            <input required value={form.specialization} onChange={(e) => setForm({ ...form, specialization: e.target.value })} placeholder="Haematology" />
-          </label>
-          <label className="adm-field span-2"><span>Hospital</span>
-            <select required value={form.hospitalId} onChange={(e) => setForm({ ...form, hospitalId: e.target.value })}>
-              <option value="">Select a hospital…</option>
-              {hospitals.map((h) => <option key={h._id} value={h._id}>{h.name}</option>)}
-            </select>
-          </label>
+        {form.status.message && (
+          <p className={`form-status is-${form.status.type === 'error' ? 'error' : 'ok'}`}>
+            {form.status.message}
+          </p>
+        )}
+
+        <form id="doctor-form" className="adm-form grid-2" onSubmit={form.submit} ref={form.formRef} noValidate>
+          <Field label="Name" htmlFor="name" required error={form.errorFor('name')}>
+            <input id="name" placeholder="Dr A. Mehta" {...form.field('name')} />
+          </Field>
+
+          <Field label="Speciality" htmlFor="specialization" required
+                 error={form.errorFor('specialization')}>
+            <input id="specialization" placeholder="Haematology" {...form.field('specialization')} />
+          </Field>
+
+          <Field label="Hospital" htmlFor="hospitalId" required className="span-2"
+                 error={form.errorFor('hospitalId')}
+                 hint="Members book an appointment at this location.">
+            <SearchSelect
+              id="hospitalId"
+              value={form.values.hospitalId}
+              onChange={(e) => { form.setField('hospitalId', e.target.value); form.setTouched((t) => ({ ...t, hospitalId: true })); }}
+              placeholder="Select a hospital…"
+              options={[{ value: '', label: 'Select a hospital…' }, ...hospitals.map((h) => ({ value: h._id, label: h.name }))]}
+            />
+          </Field>
 
           <div className="span-2">
             <span className="adm-field-label">Available days</span>
             <div className="adm-chips">
               {DAYS.map((d) => (
-                <button key={d} type="button" className={`adm-chip ${form.availableDays.includes(d) ? 'on' : ''}`} onClick={() => toggle('availableDays', d)}>{d.slice(0, 3)}</button>
+                <button key={d} type="button" className={`adm-chip ${(form.values.availableDays || []).includes(d) ? 'on' : ''}`} onClick={() => toggle('availableDays', d)}>{d.slice(0, 3)}</button>
               ))}
             </div>
           </div>
@@ -186,7 +235,7 @@ export default function Doctors() {
             <span className="adm-field-label">Time slots</span>
             <div className="adm-chips">
               {SLOTS.map((s) => (
-                <button key={s} type="button" className={`adm-chip ${form.availableTimeSlots.includes(s) ? 'on' : ''}`} onClick={() => toggle('availableTimeSlots', s)}>{s}</button>
+                <button key={s} type="button" className={`adm-chip ${(form.values.availableTimeSlots || []).includes(s) ? 'on' : ''}`} onClick={() => toggle('availableTimeSlots', s)}>{s}</button>
               ))}
             </div>
           </div>

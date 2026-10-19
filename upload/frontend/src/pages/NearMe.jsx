@@ -26,6 +26,12 @@ export default function NearMe() {
   const [data, setData] = useState(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  // A position from the browser, when the person offers one. It beats the
+  // typed town because it measures from where they actually are rather than
+  // from the middle of their city.
+  const [coords, setCoords] = useState(null);
+  const [locating, setLocating] = useState(false);
+  const [locateError, setLocateError] = useState('');
 
   const pager = usePagination(data?.results || [], 6);
 
@@ -41,7 +47,9 @@ export default function NearMe() {
     const t = setTimeout(async () => {
       setLoading(true); setError('');
       try {
-        const { data: res } = await api.get('/care/near', { params: form });
+        const { data: res } = await api.get('/care/near', {
+          params: coords ? { ...form, lat: coords.lat, lon: coords.lon } : form,
+        });
         setData(res);
       } catch (err) {
         setData(null);
@@ -56,9 +64,41 @@ export default function NearMe() {
       }
     }, 300);
     return () => clearTimeout(t);
-  }, [form.place, form.condition, form.type, form.bloodGroup]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [form.place, form.condition, form.type, form.bloodGroup, coords]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
+  // Typing an address again means they no longer want the device position.
+  const set = (k, v) => {
+    if (k === 'place') { setCoords(null); setLocateError(''); }
+    setForm((f) => ({ ...f, [k]: v }));
+  };
+
+  const useMyLocation = () => {
+    if (!navigator.geolocation) {
+      setLocateError('This browser cannot share a location. Type your town instead.');
+      return;
+    }
+    setLocating(true); setLocateError('');
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setLocating(false);
+        setCoords({ lat: Number(pos.coords.latitude.toFixed(4)), lon: Number(pos.coords.longitude.toFixed(4)) });
+        // The search only runs when there is something in the place box, and
+        // this fills it with something honest until the server names the town.
+        setForm((f) => ({ ...f, place: f.place || 'My current location' }));
+      },
+      (err) => {
+        setLocating(false);
+        setLocateError(
+          err.code === err.PERMISSION_DENIED
+            ? 'Location permission was refused, so type your town instead.'
+            : err.code === err.POSITION_UNAVAILABLE
+              ? 'Your device could not get a fix. Type your town instead.'
+              : 'That took too long. Type your town instead.',
+        );
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 120000 },
+    );
+  };
 
   return (
     <div className="page">
@@ -86,6 +126,35 @@ export default function NearMe() {
           <datalist id="near-towns">
             {options.cities.map((c) => <option key={c} value={c} />)}
           </datalist>
+          <button type="button" className="near-locate" onClick={useMyLocation} disabled={locating}>
+            {locating ? (
+              <>
+                <span className="near-locate-spin" aria-hidden="true" />
+                Finding you…
+              </>
+            ) : (
+              <>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                     strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <circle cx="12" cy="12" r="3.2" />
+                  <path d="M12 2v3m0 14v3M2 12h3m14 0h3" />
+                  <circle cx="12" cy="12" r="8" opacity=".45" />
+                </svg>
+                Use my current location
+              </>
+            )}
+          </button>
+          {coords && !locateError && (
+            <small className="near-locate-note">
+              Measuring from your device
+              {data?.located?.nearestTown ? ` · nearest town ${data.located.nearestTown}` : ''}
+              {' · '}
+              <button type="button" className="dt-link" onClick={() => { setCoords(null); setForm((f) => ({ ...f, place: '' })); }}>
+                use a town instead
+              </button>
+            </small>
+          )}
+          {locateError && <small className="near-locate-err">{locateError}</small>}
         </label>
 
         <label>
@@ -153,7 +222,7 @@ export default function NearMe() {
                     <p className="near-addr">{h.address}</p>
                   </div>
                   <span className="near-dist">
-                    <strong>{h.distanceKm}</strong><small>km away</small>
+                    <strong>{h.distanceKm < 1 ? '<1' : h.distanceKm}</strong><small>km away</small>
                   </span>
                 </header>
 

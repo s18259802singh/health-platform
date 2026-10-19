@@ -7,6 +7,8 @@ import { Link } from 'react-router-dom';
 import api from '../api/axios';
 import Certificate from '../components/Certificate';
 import BloodGroup from '../components/BloodGroup';
+import DataTable from '../components/DataTable';
+import StatusTag from '../components/StatusTag';
 
 export default function MyDonations() {
   const [data, setData] = useState(null);
@@ -134,36 +136,72 @@ export default function MyDonations() {
               within a few days. Nothing is missing from your record in the meantime.
             </p>
           )}
-          <table className="data-table">
-            <thead>
-              <tr><th>#</th><th>Date</th><th>Group</th><th>Units</th><th>Where</th><th>Certificate</th></tr>
-            </thead>
-            <tbody>
-              {donations.map((d, i) => (
-                <tr key={d._id}>
-                  <td>{donations.length - i}</td>
-                  <td>{new Date(d.donatedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</td>
-                  <td><BloodGroup group={d.bloodGroup} /></td>
-                  <td>{d.units}</td>
-                  <td>{d.locationName || d.hospitalId?.name || d.campId?.title || '—'}</td>
-                  <td>
-                    {d.certificateIssued ? (
-                      <button type="button" className="small-button" onClick={() => openCertificate(d._id)}>
-                        View certificate
-                      </button>
-                    ) : (
-                      // A certificate is issued by a blood centre, not minted
-                      // the moment a record lands. Saying so beats a button
-                      // that fails, or a blank cell that looks like a bug.
-                      <span className="cert-pending" title="A blood centre issues this once the donation is confirmed">
-                        Awaiting issue
-                      </span>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <DataTable
+            caption="donations"
+            rows={donations}
+            rowKey={(d) => d._id}
+            exportName="my-donations"
+            initialSort={{ key: 'donatedAt', dir: 'desc' }}
+            defaultPerPage={10}
+            searchKeys={['locationName', 'bloodGroup', (d) => d.hospitalId?.name, (d) => d.campId?.title]}
+            searchPlaceholder="Search your record…"
+            filters={[
+              {
+                key: 'certificateIssued',
+                label: 'Certificate',
+                options: [
+                  { value: 'true', label: 'Issued' },
+                  { value: 'false', label: 'Awaiting issue' },
+                ],
+                match: (d, v) => String(Boolean(d.certificateIssued)) === v,
+              },
+              {
+                key: 'year',
+                label: 'Year',
+                options: [...new Set(donations.map((d) => new Date(d.donatedAt).getFullYear()))]
+                  .sort((a, b) => b - a).map((y) => ({ value: String(y), label: String(y) })),
+                match: (d, v) => String(new Date(d.donatedAt).getFullYear()) === v,
+              },
+            ]}
+            empty={{ title: 'Nothing matches that', message: 'Clear the filters to see your whole record.' }}
+            columns={[
+              {
+                key: 'donatedAt',
+                header: 'Date',
+                defaultDir: 'desc',
+                width: '140px',
+                render: (d) => new Date(d.donatedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }),
+                sortValue: (d) => new Date(d.donatedAt).getTime(),
+              },
+              { key: 'bloodGroup', header: 'Group', width: '96px',
+                render: (d) => <BloodGroup group={d.bloodGroup} variant="badge" /> },
+              { key: 'units', header: 'Units', align: 'center', width: '80px',
+                render: (d) => <strong>{d.units}</strong> },
+              {
+                key: 'locationName',
+                header: 'Where',
+                render: (d) => d.locationName || d.hospitalId?.name || d.campId?.title || '—',
+              },
+              {
+                key: 'certificateIssued',
+                header: 'Certificate',
+                align: 'right',
+                width: '170px',
+                sortValue: (d) => (d.certificateIssued ? 0 : 1),
+                render: (d) => (d.certificateIssued ? (
+                  <button type="button" className="small-button" onClick={() => openCertificate(d._id)}>
+                    View certificate
+                  </button>
+                ) : (
+                  // A certificate is issued by a blood centre, not minted the
+                  // moment a record lands. Saying so beats a button that
+                  // fails, or a blank cell that looks like a bug.
+                  <StatusTag label="Awaiting issue" tone="warn" size="sm" />
+                )),
+                csv: (d) => (d.certificateIssued ? 'issued' : 'awaiting issue'),
+              },
+            ]}
+          />
         </>
       )}
 

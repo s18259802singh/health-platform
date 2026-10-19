@@ -2,10 +2,12 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import adminApi from '../../api/adminApi';
-import { usePagination } from '../../components/Pagination';
+import DataTable from '../../components/DataTable';
+import StatusTag from '../../components/StatusTag';
+import ContactActions from '../../components/ContactActions';
 import { ConfirmDialog } from '../components/Modal';
 import { useToast } from '../components/Toast';
-import { Pagination, PageHeader, Card, Toolbar, SearchInput, Badge, BloodTag, Spinner, EmptyState, TableWrap, StatCard, formatDate } from '../components/ui';
+import { PageHeader, Card, BloodTag, StatCard, formatDate } from '../components/ui';
 import { IconTrash, IconCheck, IconDrop, IconRefresh, IconClose } from '../components/Icons';
 
 const GROUPS = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
@@ -14,7 +16,7 @@ export default function Requests() {
   const toast = useToast();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [filters, setFilters] = useState({ status: '', bloodGroup: '', search: '' });
+  const [loadError, setLoadError] = useState('');
   const [confirm, setConfirm] = useState(null);
   const [deleting, setDeleting] = useState(false);
   const [busyId, setBusyId] = useState(null);
@@ -22,19 +24,19 @@ export default function Requests() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const { data } = await adminApi.get('/admin/requests', { params: filters });
-      setItems(data);
+      const { data } = await adminApi.get('/admin/requests');
+      setItems(Array.isArray(data) ? data : data.items || []);
+      setLoadError('');
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Could not load requests.');
+      const msg = err.response?.data?.message || 'Could not load requests.';
+      setLoadError(msg);
+      toast.error(msg);
     } finally {
       setLoading(false);
     }
-  }, [filters]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  useEffect(() => {
-    const t = setTimeout(load, 250);
-    return () => clearTimeout(t);
-  }, [load]);
+  useEffect(() => { load(); }, [load]);
 
   const setStatus = async (req, status) => {
     setBusyId(req._id);
@@ -67,12 +69,11 @@ export default function Requests() {
   const fulfilled = items.filter((r) => r.status === 'fulfilled').length;
   const cancelled = items.filter((r) => r.status === 'cancelled').length;
 
-  // Admin tables page at 12 rows so the console stays scannable.
-  const pager = usePagination(items, 12);
+  const dmy = (v) => (v ? formatDate(v) : '');
 
   return (
     <>
-      <PageHeader title="Blood requests" subtitle="Every request posted by members, oldest status first.">
+      <PageHeader title="Blood requests" subtitle="Every request posted by members, with the date it was raised and the date it closed.">
         <button type="button" className="adm-btn ghost" onClick={load}><IconRefresh width={16} height={16} /> Refresh</button>
       </PageHeader>
 
@@ -82,61 +83,134 @@ export default function Requests() {
         <StatCard icon={<IconClose />} label="Cancelled" value={cancelled} />
       </div>
 
-      <Card>
-        <Toolbar>
-          <SearchInput value={filters.search} onChange={(v) => setFilters((f) => ({ ...f, search: v }))} placeholder="Search by location…" />
-          <select className="adm-select" value={filters.status} onChange={(e) => setFilters((f) => ({ ...f, status: e.target.value }))}>
-            <option value="">All statuses</option>
-            <option value="pending">Open</option>
-            <option value="fulfilled">Fulfilled</option>
-            <option value="cancelled">Cancelled</option>
-          </select>
-          <select className="adm-select" value={filters.bloodGroup} onChange={(e) => setFilters((f) => ({ ...f, bloodGroup: e.target.value }))}>
-            <option value="">All blood groups</option>
-            {GROUPS.map((g) => <option key={g} value={g}>{g}</option>)}
-          </select>
-        </Toolbar>
-
-        {loading ? <Spinner /> : items.length === 0 ? (
-          <EmptyState title="No requests match" message="Nothing to moderate with these filters." />
-        ) : (
-          <>
-          <TableWrap>
-            <table className="adm-table">
-              <thead><tr><th>Group</th><th>Location</th><th>Requested by</th><th>Contact</th><th>Posted</th><th>Status</th><th aria-label="Actions" /></tr></thead>
-              <tbody>
-                {pager.slice.map((r) => (
-                  <tr key={r._id} className={busyId === r._id ? 'busy' : ''}>
-                    <td><BloodTag group={r.bloodGroupNeeded} /></td>
-                    <td className="adm-strong">{r.location}</td>
-                    <td>{r.requesterId?.name || <span className="adm-muted">Deleted member</span>}</td>
-                    <td className="adm-muted">{r.requesterId?.phone || '—'}</td>
-                    <td className="adm-muted">{formatDate(r.createdAt)}</td>
-                    <td>
-                      <Badge tone={r.status === 'pending' ? 'warn' : r.status === 'fulfilled' ? 'good' : 'neutral'}>
-                        {r.status === 'pending' ? 'Open' : r.status}
-                      </Badge>
-                    </td>
-                    <td className="adm-row-actions">
-                      {r.status !== 'fulfilled' && (
-                        <button type="button" className="adm-btn small" onClick={() => setStatus(r, 'fulfilled')} disabled={busyId === r._id}>Mark fulfilled</button>
-                      )}
-                      {r.status !== 'pending' && (
-                        <button type="button" className="adm-btn small ghost" onClick={() => setStatus(r, 'pending')} disabled={busyId === r._id}>Reopen</button>
-                      )}
-                      {r.status === 'pending' && (
-                        <button type="button" className="adm-btn small ghost" onClick={() => setStatus(r, 'cancelled')} disabled={busyId === r._id}>Cancel</button>
-                      )}
-                      <button type="button" className="adm-icon-btn danger" title="Delete" onClick={() => setConfirm(r)}><IconTrash width={17} height={17} /></button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </TableWrap>
-        <Pagination page={pager.page} pages={pager.pages} onChange={pager.setPage} />
-        </>
-        )}
+      <Card className="has-table">
+        <DataTable
+          caption="requests"
+          rows={items}
+          loading={loading}
+          error={loadError}
+          rowKey={(r) => r._id}
+          exportName="blood-requests"
+          initialSort={{ key: 'createdAt', dir: 'desc' }}
+          defaultPerPage={12}
+          searchKeys={['location', 'hospital', 'bloodGroupNeeded',
+                       (r) => r.requesterId?.name, (r) => r.requesterId?.phone]}
+          searchPlaceholder="Search by place, hospital, member or number…"
+          rowClass={(r) => (busyId === r._id ? 'busy' : '')}
+          filters={[
+            {
+              key: 'status',
+              label: 'Status',
+              options: [
+                { value: 'pending', label: 'Open' },
+                { value: 'fulfilled', label: 'Fulfilled' },
+                { value: 'cancelled', label: 'Cancelled' },
+              ],
+            },
+            { key: 'bloodGroupNeeded', label: 'Blood group', options: GROUPS },
+            { key: 'location', label: 'Town', options: [...new Set(items.map((r) => r.location).filter(Boolean))].sort() },
+            {
+              key: 'urgency',
+              label: 'Urgency',
+              options: [
+                { value: 'critical', label: 'Critical' },
+                { value: 'urgent', label: 'Urgent' },
+                { value: 'routine', label: 'Planned' },
+              ],
+            },
+          ]}
+          empty={{ title: 'No requests match', message: 'Nothing to moderate with these filters.' }}
+          columns={[
+            {
+              key: 'bloodGroupNeeded',
+              header: 'Needed',
+              width: '106px',
+              render: (r) => (
+                <div className="req-need">
+                  <BloodTag group={r.bloodGroupNeeded} />
+                  <small>{r.unitsNeeded || 1} {(r.unitsNeeded || 1) === 1 ? 'unit' : 'units'}</small>
+                </div>
+              ),
+              csv: (r) => `${r.bloodGroupNeeded} x${r.unitsNeeded || 1}`,
+            },
+            {
+              key: 'location',
+              header: 'Where',
+              render: (r) => (
+                <>
+                  <strong>{r.location}</strong>
+                  {r.hospital && <><br /><small className="adm-muted">{r.hospital}</small></>}
+                </>
+              ),
+              csv: (r) => [r.location, r.hospital].filter(Boolean).join(' - '),
+            },
+            {
+              key: 'requesterId.name',
+              header: 'Requested by',
+              render: (r) => (r.requesterId ? (
+                <div className="req-who">
+                  <span>{r.requesterId.name}</span>
+                  <ContactActions size="sm" phone={r.requesterId.phone} name={r.requesterId.name} />
+                </div>
+              ) : <span className="adm-muted">Deleted member</span>),
+              csv: (r) => `${r.requesterId?.name || ''} ${r.requesterId?.phone || ''}`.trim(),
+            },
+            {
+              key: 'createdAt',
+              header: 'Requested',
+              width: '130px',
+              render: (r) => <span className="adm-muted">{dmy(r.createdAt)}</span>,
+              sortValue: (r) => new Date(r.createdAt).getTime(),
+              csv: (r) => dmy(r.createdAt),
+            },
+            {
+              key: 'closedAt',
+              header: 'Closed',
+              width: '130px',
+              render: (r) => {
+                const when = r.fulfilledAt || r.cancelledAt;
+                return when
+                  ? <span className="adm-muted">{dmy(when)}</span>
+                  : <span className="adm-muted">—</span>;
+              },
+              sortValue: (r) => {
+                const when = r.fulfilledAt || r.cancelledAt;
+                return when ? new Date(when).getTime() : null;
+              },
+              csv: (r) => dmy(r.fulfilledAt || r.cancelledAt),
+            },
+            {
+              key: 'status',
+              header: 'Status',
+              width: '120px',
+              render: (r) => <StatusTag status={r.status} label={r.status === 'pending' ? 'Open' : undefined} />,
+            },
+            {
+              key: 'actions',
+              header: '',
+              sortable: false,
+              export: false,
+              align: 'right',
+              width: '230px',
+              render: (r) => (
+                <div className="adm-row-actions">
+                  {r.status !== 'fulfilled' && (
+                    <button type="button" className="adm-btn small" onClick={() => setStatus(r, 'fulfilled')} disabled={busyId === r._id}>Fulfilled</button>
+                  )}
+                  {r.status !== 'pending' && (
+                    <button type="button" className="adm-btn small ghost" onClick={() => setStatus(r, 'pending')} disabled={busyId === r._id}>Reopen</button>
+                  )}
+                  {r.status === 'pending' && (
+                    <button type="button" className="adm-btn small ghost" onClick={() => setStatus(r, 'cancelled')} disabled={busyId === r._id}>Cancel</button>
+                  )}
+                  <button type="button" className="adm-icon-btn danger" title="Delete this request" onClick={() => setConfirm(r)}>
+                    <IconTrash width={17} height={17} />
+                  </button>
+                </div>
+              ),
+            },
+          ]}
+        />
       </Card>
 
       <ConfirmDialog
