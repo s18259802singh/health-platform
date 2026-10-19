@@ -10,10 +10,21 @@ import DataTable from '../components/DataTable';
 import StatusTag from '../components/StatusTag';
 import ContactActions from '../components/ContactActions';
 
+const GROUPS = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
+
+const unitsOf = (h, group) => {
+  const stock = h.availableBloodUnits || [];
+  if (!group) return stock.reduce((a, u) => a + (u.units || 0), 0);
+  return stock.find((u) => u.bloodGroup === group)?.units || 0;
+};
+
 export default function Hospitals() {
   const [hospitals, setHospitals] = useState([]);
   const [search, setSearch] = useState('');
   const [type, setType] = useState('');
+  // Picking a group turns this page into "who has O- right now" rather than
+  // "here is the whole directory, go and read eight numbers per row".
+  const [group, setGroup] = useState('');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -26,17 +37,35 @@ export default function Hospitals() {
     return () => clearTimeout(timer);
   }, [search]);
 
-  const shown = useMemo(
-    () => (type ? hospitals.filter((h) => h.type === type) : hospitals),
-    [hospitals, type]
+  const shown = useMemo(() => {
+    let list = type ? hospitals.filter((h) => h.type === type) : hospitals;
+    // Only centres that actually hold the group, because a centre with none
+    // of it is not an answer to "where can I get O-".
+    if (group) list = list.filter((h) => unitsOf(h, group) > 0);
+    return list;
+  }, [hospitals, type, group]);
+
+  const groupUnits = useMemo(
+    () => (group ? shown.reduce((a, h) => a + unitsOf(h, group), 0) : 0),
+    [shown, group],
   );
 
   return (
     <div className="page">
       <h1 className="page-title page-h1">Hospitals &amp; Blood Banks</h1>
-      <p className="app-subtext">Search the network, check stock and get directions.</p>
+      <p className="app-subtext">
+        {group
+          ? <>Centres holding <BloodGroup group={group} variant="pill" /> right now. Always ring before you travel.</>
+          : 'Search the network, check stock and get directions.'}
+      </p>
 
       <div className="search-bar">
+        <SearchSelect
+          value={group}
+          onChange={(e) => setGroup(e.target.value)}
+          placeholder="Any blood group"
+          options={[{ value: '', label: 'Any blood group' }, ...GROUPS.map((g) => ({ value: g, label: g }))]}
+        />
         <SearchSelect
           value={type}
           onChange={(e) => setType(e.target.value)}
@@ -53,6 +82,14 @@ export default function Hospitals() {
           onChange={(e) => setSearch(e.target.value)}
         />
       </div>
+
+      {group && (
+        <p className="stock-summary">
+          <strong>{shown.length}</strong> {shown.length === 1 ? 'centre holds' : 'centres hold'}{' '}
+          <BloodGroup group={group} variant="pill" /> — <strong>{groupUnits}</strong> units between them.
+          {shown.length === 0 && ' Nothing is recorded for that group. Try the requests board, or ring a centre directly.'}
+        </p>
+      )}
 
       <DataTable
         caption="centres"
@@ -75,7 +112,7 @@ export default function Hospitals() {
           },
           { key: 'state', label: 'State', options: [...new Set(shown.map((h) => h.state).filter(Boolean))].sort() },
           { key: 'district', label: 'District', options: [...new Set(shown.map((h) => h.district).filter(Boolean))].sort() },
-          {
+          !group && {
             key: 'stock',
             label: 'Stock',
             placeholder: 'Any stock level',
@@ -89,7 +126,12 @@ export default function Hospitals() {
             },
           },
         ]}
-        empty={{ title: 'No centres match your search', message: 'Try a different town, or clear the filters.' }}
+        empty={{
+          title: group ? `No centre has ${group} recorded` : 'No centres match your search',
+          message: group
+            ? 'Stock moves quickly and not every centre reports it. Try another group, or post on the requests board.'
+            : 'Try a different town, or clear the filters.',
+        }}
         columns={[
           {
             key: 'name',
@@ -112,11 +154,24 @@ export default function Hospitals() {
           },
           {
             key: 'units',
-            header: 'Units held', defaultDir: 'desc',
+            header: group ? `${group} units` : 'Units held',
+            defaultDir: 'desc',
             align: 'right',
-            width: '200px',
-            sortValue: (h) => (h.availableBloodUnits || []).reduce((a, u) => a + (u.units || 0), 0),
+            width: group ? '130px' : '200px',
+            sortValue: (h) => unitsOf(h, group),
             render: (h) => {
+              // With a group chosen, that one number IS the answer; the full
+              // eight-group breakdown just buries it.
+              if (group) {
+                const n = unitsOf(h, group);
+                return (
+                  <span className="stock-answer">
+                    <strong>{n}</strong>
+                    <StatusTag size="sm" label={n >= 10 ? 'Good stock' : 'Low stock'}
+                               tone={n >= 10 ? 'good' : 'warn'} />
+                  </span>
+                );
+              }
               const units = (h.availableBloodUnits || []).filter((u) => u.units > 0);
               const total = units.reduce((a, u) => a + u.units, 0);
               if (!total) return <StatusTag label="None recorded" tone="dead" size="sm" />;
@@ -131,7 +186,7 @@ export default function Hospitals() {
                 </div>
               );
             },
-            csv: (h) => (h.availableBloodUnits || []).reduce((a, u) => a + (u.units || 0), 0),
+            csv: (h) => unitsOf(h, group),
           },
           {
             key: 'contactNumber',

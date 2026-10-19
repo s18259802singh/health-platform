@@ -51,7 +51,7 @@ export default function BloodSupplyMonitor() {
               <div className="supply-bag-shape">
                 <div className="supply-bag-fill" style={{ height: `${Math.max(8, fillPct)}%` }} />
               </div>
-              <BloodGroup group={s.group} variant="bare" className="supply-bag-group" />
+              <BloodGroup group={s.group} variant="bare" symbol={false} className="supply-bag-group" />
               <span className="supply-bag-count">{s.donors} donor{s.donors === 1 ? '' : 's'}</span>
               {s.pendingRequests > 0 && (
                 <span className="supply-bag-needed">{s.pendingRequests} needed</span>

@@ -180,22 +180,17 @@ export default function Availability() {
 
       {data && (
         <div className="bento">
-          <div className="tile slate t-3 center pad-sm">
+          <div className="tile slate t-4 center pad-sm">
             <span className="tile-label">Centres found</span>
             <strong className="tile-value sm">{data.count}</strong>
           </div>
-          <div className="tile mint t-3 center pad-sm">
+          <div className="tile mint t-4 center pad-sm">
             <span className="tile-label">With stock{filters.bloodGroup ? ` of ${filters.bloodGroup}` : ''}</span>
             <strong className="tile-value sm">{data.withStock}</strong>
           </div>
-          <div className="tile rose t-3 center pad-sm">
+          <div className="tile rose t-4 center pad-sm">
             <span className="tile-label">Units available</span>
             <strong className="tile-value sm">{data.totalUnits}</strong>
-          </div>
-          <div className="tile ink t-3 pad-sm portal-stamp-tile">
-            <span className="tile-label">Last refreshed</span>
-            <strong>{new Date(data.updatedAt || Date.now()).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}</strong>
-            <small>{new Date(data.updatedAt || Date.now()).toLocaleDateString('en-GB')} · as recorded by each centre</small>
           </div>
         </div>
       )}

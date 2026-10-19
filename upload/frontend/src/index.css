@@ -1036,6 +1036,16 @@ input[type="file"] { padding: 9px; font-size: 13.5px; background: var(--line-sof
 .bg-chip em { font-style: normal; }
 .bg-chip i { font-style: normal; font-size: .85em; font-weight: 650; opacity: .62; }
 
+/* The drop. Sized from the text so it scales with whatever it sits in, and
+   filled with the group's own colour at a lower weight so it marks the chip
+   as a blood group without competing with the letters. */
+.bg-chip .bg-drop {
+  width: .72em; height: .96em; flex: none;
+  align-self: center; margin-right: .18em;
+  fill: var(--bg-ink); opacity: .9;
+}
+.bg-chip.g-ab .bg-drop { opacity: .75; }
+
 .bg-chip.g-a  { --bg-ink: #6a4a9c; --bg-tint: #efe9f7; }   /* violet  */
 .bg-chip.g-b  { --bg-ink: #a8346f; --bg-tint: #fbe9f2; }   /* magenta */
 .bg-chip.g-o  { --bg-ink: #8a2b4a; --bg-tint: #fbe7ed; }   /* wine    */
@@ -1068,6 +1078,11 @@ input[type="file"] { padding: 9px; font-size: 13.5px; background: var(--line-sof
 .bg-chip.bg-pill.alt em { -webkit-text-fill-color: currentColor; background: none; color: inherit; }
 /* colour only, for inline captions and breakdowns */
 .bg-chip.bg-bare { font-size: inherit; }
+.bg-chip.bg-bare .bg-drop { opacity: .7; margin-right: .14em; }
+/* Stock breakdowns show all eight groups side by side; the drop stays, but
+   small enough that the numbers next to it still lead. */
+.portal-breakdown .bg-drop,
+.place-units .bg-drop { width: .68em; height: .9em; opacity: 1; }
 .bg-chip.bg-empty { color: var(--muted); font-weight: 600; }
 
 /* the places that framed their own box keep the frame, drop the colour */
@@ -3155,3 +3170,14 @@ input[type="file"] { padding: 9px; font-size: 13.5px; background: var(--line-sof
 }
 .profile-layout .form-card { margin: 0; }
 @media (max-width: 900px) { .profile-layout { grid-template-columns: 1fr; } }
+
+/* Directory: the answer line and per-row figure when a blood group is chosen. */
+.stock-summary {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 6px;
+  margin: 0 0 14px; padding: 11px 14px; border-radius: 10px;
+  background: var(--brand-soft); border: 1px solid var(--brand-line);
+  font-size: 14px; color: var(--ink-2);
+}
+.stock-summary strong { color: var(--ink); font-weight: 750; }
+.stock-answer { display: inline-flex; align-items: center; gap: 9px; justify-content: flex-end; }
+.stock-answer > strong { font-size: 16px; }

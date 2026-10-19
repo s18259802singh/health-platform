@@ -106,6 +106,8 @@ export default function DataTable({
   const panelRef = useRef(null);
 
   const cols = useMemo(() => (columns || []).filter(Boolean), [columns]);
+  // Pages switch a filter off by leaving `false` in the list, so drop those.
+  const filterDefs = useMemo(() => (filters || []).filter(Boolean), [filters]);
 
   // --- search ------------------------------------------------------------
   const searched = useMemo(() => {
@@ -123,13 +125,13 @@ export default function DataTable({
     const active = Object.entries(picked).filter(([, v]) => v !== '' && v != null);
     if (!active.length) return searched;
     return searched.filter((r) => active.every(([key, val]) => {
-      const f = filters.find((x) => x.key === key);
+      const f = filterDefs.find((x) => x.key === key);
       if (!f) return true;
       if (f.match) return f.match(r, val);
       const v = key.split('.').reduce((a, p) => (a == null ? a : a[p]), r);
       return String(v ?? '') === String(val);
     }));
-  }, [searched, picked, filters]);
+  }, [searched, picked, filterDefs]);
 
   // --- sort --------------------------------------------------------------
   const sorted = useMemo(() => {
@@ -182,7 +184,7 @@ export default function DataTable({
     setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 0);
   };
 
-  const showToolbar = searchKeys.length > 0 || filters.length > 0 || exportName || toolbar;
+  const showToolbar = searchKeys.length > 0 || filterDefs.length > 0 || exportName || toolbar;
 
   return (
     <div className={`dt ${dense ? 'dt-dense' : ''} ${className}`.trim()}>
@@ -208,7 +210,7 @@ export default function DataTable({
           <div className="dt-tools">
             {toolbar}
 
-            {filters.length > 0 && (
+            {filterDefs.length > 0 && (
               <div className="dt-filter-wrap" ref={panelRef}>
                 <button
                   type="button"
@@ -230,7 +232,7 @@ export default function DataTable({
                         Clear all
                       </button>
                     </div>
-                    {filters.map((f) => (
+                    {filterDefs.map((f) => (
                       <label key={f.key} className="dt-filter-row">
                         <span>{f.label}</span>
                         <SearchSelect
@@ -261,7 +263,7 @@ export default function DataTable({
       {activeCount > 0 && (
         <div className="dt-chips">
           {Object.entries(picked).filter(([, v]) => v !== '' && v != null).map(([k, v]) => {
-            const f = filters.find((x) => x.key === k);
+            const f = filterDefs.find((x) => x.key === k);
             const opt = (f?.options || []).find((o) => (typeof o === 'string' ? o : o.value) === v);
             const label = typeof opt === 'string' ? opt : (opt?.label ?? v);
             return (
