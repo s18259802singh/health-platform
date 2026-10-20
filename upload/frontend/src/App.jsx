@@ -8,7 +8,7 @@
 // and own tokens. Nothing from one shell renders inside the other.
 // ============================================================================
 
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, useEffect } from 'react';
 import PageLoader from './components/PageLoader';
 import { BrowserRouter, HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { DEMO } from './api/axios';
@@ -21,6 +21,7 @@ import { AuthProvider } from './context/AuthContext';
 import { TourProvider } from './context/TourContext';
 import SiteLayout from './components/SiteLayout';
 import ProtectedRoute from './components/ProtectedRoute';
+import { prefetchCommon } from './lib/prefetch';
 
 const Home = lazy(() => import('./pages/Home'));
 const Login = lazy(() => import('./pages/Login'));
@@ -29,6 +30,7 @@ const Dashboard = lazy(() => import('./pages/Dashboard'));
 const Profile = lazy(() => import('./pages/Profile'));
 const DonorSearch = lazy(() => import('./pages/DonorSearch'));
 const Hospitals = lazy(() => import('./pages/Hospitals'));
+const HospitalDetail = lazy(() => import('./pages/HospitalDetail'));
 const Appointments = lazy(() => import('./pages/Appointments'));
 const NearMe = lazy(() => import('./pages/NearMe'));
 const EmergencyPage = lazy(() => import('./pages/EmergencyPage'));
@@ -71,11 +73,19 @@ const AdminSupport = lazy(() => import('./admin/pages/Support'));
 // A whole-page loader rather than a thin bar at the top. A route change
 // swaps the entire body, so half a rendered page with an empty middle is
 // what the thin bar produced, and it read as a stall rather than a load.
+// POINT 5. Once the first screen has settled, quietly pull in the pages
+// people go to next, so those navigations have nothing to download.
+function useIdlePrefetch() {
+  useEffect(() => { prefetchCommon(); }, []);
+}
+
 function RouteFallback() {
   return <PageLoader label="Loading" />;
 }
 
 export default function App() {
+  useIdlePrefetch();
+
   return (
     <Router>
       {/* Every page below is loaded on demand. The landing page used to ship
@@ -137,6 +147,10 @@ export default function App() {
                     <Route path="leaderboard" element={<Leaderboard />} />
                     <Route path="blogs" element={<Blogs />} />
                     <Route path="blogs/:id" element={<BlogPost />} />
+                    {/* A centre's own page is public, like availability: the
+                        name, address and reported stock are public records,
+                        and the doctor list inside only loads for a member. */}
+                    <Route path="hospitals/:id" element={<HospitalDetail />} />
 
                     {/* members only */}
                     <Route path="dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />

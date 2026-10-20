@@ -8,6 +8,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import api from '../api/axios';
 import DataTable from '../components/DataTable';
+import Figure from '../components/Figure';
 import StatusTag from '../components/StatusTag';
 import ContactActions from '../components/ContactActions';
 import PageLoader from '../components/PageLoader';
@@ -182,15 +183,15 @@ export default function Availability() {
         <div className="bento">
           <div className="tile slate t-4 center pad-sm">
             <span className="tile-label">Centres found</span>
-            <strong className="tile-value sm">{data.count}</strong>
+            <strong className="tile-value sm"><Figure value={data.count} ready={!loading} /></strong>
           </div>
           <div className="tile mint t-4 center pad-sm">
             <span className="tile-label">With stock{filters.bloodGroup ? ` of ${filters.bloodGroup}` : ''}</span>
-            <strong className="tile-value sm">{data.withStock}</strong>
+            <strong className="tile-value sm"><Figure value={data.withStock} ready={!loading} /></strong>
           </div>
           <div className="tile rose t-4 center pad-sm">
             <span className="tile-label">Units available</span>
-            <strong className="tile-value sm">{data.totalUnits}</strong>
+            <strong className="tile-value sm"><Figure value={data.totalUnits} ready={!loading} /></strong>
           </div>
         </div>
       )}

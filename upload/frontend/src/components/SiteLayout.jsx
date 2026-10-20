@@ -6,7 +6,7 @@ import Navbar from './Navbar';
 import BackLink from './BackLink';
 import Footer from './Footer';
 import BottomNav from './BottomNav';
-import GuidedTour from './GuidedTour';
+import GuidedTour, { TourButton } from './GuidedTour';
 import ChatSupport from './ChatSupport';
 import ServerWaking from './ServerWaking';
 
@@ -34,6 +34,7 @@ export default function SiteLayout() {
       <Footer />
       <BottomNav />
       <GuidedTour />
+      <TourButton />
       <ChatSupport />
     </>
   );

@@ -108,7 +108,12 @@ export default function Dashboard() {
                 else, which left most of this tall tile empty. These are the
                 three things that are true and useful on day one. */}
             <ul className="donor-tile-facts">
-              <li><strong>{user?.bloodGroup || '—'}</strong><span>Your group</span></li>
+              <li>
+                <strong className="ready-group">
+                  {user?.bloodGroup ? <BloodGroup group={user.bloodGroup} variant="bare" /> : '—'}
+                </strong>
+                <span>Your group</span>
+              </li>
               <li><strong>{user?.location || '—'}</strong><span>Registered in</span></li>
               <li>
                 <strong>{summary.count > 0 ? `#${summary.count}` : 'Not yet'}</strong>
@@ -176,11 +181,43 @@ export default function Dashboard() {
               <strong className="ready-headline">You can give today</strong>
               <p className="tile-sub">
                 {summary?.lastDonation
-                  ? 'More than 90 days have passed since your last donation.'
+                  ? 'More than 90 days have passed since your last donation, so you are clear to give again.'
                   : 'Nothing on your record yet — your first donation can be at any camp.'}
               </p>
-              <div className="tile-foot">
+
+              {/* This half of the card used to be empty space. It carries the
+                  same three facts the waiting state does, so the tile says
+                  something whichever side of the 90 days you are on. */}
+              <div className="ready-meta">
+                <div>
+                  <span>Your group</span>
+                  <strong className="ready-group">
+                    {user?.bloodGroup ? <BloodGroup group={user.bloodGroup} variant="bare" /> : '—'}
+                  </strong>
+                </div>
+                <div>
+                  <span>Last donated</span>
+                  <strong>
+                    {summary?.lastDonation
+                      ? new Date(summary.lastDonation).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+                      : 'Never'}
+                  </strong>
+                </div>
+                <div>
+                  <span>Donations</span>
+                  <strong>{summary?.count ?? 0}</strong>
+                </div>
+              </div>
+
+              <ul className="ready-checklist">
+                <li>Eat normally and drink plenty of water beforehand</li>
+                <li>Carry photo ID — the centre records every unit against it</li>
+                <li>Allow about 30 minutes, of which 10 is the donation itself</li>
+              </ul>
+
+              <div className="tile-foot ready-actions">
                 <Link to="/camps" className="tile-link">Book a slot at a camp →</Link>
+                <Link to="/requests" className="tile-link">See who needs blood →</Link>
               </div>
             </>
           ) : (
@@ -194,7 +231,9 @@ export default function Dashboard() {
               <div className="ready-meta">
                 <div>
                   <span>Your group</span>
-                  <strong>{user?.bloodGroup || '—'}</strong>
+                  <strong className="ready-group">
+                    {user?.bloodGroup ? <BloodGroup group={user.bloodGroup} variant="bare" /> : '—'}
+                  </strong>
                 </div>
                 <div>
                   <span>Last donated</span>

@@ -251,6 +251,25 @@ export default function Blogs() {
           <Field label="Article body" htmlFor="content" required error={form.errorFor('content')}>
             <textarea id="content" rows={14} maxLength={20000} {...form.field('content')} />
           </Field>
+
+          {/* The article page understands a little formatting now (see
+              lib/richtext.js). Nobody will use it if nobody is told. */}
+          <details className="adm-markup-help">
+            <summary>Formatting you can use in the body</summary>
+            <ul>
+              <li><code>## Heading</code> — a section. These also become the article's contents list.</li>
+              <li><code>### Heading</code> — a sub-section.</li>
+              <li><code>- item</code> — a bullet list.</li>
+              <li><code>1. item</code> — a numbered list.</li>
+              <li><code>&gt; line</code> — a pull quote, set large.</li>
+              <li><code>!&gt; line</code> — a highlighted point in a tinted box.</li>
+              <li><code>[photo: donating]</code> — a photograph. Keys: <code>donating</code>,{' '}
+                <code>bloodBag</code>, <code>lab</code>, <code>testing</code>,{' '}
+                <code>community</code>, <code>armCuff</code>.</li>
+              <li><code>**bold**</code> — emphasis, inside any of the above.</li>
+            </ul>
+            <p>Anything else is an ordinary paragraph, so older articles are unaffected.</p>
+          </details>
         </form>
       </Modal>
 

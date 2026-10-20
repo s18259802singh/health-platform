@@ -3,6 +3,7 @@
 // entirely in the admin console at /admin/hospitals.
 
 import { useEffect, useMemo, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import api from '../api/axios';
 import BloodGroup from '../components/BloodGroup';
 import SearchSelect from '../components/SearchSelect';
@@ -19,6 +20,7 @@ const unitsOf = (h, group) => {
 };
 
 export default function Hospitals() {
+  const navigate = useNavigate();
   const [hospitals, setHospitals] = useState([]);
   const [search, setSearch] = useState('');
   const [type, setType] = useState('');
@@ -138,7 +140,10 @@ export default function Hospitals() {
             header: 'Centre',
             render: (h) => (
               <>
-                <strong>{h.name}</strong>
+                {/* A real link, not just a clickable row: it opens in a new
+                    tab on a middle click and reads as a link to a screen
+                    reader, which a row handler alone does not. */}
+                <Link className="row-title" to={`/hospitals/${h._id}`}>{h.name}</Link>
                 <br /><small className="muted-note">{h.address}</small>
               </>
             ),
@@ -157,7 +162,9 @@ export default function Hospitals() {
             header: group ? `${group} units` : 'Units held',
             defaultDir: 'desc',
             align: 'right',
-            width: group ? '130px' : '200px',
+            // POINT 7: eight groups and a total in 200px was a jumble. The
+            // breakdown now lays out as pairs with room around them.
+            width: group ? '150px' : '290px',
             sortValue: (h) => unitsOf(h, group),
             render: (h) => {
               // With a group chosen, that one number IS the answer; the full
@@ -199,7 +206,22 @@ export default function Hospitals() {
             ),
             csv: (h) => (h.contactNumber === 'N/A' ? '' : h.contactNumber),
           },
+          {
+            key: 'open',
+            header: '',
+            sortable: false,
+            export: false,
+            align: 'right',
+            width: '92px',
+            render: (h) => (
+              <Link className="small-button ghost" to={`/hospitals/${h._id}`}>Open</Link>
+            ),
+          },
         ]}
+        // The whole row opens the centre. Clicks on the buttons inside it
+        // (call, WhatsApp, directions, Open) stop there and never reach this.
+        onRowClick={(h) => navigate(`/hospitals/${h._id}`)}
+        rowClass={() => 'is-clickable'}
       />
 
     </div>

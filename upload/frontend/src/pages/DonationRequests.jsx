@@ -20,6 +20,7 @@ import ContactActions from '../components/ContactActions';
 import SearchSelect from '../components/SearchSelect';
 import Field from '../components/Field';
 import PageLoader from '../components/PageLoader';
+import Modal from '../components/Modal';
 import useForm from '../lib/useForm';
 import { rules, BLOOD_GROUPS } from '../lib/validate';
 
@@ -56,7 +57,13 @@ export default function DonationRequests() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
   const [busyId, setBusyId] = useState(null);
-  const [posted, setPosted] = useState('');
+  // Two dialogs, not a line of green text. Posting a request and closing one
+  // are the two moments on this page that deserve a full stop: the first
+  // because the person has just asked strangers for help and needs to know
+  // it actually went out, the second because it is the only good news the
+  // board ever carries.
+  const [postedRequest, setPostedRequest] = useState(null);
+  const [closedRequest, setClosedRequest] = useState(null);
 
   const load = useCallback(async () => {
     try {
@@ -77,10 +84,10 @@ export default function DonationRequests() {
     schema,
     {
       onSubmit: async (values) => {
-        await api.post('/donation-requests', values);
-        setPosted('Your request is on the board. Donors signed in can see it and call you.');
+        const { data } = await api.post('/donation-requests', values);
         form.reset();
         await load();
+        setPostedRequest({ ...values, ...(data || {}) });
       },
     },
   );
@@ -88,14 +95,33 @@ export default function DonationRequests() {
   const close = async (row, how) => {
     setBusyId(row._id);
     try {
-      await api.put(`/donation-requests/${row._id}/${how}`);
+      const { data } = await api.put(`/donation-requests/${row._id}/${how}`);
       await load();
-    } catch {
-      setLoadError('Could not update that request. Try again.');
+      setClosedRequest({ ...row, ...(data || {}), how });
+    } catch (err) {
+      setLoadError(err.response?.data?.message || 'Could not update that request. Try again.');
     } finally {
       setBusyId(null);
     }
   };
+
+  // How long the request stood open, in words. "Answered in 6 hours" is the
+  // number that says whether the board is working.
+  const openFor = (row) => {
+    const from = new Date(row.createdAt).getTime();
+    const to = new Date(row.fulfilledAt || row.cancelledAt || Date.now()).getTime();
+    const mins = Math.max(1, Math.round((to - from) / 60000));
+    if (mins < 60) return mins === 1 ? 'under a minute' : `${mins} minutes`;
+    const hours = Math.round(mins / 60);
+    if (mins < 1440) return hours === 1 ? 'an hour' : `${hours} hours`;
+    const days = Math.round(mins / 1440);
+    return days === 1 ? 'a day' : `${days} days`;
+  };
+
+  const shareText = (r) =>
+    `Blood needed: ${r.unitsNeeded || 1} unit(s) of ${r.bloodGroupNeeded} in ${r.location}` +
+    `${r.hospital ? ` (${r.hospital})` : ''}. ` +
+    `If you can help, contact ${user?.name || 'the requester'} on ${user?.phone || ''}. Shared via LifeLink.`;
 
   const mine = (row) => row.requesterId?._id === user?.id;
 
@@ -258,7 +284,6 @@ export default function DonationRequests() {
             your name and number so they can call you directly.
           </p>
 
-          {posted && <p className="form-status is-ok">{posted}</p>}
           {form.status.message && (
             <p className={`form-status is-${form.status.type === 'error' ? 'error' : 'ok'}`}>
               {form.status.message}
@@ -376,6 +401,125 @@ export default function DonationRequests() {
           />
         </section>
       </div>
+
+      {/* Posted. Shows back what went out and offers the one action that
+          actually finds a donor fastest in India - forwarding it to a
+          WhatsApp group. */}
+      <Modal
+        open={Boolean(postedRequest)}
+        onClose={() => setPostedRequest(null)}
+        tone="good"
+        title="Your request is on the board"
+        subtitle="Every signed-in member can see it now, along with your name and number."
+        icon={(
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="m4 12.5 5 5L20 6.5" />
+          </svg>
+        )}
+        footer={(
+          <>
+            <button type="button" className="btn-secondary" onClick={() => setPostedRequest(null)}>
+              Done
+            </button>
+            {postedRequest && (
+              <a
+                className="btn-primary"
+                target="_blank" rel="noopener noreferrer"
+                href={`https://wa.me/?text=${encodeURIComponent(shareText(postedRequest))}`}
+                onClick={() => setPostedRequest(null)}
+              >
+                Share on WhatsApp
+              </a>
+            )}
+          </>
+        )}
+      >
+        {postedRequest && (
+          <>
+            <dl className="modal-summary">
+              <div>
+                <dt>Needed</dt>
+                <dd>
+                  <BloodGroup group={postedRequest.bloodGroupNeeded} variant="pill" />
+                  {' '}{postedRequest.unitsNeeded || 1} {(postedRequest.unitsNeeded || 1) === 1 ? 'unit' : 'units'}
+                </dd>
+              </div>
+              <div>
+                <dt>Where</dt>
+                <dd>{[postedRequest.hospital, postedRequest.location].filter(Boolean).join(', ')}</dd>
+              </div>
+              <div>
+                <dt>Urgency</dt>
+                <dd>{URGENCY_LABEL[postedRequest.urgency] || 'Urgent'}</dd>
+              </div>
+            </dl>
+            <p>
+              Keep your phone to hand — donors ring the number on your profile
+              directly. When somebody comes through, mark the request fulfilled
+              so nobody else calls you about it.
+            </p>
+            <p className="muted-note">
+              If this is an emergency, do not wait on the board: call the centre
+              or your local emergency number now.
+            </p>
+          </>
+        )}
+      </Modal>
+
+      {/* Closed. Cancelled is not a celebration, so the two cases are not
+          dressed the same. */}
+      <Modal
+        open={Boolean(closedRequest)}
+        onClose={() => setClosedRequest(null)}
+        tone={closedRequest?.how === 'fulfil' ? 'good' : 'warn'}
+        title={closedRequest?.how === 'fulfil' ? 'Marked as fulfilled' : 'Request withdrawn'}
+        subtitle={closedRequest?.how === 'fulfil'
+          ? 'It is off the open board, so nobody else will call you about it.'
+          : 'It no longer shows as open. You can post a new one whenever you need to.'}
+        icon={closedRequest?.how === 'fulfil' ? (
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M12 20.5s-7.5-4.8-7.5-10a4.3 4.3 0 0 1 7.5-2.8 4.3 4.3 0 0 1 7.5 2.8c0 5.2-7.5 10-7.5 10Z" />
+          </svg>
+        ) : (
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               strokeWidth="2.2" strokeLinecap="round" aria-hidden="true">
+            <path d="M18 6 6 18M6 6l12 12" />
+          </svg>
+        )}
+        footer={<button type="button" className="btn-primary" onClick={() => setClosedRequest(null)}>Close</button>}
+      >
+        {closedRequest && (
+          <>
+            <dl className="modal-summary">
+              <div>
+                <dt>Request</dt>
+                <dd>
+                  <BloodGroup group={closedRequest.bloodGroupNeeded} variant="pill" />
+                  {' '}{closedRequest.unitsNeeded || 1} {(closedRequest.unitsNeeded || 1) === 1 ? 'unit' : 'units'} in {closedRequest.location}
+                </dd>
+              </div>
+              <div>
+                <dt>{closedRequest.how === 'fulfil' ? 'Answered in' : 'Open for'}</dt>
+                <dd>{openFor(closedRequest)}</dd>
+              </div>
+            </dl>
+            {closedRequest.how === 'fulfil' ? (
+              <p>
+                Thank you for closing it off. If a donor from LifeLink helped,
+                they can record the donation at the centre and it will show on
+                their record and the leaderboard.
+              </p>
+            ) : (
+              <p>
+                Nothing else happens — the request simply stops showing as open.
+                It stays in your history with today's date against it.
+              </p>
+            )}
+          </>
+        )}
+      </Modal>
     </div>
   );
 }

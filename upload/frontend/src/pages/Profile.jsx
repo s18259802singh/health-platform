@@ -7,7 +7,9 @@
 
 import { useEffect, useState } from 'react';
 import api from '../api/axios';
+import { useAuth } from '../context/AuthContext';
 import SearchSelect from '../components/SearchSelect';
+import BloodGroup from '../components/BloodGroup';
 import Field from '../components/Field';
 import PageLoader from '../components/PageLoader';
 import useForm from '../lib/useForm';
@@ -28,6 +30,7 @@ const schema = {
 };
 
 export default function Profile() {
+  const { updateUser } = useAuth();
   const [profile, setProfile] = useState(null);
   const [loadError, setLoadError] = useState('');
 
@@ -41,6 +44,14 @@ export default function Profile() {
       onSubmit: async (values) => {
         const { data } = await api.put('/profile', values);
         setProfile(data);
+        // The dashboard filters open requests by the member's group, so a
+        // change here has to reach the session immediately.
+        updateUser({
+          name: data.name,
+          bloodGroup: data.bloodGroup || '',
+          location: data.location || '',
+          isDonor: !!data.isDonor,
+        });
         form.setStatus({ type: 'ok', message: 'Saved. Your emergency QR now carries these details.' });
       },
     },
@@ -82,9 +93,17 @@ export default function Profile() {
         )}
 
         <form onSubmit={form.submit} noValidate>
-          <Field label="Full name" htmlFor="name" required error={form.errorFor('name')}>
-            <input id="name" autoComplete="name" {...form.field('name')} />
-          </Field>
+          {/* Paired, so the card can fill its column without leaving a
+              900px-wide box to type a name into. */}
+          <div className="field-pair">
+            <Field label="Full name" htmlFor="name" required error={form.errorFor('name')}>
+              <input id="name" autoComplete="name" {...form.field('name')} />
+            </Field>
+
+            <Field label="City or area" htmlFor="location" optional error={form.errorFor('location')}>
+              <input id="location" placeholder="e.g. Surat" autoComplete="address-level2" {...form.field('location')} />
+            </Field>
+          </div>
 
           <div className="field-pair">
             <Field label="Phone" htmlFor="phone" required error={form.errorFor('phone')}
@@ -106,10 +125,6 @@ export default function Profile() {
           <Field label="Allergies" htmlFor="allergies" optional error={form.errorFor('allergies')}
                  hint="Shown on your emergency QR. Leave blank if there are none.">
             <input id="allergies" placeholder="e.g. Penicillin" {...form.field('allergies')} />
-          </Field>
-
-          <Field label="City or area" htmlFor="location" optional error={form.errorFor('location')}>
-            <input id="location" placeholder="e.g. Surat" autoComplete="address-level2" {...form.field('location')} />
           </Field>
 
           <div className="field-pair">
@@ -136,6 +151,10 @@ export default function Profile() {
         </form>
       </div>
 
+      {/* POINT 12: this column used to be a short centred box beside a tall
+          form, so the two sides ended at wildly different heights. It now
+          stretches to match, and the space is filled with what the QR
+          actually carries rather than padding. */}
       <aside className="qr-box">
         <h3>Your emergency QR code</h3>
         <p>
@@ -151,6 +170,36 @@ export default function Profile() {
             </>
           )
           : <p className="muted-note">Your QR code is generated when you register. Save your profile to create one.</p>}
+
+        <div className="qr-carries">
+          <span className="tile-label">What it shows</span>
+          <dl>
+            <div>
+              <dt>Blood group</dt>
+              <dd>
+                {form.values.bloodGroup
+                  ? <BloodGroup group={form.values.bloodGroup} variant="bare" />
+                  : <span className="qr-missing">Not set</span>}
+              </dd>
+            </div>
+            <div>
+              <dt>Allergies</dt>
+              <dd>{form.values.allergies?.trim() || 'None recorded'}</dd>
+            </div>
+            <div>
+              <dt>Next of kin</dt>
+              <dd>
+                {form.values.emergencyContactName?.trim()
+                  ? `${form.values.emergencyContactName}${form.values.emergencyContactNumber ? ` · ${form.values.emergencyContactNumber}` : ''}`
+                  : <span className="qr-missing">Not set</span>}
+              </dd>
+            </div>
+          </dl>
+          <p className="qr-note">
+            Saving the form updates the code behind this image straight away.
+            Print it, or keep it on your lock screen.
+          </p>
+        </div>
       </aside>
     </div>
   );

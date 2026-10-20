@@ -6,6 +6,9 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
+// Hovering a link fetches that page's code, so the click has nothing to wait
+// for. See lib/prefetch.js (point 5).
+import { prefetchProps } from '../lib/prefetch';
 import Logo from './Logo';
 import { useAuth } from '../context/AuthContext';
 import { useTour } from '../context/TourContext';
@@ -139,7 +142,7 @@ export default function Navbar() {
 
           <div className={`nav-links ${open ? 'open' : ''}`}>
             {primary.map((l) => (
-              <NavLink key={l.to} to={l.to} end={l.end} onClick={close}>{l.label}</NavLink>
+              <NavLink key={l.to} to={l.to} end={l.end} onClick={close} {...prefetchProps(l.to)}>{l.label}</NavLink>
             ))}
 
             <div
@@ -158,7 +161,7 @@ export default function Navbar() {
               </button>
               <div className={`nav-more-menu ${more ? 'open' : ''}`}>
                 {secondary.map((l) => (
-                  <NavLink key={l.to} to={l.to} onClick={close}>{l.label}</NavLink>
+                  <NavLink key={l.to} to={l.to} onClick={close} {...prefetchProps(l.to)}>{l.label}</NavLink>
                 ))}
                 {user && <button onClick={handleHelp} className="link-button">Guided tour</button>}
               </div>
@@ -166,7 +169,7 @@ export default function Navbar() {
 
             <div className="nav-secondary-inline">
               {secondary.map((l) => (
-                <NavLink key={l.to} to={l.to} onClick={close}>{l.label}</NavLink>
+                <NavLink key={l.to} to={l.to} onClick={close} {...prefetchProps(l.to)}>{l.label}</NavLink>
               ))}
             </div>
 
@@ -174,8 +177,8 @@ export default function Navbar() {
               <button onClick={handleLogout} className="link-button nav-signout">Sign out</button>
             ) : (
               <>
-                <NavLink to="/login" onClick={close}>Sign in</NavLink>
-                <Link to="/register" className="nav-cta" onClick={close}>Join as a donor</Link>
+                <NavLink to="/login" onClick={close} {...prefetchProps('/login')}>Sign in</NavLink>
+                <Link to="/register" className="nav-cta" onClick={close} {...prefetchProps('/register')}>Join as a donor</Link>
               </>
             )}
           </div>

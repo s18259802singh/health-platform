@@ -9,6 +9,7 @@ import Pagination, { usePagination } from '../components/Pagination';
 import { initials, avatarTint } from '../lib/people';
 import BloodGroup from '../components/BloodGroup';
 import DataTable from '../components/DataTable';
+import Figure from '../components/Figure';
 import SearchSelect from '../components/SearchSelect';
 
 const GROUPS = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
@@ -52,19 +53,19 @@ export default function Leaderboard() {
         <div className="bento">
           <div className="tile slate t-3 center pad-sm">
             <span className="tile-label">Donations recorded</span>
-            <strong className="tile-value sm">{data.totals.donations ?? 0}</strong>
+            <strong className="tile-value sm"><Figure value={data.totals.donations} ready={!loading} /></strong>
           </div>
           <div className="tile sand t-3 center pad-sm">
             <span className="tile-label">Active donors</span>
-            <strong className="tile-value sm">{data.totals.donors ?? 0}</strong>
+            <strong className="tile-value sm"><Figure value={data.totals.donors} ready={!loading} /></strong>
           </div>
           <div className="tile mint t-3 center pad-sm">
             <span className="tile-label">Units given</span>
-            <strong className="tile-value sm">{data.totals.units ?? 0}</strong>
+            <strong className="tile-value sm"><Figure value={data.totals.units} ready={!loading} /></strong>
           </div>
           <div className="tile red t-3 center pad-sm">
             <span className="tile-label">People helped</span>
-            <strong className="tile-value sm">{data.totals.livesTouched ?? 0}</strong>
+            <strong className="tile-value sm"><Figure value={data.totals.livesTouched} ready={!loading} /></strong>
           </div>
         </div>
       )}
@@ -74,13 +75,21 @@ export default function Leaderboard() {
           {[podium[1], podium[0], podium[2]].map((e, i) => {
             const place = [2, 1, 3][i];
             return (
+              // POINT 9: the icon comes first, then the name, and the rank
+              // number sits at the foot of the card as a band. It used to be
+              // a small circle floating above the avatar, where it read as
+              // part of the picture rather than as the position.
               <div className={`podium-slot place-${place}`} key={e.rank}>
-                <span className="podium-rank">{place}</span>
                 <span className={`podium-avatar ${avatarTint(e.name)}`} aria-hidden="true">{initials(e.name)}</span>
-                <strong>{e.name}</strong>
+                <strong className="podium-name">{e.name}</strong>
                 <small>{e.city || '—'}</small>
+                <BloodGroup group={e.bloodGroup} variant="pill" />
                 <span className="podium-count">{e.donations} donations</span>
                 <span className={`tier-badge ${e.tier.toLowerCase()}`}>{e.tier}</span>
+                <span className="podium-rank">
+                  <b>{place}</b>
+                  <i>{place === 1 ? 'st' : place === 2 ? 'nd' : 'rd'}</i>
+                </span>
               </div>
             );
           })}

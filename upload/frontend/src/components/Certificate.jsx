@@ -4,6 +4,7 @@
 // print-to-PDF, which works on desktop and mobile without any library.
 
 import { useEffect } from 'react';
+import BloodGroup from './BloodGroup';
 
 export default function Certificate({ data, onClose }) {
   useEffect(() => {
@@ -52,7 +53,7 @@ export default function Certificate({ data, onClose }) {
 
             <p className="cert-body">
               voluntarily donated <strong>{data.units}</strong> unit
-              {data.units === 1 ? '' : 's'} of <strong>{data.bloodGroup}</strong> blood
+              {data.units === 1 ? '' : 's'} of <BloodGroup group={data.bloodGroup} variant="bare" /> blood
               on <strong>{date}</strong>
               {data.location ? <> at <strong>{data.location}</strong></> : null}
               {data.city ? <>, {data.city}</> : null}.

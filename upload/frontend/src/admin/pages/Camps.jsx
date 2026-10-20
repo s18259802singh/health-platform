@@ -1,6 +1,7 @@
 // Camp management: create, edit, cancel, and see who has registered.
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import BloodGroup from '../../components/BloodGroup';
 import adminApi from '../../api/adminApi';
 import DataTable from '../../components/DataTable';
 import StatusTag from '../../components/StatusTag';
@@ -375,7 +376,7 @@ export default function Camps() {
                       <tr key={r._id || i}>
                         <td>{i + 1}</td>
                         <td className="adm-strong">{r.name}</td>
-                        <td><span className="adm-blood">{r.bloodGroup}</span></td>
+                        <td><span className="adm-blood"><BloodGroup group={r.bloodGroup} variant="bare" /></span></td>
                         <td>{r.phone}</td>
                         <td className="adm-muted">{formatDate(r.registeredAt)}</td>
                       </tr>

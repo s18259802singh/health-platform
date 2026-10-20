@@ -77,6 +77,16 @@ const csvCell = (v) => {
   return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 };
 
+// A clickable row must not steal the clicks meant for the things inside it.
+// Without this, tapping Call on a row that opens a page did both: it dialled
+// and it navigated. Any interactive descendant handles its own click.
+// The row itself carries role="button", so a naive closest() match finds the
+// row and swallows every click including its own.
+const fromControl = (e) => {
+  const hit = e.target.closest?.('a, button, input, select, textarea, label, [role="button"]');
+  return !!hit && hit !== e.currentTarget;
+};
+
 export default function DataTable({
   columns,
   rows,
@@ -333,9 +343,11 @@ export default function DataTable({
                   <tr
                     key={rowKey(row, i)}
                     className={rowClass ? rowClass(row) : undefined}
-                    onClick={onRowClick ? () => onRowClick(row) : undefined}
+                    onClick={onRowClick ? (e) => { if (!fromControl(e)) onRowClick(row); } : undefined}
                     tabIndex={onRowClick ? 0 : undefined}
-                    onKeyDown={onRowClick ? (e) => { if (e.key === 'Enter') onRowClick(row); } : undefined}
+                    onKeyDown={onRowClick ? (e) => {
+                      if (e.key === 'Enter' && e.target === e.currentTarget) onRowClick(row);
+                    } : undefined}
                     role={onRowClick ? 'button' : undefined}
                   >
                     {cols.map((c) => (
@@ -354,7 +366,7 @@ export default function DataTable({
           <ul className="dt-cards">
             {pager.slice.map((row, i) => (
               <li key={rowKey(row, i)} className={rowClass ? rowClass(row) : undefined}
-                  onClick={onRowClick ? () => onRowClick(row) : undefined}>
+                  onClick={onRowClick ? (e) => { if (!fromControl(e)) onRowClick(row); } : undefined}>
                 {cols.filter((c) => c.card !== false).map((c) => (
                   <div className="dt-card-row" key={c.key || c.header}>
                     <span className="dt-card-label">{c.header}</span>

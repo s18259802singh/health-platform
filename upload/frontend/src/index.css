@@ -175,11 +175,15 @@ a:hover { text-decoration: underline; }
 .page > .bento:first-child { margin-top: 0; }
 .page-head + .bento, .page-head + .stat-strip { margin-top: 0; }
 
+/* The page fades in. It used to also slide, which left an identity
+   transform on .page - and a transform makes every `position: fixed`
+   descendant anchor to it instead of the viewport, so dialogs opened
+   relative to the page. Opacity alone has no such side effect. */
 .page { animation: rise .3s ease-out; }
 .page-title { margin-bottom: 4px; }
 .empty-page { text-align: center; padding: 60px 0; }
 
-@keyframes rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+@keyframes rise { from { opacity: 0; } to { opacity: 1; } }
 
 .app-eyebrow {
   font-size: 11.5px; letter-spacing: .14em; text-transform: uppercase;
@@ -1034,7 +1038,11 @@ input[type="file"] { padding: 9px; font-size: 13.5px; background: var(--line-sof
   font-weight: 700; letter-spacing: -.01em; white-space: nowrap;
 }
 .bg-chip em { font-style: normal; }
-.bg-chip i { font-style: normal; font-size: .85em; font-weight: 650; opacity: .62; }
+/* The + or - is half the answer, so it is NOT decoration: at opacity .62 the
+   minus read as a stray dash on a screenshot, and in a boxed chip it was the
+   first thing to disappear. It now sits a touch below the letters' weight and
+   nothing more. */
+.bg-chip i { font-style: normal; font-size: .9em; font-weight: 750; opacity: .85; }
 
 /* The drop. Sized from the text so it scales with whatever it sits in, and
    filled with the group's own colour at a lower weight so it marks the chip
@@ -1087,8 +1095,13 @@ input[type="file"] { padding: 9px; font-size: 13.5px; background: var(--line-sof
 
 /* the places that framed their own box keep the frame, drop the colour */
 .req-mini-group.bg-chip {
-  flex: none; min-width: 44px; padding: 4px 9px; border-radius: 8px;
-  background: var(--surface); border: 1px solid var(--brand-line); font-size: 13px;
+  flex: none; min-width: 52px; padding: 5px 10px; border-radius: 8px;
+  background: var(--surface); border: 1px solid var(--brand-line); font-size: 13.5px;
+  /* EXPLICIT, and it matters: the rule further down used to set
+     display:inline-grid here, and a one-column grid put the drop, the letter
+     and the sign on three separate lines. */
+  display: inline-flex; align-items: center; justify-content: center;
+  gap: 1px; white-space: nowrap;
 }
 .place-units .bg-chip { margin-right: 2px; }
 .portal-breakdown .bg-chip { margin-right: 3px; }
@@ -1161,6 +1174,27 @@ input[type="file"] { padding: 9px; font-size: 13.5px; background: var(--line-sof
 .ready-meta strong { font-size: 17px; font-weight: 650; letter-spacing: -.01em; }
 .ready-tile.is-ready .ready-headline { color: var(--good); }
 
+/* Three facts, so they wrap rather than squeeze on a narrow tile. */
+.ready-meta { flex-wrap: wrap; row-gap: var(--s3); }
+.ready-meta .ready-group { display: inline-flex; align-items: center; }
+.ready-meta .ready-group .bg-chip { font-size: 17px; }
+
+/* What to bring. Short, factual, and it fills the half of the eligible card
+   that was blank. */
+.ready-checklist {
+  list-style: none; margin: var(--s4) 0 0; padding: 0; display: grid; gap: 6px;
+}
+.ready-checklist li {
+  position: relative; padding-left: 21px;
+  font-size: 13px; color: var(--ink-2); line-height: 1.45;
+}
+.ready-checklist li::before {
+  content: ''; position: absolute; left: 2px; top: 5px;
+  width: 11px; height: 6px; border-left: 2px solid var(--good);
+  border-bottom: 2px solid var(--good); transform: rotate(-45deg);
+}
+.ready-actions { display: flex; flex-wrap: wrap; gap: var(--s4); }
+
 /* Open requests this member's group can answer. */
 .req-mini-list { list-style: none; margin: var(--s2) 0 0; padding: 0; display: grid; gap: 7px; }
 .req-mini-list li {
@@ -1170,11 +1204,12 @@ input[type="file"] { padding: 9px; font-size: 13.5px; background: var(--line-sof
   transition: background .15s ease;
 }
 .req-mini-list li:hover { background: var(--brand-soft); }
+/* Styling for the frame only. The LAYOUT lives in .req-mini-group.bg-chip
+   above, because a grid here stacked the chip's three parts vertically. */
 .req-mini-group {
-  flex: none; display: inline-grid; place-items: center;
-  min-width: 44px; padding: 4px 9px; border-radius: 8px;
+  flex: none; min-width: 52px; padding: 5px 10px; border-radius: 8px;
   background: var(--surface); border: 1px solid var(--brand-line);
-  color: var(--brand); font-size: 13px; font-weight: 700;
+  color: var(--brand); font-size: 13.5px; font-weight: 700;
 }
 .req-mini-body { flex: 1; min-width: 0; }
 .req-mini-body strong {
@@ -1318,8 +1353,17 @@ input[type="file"] { padding: 9px; font-size: 13.5px; background: var(--line-sof
   font-size: 14.5px; font-weight: 700; color: var(--ink-2); cursor: pointer;
   transition: border-color .15s ease, background .15s ease, color .15s ease;
 }
-.compat-tile:hover { border-color: var(--red); color: var(--red); }
+.compat-tile:hover { border-color: var(--red); background: var(--red-soft); }
 .compat-tile.active { background: var(--red); border-color: var(--red); color: #fff; }
+/* The chip inside brings the group's own colour; selected, the button owns
+   the colour instead, so the chip goes white - drop, letter and sign alike,
+   including AB, whose letters are painted with a gradient. */
+.compat-tile .bg-chip { justify-content: center; }
+.compat-tile.active .bg-chip { color: #fff; }
+.compat-tile.active .bg-chip .bg-drop { fill: #fff; opacity: 1; }
+.compat-tile.active .bg-chip.g-ab em {
+  background: none; -webkit-text-fill-color: #fff; color: #fff;
+}
 
 .compat-result {
   display: grid; grid-template-columns: 1fr 1fr; gap: 20px;
@@ -1430,13 +1474,153 @@ input[type="file"] { padding: 9px; font-size: 13.5px; background: var(--line-sof
 .blog-admin-actions { display: flex; gap: 7px; margin-top: 12px; }
 .blog-image-preview { width: 100%; max-width: 280px; border-radius: var(--r-sm); margin-bottom: 14px; }
 
-.blog-post { max-width: 760px; margin: 0 auto; }
+/* The formatting crib in the console's article editor. */
+.adm-markup-help {
+  margin-top: 14px; padding: 12px 14px; border-radius: 10px;
+  background: var(--adm-soft, var(--line-soft)); font-size: 13px;
+}
+.adm-markup-help summary { cursor: pointer; font-weight: 650; }
+.adm-markup-help ul { margin: 10px 0 0; padding-left: 18px; display: grid; gap: 6px; line-height: 1.5; }
+.adm-markup-help code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px;
+  background: rgba(0, 0, 0, .05); padding: 1px 5px; border-radius: 4px;
+}
+.adm-markup-help p { margin: 10px 0 0; font-size: 12px; opacity: .75; }
+
+/* ======================================================================
+   THE ARTICLE PAGE  (point 11)
+   It was a 760px column of identical paragraphs. It is now a masthead, a
+   body with real typography, and a rail that holds the article's own
+   contents - so a long piece can be scanned as well as read.
+   ====================================================================== */
+.blog-post { max-width: 1080px; margin: 0 auto; }
 .blog-back { display: inline-block; margin-bottom: 18px; font-size: 14px; color: var(--muted); }
 .blog-back:hover { color: var(--red); }
-.blog-post-title { font-size: clamp(27px, 4vw, 38px); margin-bottom: 10px; }
-.blog-post-image { width: 100%; border-radius: var(--r); margin: 22px 0; }
-.blog-post-content { font-size: 17px; line-height: 1.75; color: var(--ink-2); }
-.blog-post-content p { margin-bottom: 1.3em; }
+
+.article-head { max-width: 760px; }
+.article-title {
+  font-size: clamp(29px, 4.4vw, 44px); line-height: 1.12;
+  letter-spacing: -.028em; margin: 6px 0 14px;
+}
+/* The standfirst. Larger and lighter than the body, so the eye starts here
+   and the article has an obvious way in. */
+.article-deck {
+  font-size: clamp(17px, 2vw, 20px); line-height: 1.55; color: var(--ink-2);
+  margin: 0 0 var(--s5); max-width: 62ch;
+}
+.article-byline { display: flex; align-items: center; gap: 11px; margin-bottom: var(--s5); }
+.article-avatar {
+  width: 40px; height: 40px; border-radius: 50%; flex: none;
+  display: grid; place-items: center;
+  background: linear-gradient(145deg, var(--red), var(--red-ink));
+  color: #fff; font-size: 14.5px; font-weight: 700;
+}
+.article-byline strong { display: block; font-size: 14.5px; }
+.article-byline small { display: block; font-size: 12.5px; color: var(--muted); }
+
+.blog-post-image {
+  width: 100%; border-radius: var(--r-lg); margin: 0 0 var(--s6);
+  border: 1px solid var(--line);
+}
+
+.article-layout {
+  display: grid; gap: var(--s6) var(--gap); align-items: start;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 260px);
+}
+
+/* The body. 68 characters is the width prose is comfortable at; the old page
+   ran the full 760px at 17px, which is about 92. */
+.article-body { max-width: 68ch; font-size: 17.5px; line-height: 1.75; color: var(--ink-2); }
+.article-body > p { margin: 0 0 1.25em; }
+.article-body > p:first-of-type::first-letter {
+  float: left; font-size: 3.1em; line-height: .82; font-weight: 700;
+  color: var(--red); padding: .06em .09em 0 0;
+}
+.article-body h2 {
+  font-size: clamp(21px, 2.4vw, 26px); line-height: 1.25; letter-spacing: -.02em;
+  color: var(--ink); margin: 1.8em 0 .55em; scroll-margin-top: 90px;
+}
+.article-body h2::before {
+  content: ''; display: block; width: 42px; height: 3px; border-radius: 2px;
+  background: var(--red); margin-bottom: 14px;
+}
+.article-body h3 {
+  font-size: 18px; line-height: 1.35; color: var(--ink);
+  margin: 1.5em 0 .4em; font-weight: 650;
+}
+
+.article-list, .article-steps { margin: 0 0 1.3em; padding-left: 0; display: grid; gap: 10px; }
+.article-list { list-style: none; }
+.article-list li { position: relative; padding-left: 26px; }
+.article-list li::before {
+  content: ''; position: absolute; left: 4px; top: .62em;
+  width: 7px; height: 7px; border-radius: 50%; background: var(--red);
+}
+.article-steps { list-style: none; counter-reset: step; }
+.article-steps li { position: relative; padding-left: 38px; counter-increment: step; }
+.article-steps li::before {
+  content: counter(step); position: absolute; left: 0; top: .12em;
+  width: 26px; height: 26px; border-radius: 50%;
+  display: grid; place-items: center;
+  background: var(--red); color: #fff;
+  font-size: 13.5px; font-weight: 750; line-height: 1;
+}
+
+.article-quote {
+  margin: 1.7em 0; padding: 4px 0 4px 22px;
+  border-left: 3px solid var(--red);
+}
+.article-quote p {
+  margin: 0; font-size: clamp(19px, 2.2vw, 23px); line-height: 1.45;
+  letter-spacing: -.015em; color: var(--ink); font-weight: 600;
+}
+
+.article-callout {
+  display: flex; gap: 12px; align-items: flex-start;
+  margin: 1.5em 0; padding: 16px 18px; border-radius: var(--r);
+  background: var(--brand-soft); border: 1px solid var(--brand-line);
+}
+.article-callout span { color: var(--red); font-size: 13px; line-height: 1.6; }
+.article-callout p { margin: 0; font-size: 16.5px; line-height: 1.6; color: var(--ink); font-weight: 550; }
+
+.article-figure { margin: 1.9em 0; }
+.article-figure figcaption {
+  margin-top: 9px; font-size: 12.5px; color: var(--muted); line-height: 1.5;
+}
+
+.article-end {
+  margin-top: var(--s6); padding-top: var(--s5); border-top: 1px solid var(--line);
+  font-size: 15.5px;
+}
+.article-end p { margin: 0 0 var(--s4); }
+.article-end-links { display: flex; flex-wrap: wrap; gap: var(--s3); }
+
+/* The rail: the article's own sections, and a way onward. */
+.article-rail { display: grid; gap: var(--s4); position: sticky; top: 84px; }
+.article-toc {
+  padding: var(--s4) var(--s5); border-radius: var(--r);
+  background: var(--line-soft);
+}
+.article-toc ol { margin: 9px 0 0; padding-left: 18px; display: grid; gap: 7px; }
+.article-toc a { font-size: 13.5px; color: var(--ink-2); text-decoration: none; line-height: 1.4; }
+.article-toc a:hover { color: var(--red); }
+.article-aside-card {
+  padding: var(--s5); border-radius: var(--r);
+  background: var(--surface); border: 1px solid var(--line);
+}
+.article-aside-card .photo { margin-bottom: var(--s4); }
+.article-aside-card p { font-size: 13px; color: var(--muted); line-height: 1.55; margin: 0 0 var(--s3); }
+
+.article-more { margin-top: var(--s7, 48px); }
+.blog-card-body h4 { font-size: 16.5px; margin: 0 0 8px; line-height: 1.35; }
+.blog-card-body h4 a { color: var(--ink); text-decoration: none; }
+.blog-card-body h4 a:hover { color: var(--red); }
+
+@media (max-width: 980px) {
+  .article-layout { grid-template-columns: 1fr; }
+  .article-rail { position: static; }
+  .article-body { max-width: none; }
+}
 
 /* ------------------------------------------------------------ emergency */
 .emergency-card {
@@ -1468,43 +1652,97 @@ input[type="file"] { padding: 9px; font-size: 13.5px; background: var(--line-sof
 }
 .qr-box a { font-weight: 650; font-size: 14px; }
 
-/* ---------------------------------------------------------- guided tour */
-.tour-overlay {
-  position: fixed; inset: 0; z-index: 120;
-  background: rgba(22, 22, 26, .55); backdrop-filter: blur(3px);
-  display: flex; align-items: center; justify-content: center; padding: 20px;
+/* ---------------------------------------------------------- guided tour
+   A floating panel in the same corner as the Help chat, not a full-screen
+   dialog. It never dims the page behind it, because the whole point is that
+   you can keep reading the page the step is describing. */
+
+.tour-fab {
+  position: fixed; right: 20px; bottom: 76px; z-index: 89;
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 10px 15px; border-radius: 999px;
+  border: 1px solid var(--brand-line); background: var(--surface); color: var(--brand);
+  font-family: inherit; font-size: 13.5px; font-weight: 650; cursor: pointer;
+  box-shadow: 0 8px 22px -10px rgba(86, 48, 95, .45);
+  transition: background .16s ease, transform .12s ease;
 }
+.tour-fab:hover { background: var(--brand-soft); }
+.tour-fab:active { transform: translateY(1px); }
+
 .tour-panel {
-  width: 100%; max-width: 440px; padding: 26px;
-  background: var(--surface); border-radius: var(--r-lg);
-  box-shadow: 0 30px 70px -24px rgba(22, 22, 26, .5);
-  animation: tour-rise .22s ease-out;
+  position: fixed; right: 20px; bottom: 20px; z-index: 95;
+  width: 360px; max-height: calc(100vh - 120px);
+  display: flex; flex-direction: column; overflow: hidden;
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: 16px;
+  box-shadow: 0 26px 60px -22px rgba(22, 22, 26, .5);
+  animation: tour-rise .2s ease-out;
 }
-@keyframes tour-rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
-.tour-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
-.tour-title { font-size: 20px; margin: 0 0 4px; }
-.tour-count { font-size: 12px; color: var(--muted); letter-spacing: .04em; }
+@keyframes tour-rise { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+
+.tour-head {
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;
+  padding: 14px 16px 12px;
+  background: var(--brand); color: #fff;
+}
+.tour-head strong { display: block; font-size: 15px; font-weight: 650; }
+.tour-head small { display: block; font-size: 11.5px; opacity: .8; margin-top: 1px; }
 .tour-close {
-  border: 0; background: var(--line-soft); color: var(--ink-2);
-  width: 30px; height: 30px; border-radius: 50%; cursor: pointer; font-size: 15px; line-height: 1;
+  flex: none; display: grid; place-items: center;
+  width: 28px; height: 28px; border-radius: 8px;
+  border: 0; background: rgba(255, 255, 255, .14); color: #fff; cursor: pointer;
 }
-.tour-close:hover { background: var(--red-soft); color: var(--red); }
-.tour-text { font-size: 15px; color: var(--ink-2); margin: 14px 0 22px; line-height: 1.65; }
-.tour-nav { display: flex; align-items: center; gap: 9px; }
-.tour-btn {
-  padding: 9px 18px; border-radius: 999px; border: 0;
-  background: var(--red); color: #fff; font-size: 14px; font-weight: 600; cursor: pointer;
+.tour-close:hover { background: rgba(255, 255, 255, .26); }
+
+.tour-progress { height: 3px; background: var(--line-soft); }
+.tour-progress span {
+  display: block; height: 100%; background: var(--brand);
+  transition: width .25s ease;
 }
-.tour-btn:hover { background: var(--red-dark); }
-.tour-btn.ghost { background: var(--surface); color: var(--ink-2); border: 1px solid var(--line); }
-.tour-btn.ghost:hover { border-color: var(--red); color: var(--red); background: var(--surface); }
-.tour-btn:disabled { opacity: .45; cursor: not-allowed; }
-.tour-dots { display: flex; gap: 6px; margin-left: auto; }
+
+.tour-body { padding: 16px; overflow-y: auto; }
+.tour-title { font-size: 16.5px; margin: 0 0 7px; }
+.tour-text { font-size: 14px; color: var(--ink-2); margin: 0; line-height: 1.65; }
+.tour-link {
+  display: inline-block; margin-top: 12px;
+  font-size: 13.5px; font-weight: 650; color: var(--brand);
+}
+.tour-link:hover { text-decoration: underline; }
+
+.tour-dots { display: flex; flex-wrap: wrap; gap: 5px; padding: 0 16px 12px; }
 .tour-dots button {
   width: 7px; height: 7px; padding: 0; border: 0; border-radius: 50%;
   background: var(--line); cursor: pointer;
 }
-.tour-dots button.on { background: var(--red); width: 18px; border-radius: 99px; }
+.tour-dots button.on { background: var(--brand); width: 18px; border-radius: 99px; }
+
+.tour-nav {
+  display: flex; align-items: center; gap: 9px; justify-content: space-between;
+  padding: 12px 16px; border-top: 1px solid var(--line-soft); background: var(--surface);
+}
+.tour-btn {
+  padding: 9px 16px; border-radius: 999px; border: 0;
+  background: var(--brand); color: #fff; font-family: inherit;
+  font-size: 13.5px; font-weight: 650; cursor: pointer;
+}
+.tour-btn:hover { background: var(--brand-dark); }
+.tour-btn.ghost { background: var(--surface); color: var(--ink-2); border: 1px solid var(--line); }
+.tour-btn.ghost:hover { border-color: var(--brand); color: var(--brand); }
+.tour-btn:disabled { opacity: .45; cursor: not-allowed; }
+
+@media (max-width: 760px) {
+  /* The bottom navigation bar owns the bottom of a phone screen, so both
+     floating controls sit above it. */
+  .tour-fab { right: 14px; bottom: 128px; padding: 9px 13px; font-size: 12.5px; }
+  .tour-panel {
+    right: 10px; left: 10px; bottom: 72px; width: auto;
+    max-height: calc(100vh - 170px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tour-panel { animation: none; }
+  .tour-progress span { transition: none; }
+}
 
 .help-fab {
   position: fixed; right: 18px; bottom: 86px; z-index: 70;
@@ -1886,8 +2124,11 @@ input[type="file"] { padding: 9px; font-size: 13.5px; background: var(--line-sof
   display: flex; flex-direction: column; gap: 11px;
   padding: 20px; border-radius: var(--r);
   background: var(--surface); border: 1px solid var(--line);
+  /* the photo bleeds to the card edge, so the corners have to clip */
+  overflow: hidden;
   transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease;
 }
+.story-card .card-photo { margin: -20px -20px 3px; }
 .story-card:hover { transform: translateY(-3px); box-shadow: var(--shadow); border-color: var(--red-line); }
 .story-card h3 { margin: 0; font-size: 16px; line-height: 1.4; }
 .story-card h3 a { color: var(--ink); text-decoration: none; }
@@ -1994,22 +2235,30 @@ input[type="file"] { padding: 9px; font-size: 13.5px; background: var(--line-sof
 
 .podium { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; align-items: end; margin-bottom: 26px; }
 .podium-slot {
+  position: relative; overflow: hidden;
   display: flex; flex-direction: column; align-items: center; gap: 6px;
-  padding: 22px 14px; border-radius: var(--r-lg);
+  /* room at the foot for the rank band */
+  padding: 22px 14px 54px; border-radius: var(--r-lg);
   background: var(--surface); border: 1px solid var(--line); text-align: center;
 }
 .podium-slot.place-1 {
-  padding-top: 32px; padding-bottom: 32px;
+  padding-top: 32px; padding-bottom: 60px;
   background: linear-gradient(160deg, #fff, #fef3fa);
   border-color: var(--red-line); box-shadow: var(--shadow);
 }
+/* The position, read as a position: a band across the foot of the card
+   rather than a small circle above the avatar. */
 .podium-rank {
-  width: 26px; height: 26px; border-radius: 50%;
-  display: grid; place-items: center;
+  position: absolute; left: 0; right: 0; bottom: 0;
+  display: flex; align-items: baseline; justify-content: center; gap: 1px;
+  padding: 7px 0 9px;
   background: var(--line-soft); color: var(--ink-2);
-  font-size: 13px; font-weight: 700;
 }
+.podium-rank b { font-size: 21px; font-weight: 750; line-height: 1; letter-spacing: -.02em; }
+.podium-rank i { font-style: normal; font-size: 11px; font-weight: 700; opacity: .75; }
 .podium-slot.place-1 .podium-rank { background: var(--red); color: #fff; }
+.podium-slot.place-1 .podium-rank b { font-size: 25px; }
+.podium-name { line-height: 1.25; }
 .podium-avatar {
   width: 52px; height: 52px; border-radius: 50%;
   display: grid; place-items: center;
@@ -3146,9 +3395,206 @@ input[type="file"] { padding: 9px; font-size: 13.5px; background: var(--line-sof
 .dt-table td[data-label="Where"] { min-width: 150px; }
 .dt-table td[data-label="Raised by"] { min-width: 130px; }
 
-.place-units.compact { display: flex; align-items: center; gap: 10px; justify-content: flex-end; }
-.place-units.compact > strong { font-size: 15px; }
-.place-units-split { display: flex; flex-wrap: wrap; gap: 4px 7px; justify-content: flex-end; font-size: 11.5px; color: var(--muted); }
+/* POINT 7: the Units-held cell.
+   Eight group/number pairs and a total used to share 200px, so the pairs
+   wrapped mid-chip and the total got lost among them. The total now leads at
+   full size on its own line, and the breakdown sits beneath it as a four-wide
+   grid - fixed columns, so the chips line up down the table instead of
+   reflowing differently in every row. */
+.place-units.compact {
+  display: grid; justify-items: end; gap: 6px; justify-content: end;
+}
+.place-units.compact > strong {
+  font-size: 17px; font-weight: 700; line-height: 1;
+}
+.place-units.compact > strong::after {
+  content: ' units'; font-size: 11px; font-weight: 600; color: var(--muted);
+  letter-spacing: .01em;
+}
+.place-units-split {
+  display: grid; grid-template-columns: repeat(4, auto); gap: 5px 12px;
+  justify-content: end; font-size: 12px; color: var(--ink-2);
+}
+.place-units-split > span {
+  display: inline-flex; align-items: center; gap: 3px; white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.place-units-split > span .bg-chip { font-weight: 700; }
+@media (max-width: 1180px) {
+  .place-units-split { grid-template-columns: repeat(2, auto); }
+}
+
+/* A row that opens something says so on hover, and shows a pointer. */
+/* .dt-table is DataTable's own class. (.data-table above is the older
+   hand-rolled table this component replaced; nothing renders it now.) */
+.dt-table tbody tr.is-clickable { cursor: pointer; }
+.dt-table tbody tr.is-clickable:hover td { background: var(--brand-soft); }
+.dt-table tbody tr.is-clickable:focus-visible {
+  outline: 2px solid var(--brand); outline-offset: -2px;
+}
+.dt-cards li.is-clickable { cursor: pointer; }
+.row-title {
+  font-weight: 650; color: var(--ink); text-decoration: none;
+  border-bottom: 1px solid transparent;
+}
+.row-title:hover { color: var(--brand); border-bottom-color: var(--brand-line); }
+
+/* ------------------------------------------- a figure that is still coming
+   POINT 6. See components/Figure.jsx: a counter that renders "0" while its
+   API call is in flight tells the reader the register is empty. This is the
+   placeholder it renders instead - the tile keeps its shape, and the bar
+   plainly is not a number. */
+.fig-wait {
+  display: inline-block; height: .72em; min-width: 1.6ch;
+  vertical-align: -.02em; border-radius: 4px;
+  background: linear-gradient(90deg,
+    var(--line-soft) 0%, var(--line) 42%, var(--line-soft) 84%);
+  background-size: 260% 100%;
+  animation: fig-shimmer 1.25s ease-in-out infinite;
+}
+@keyframes fig-shimmer {
+  from { background-position: 150% 0; }
+  to   { background-position: -50% 0; }
+}
+
+/* Skeletons, for the pages that used to show a line of text where their
+   content was about to be (POINT 5). */
+.sk {
+  display: block; border-radius: 6px;
+  background: linear-gradient(90deg,
+    var(--line-soft) 0%, var(--line) 42%, var(--line-soft) 84%);
+  background-size: 260% 100%;
+  animation: fig-shimmer 1.25s ease-in-out infinite;
+}
+.sk-line { height: 12px; margin-bottom: 10px; }
+.sk-line.w-60 { width: 60%; } .sk-line.w-40 { width: 40%; } .sk-line.w-30 { width: 30%; }
+.sk-photo { width: 132px; align-self: stretch; border-radius: var(--r-sm); }
+.sk-date { width: 52px; height: 56px; flex: none; }
+.sk-card-photo { height: 150px; margin: -20px -20px 10px; border-radius: 0; }
+.camp-card.is-skeleton { pointer-events: none; }
+.camp-card.is-skeleton .camp-body { flex: 1; padding-top: 4px; }
+@media (max-width: 680px) { .sk-photo { width: 100%; height: 150px; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .fig-wait, .sk { animation: none; background: var(--line-soft); }
+}
+
+/* ------------------------------------------------- booking, two columns
+   POINT 8. The form was centred in a single column with a third of the
+   screen empty on either side. The column beside it is not filler: it is
+   what the form cannot tell you - when your next appointment is, what
+   happens after you submit, and where you are actually going. */
+.book-layout {
+  display: grid; gap: var(--gap); align-items: start;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 320px);
+  margin-bottom: var(--s6);
+}
+/* The card fills the left column rather than keeping its own 560px cap,
+   which otherwise left a visible hole between it and the rail. The fields
+   inside pair up so they stay a readable width. */
+.book-layout .form-card { margin: 0; max-width: none; }
+.book-aside { display: grid; gap: var(--s4); }
+.aside-card {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 7px;
+  padding: var(--s5); border-radius: var(--r);
+  background: var(--surface); border: 1px solid var(--line);
+}
+.aside-card.accent { background: var(--brand-soft); border-color: var(--brand-line); }
+.aside-date { font-size: 20px; font-weight: 700; letter-spacing: -.02em; line-height: 1.15; }
+.aside-place { font-size: 15.5px; font-weight: 650; }
+.aside-line { font-size: 13.5px; color: var(--ink-2); margin: 0; line-height: 1.5; }
+.aside-steps {
+  margin: 4px 0 0; padding-left: 18px; display: grid; gap: 8px;
+  font-size: 13px; color: var(--ink-2); line-height: 1.5;
+}
+.aside-steps strong { color: var(--ink); font-weight: 650; }
+.aside-card .small-button { margin-top: 4px; }
+@media (max-width: 980px) { .book-layout { grid-template-columns: 1fr; } }
+
+/* ================================================================== *
+ *  ONE CENTRE'S PAGE  (points 4 and 7)
+ *  Reached from any row in the directory, from Near Me, and from the
+ *  availability search. Public, so it is styled to stand on its own
+ *  rather than as a panel inside the member area.
+ * ================================================================== */
+.centre-head {
+  display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 290px);
+  gap: var(--gap); align-items: stretch; margin-bottom: var(--s6);
+}
+.centre-address { font-size: 15px; color: var(--ink-2); margin: 6px 0 2px; max-width: 62ch; }
+.centre-where {
+  font-size: 12.5px; letter-spacing: .06em; text-transform: uppercase;
+  color: var(--muted); font-weight: 650; margin: 0 0 var(--s4);
+}
+.centre-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s3); }
+.centre-nophone { margin-top: var(--s4); max-width: 60ch; }
+
+.centre-stat-card {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 7px;
+  padding: var(--s5); border-radius: var(--r-lg);
+  background: var(--brand-soft); border: 1px solid var(--brand-line);
+}
+.centre-total { font-size: 42px; font-weight: 700; line-height: 1; letter-spacing: -.03em; }
+.centre-caveat { font-size: 12px; color: var(--muted); margin: auto 0 0; }
+
+.centre-section { margin-bottom: var(--s6); }
+
+/* The shelf: all eight groups, always, because "AB- is not listed" and
+   "AB- is zero" are different answers and the row view could not tell them
+   apart. */
+.centre-shelf { display: grid; grid-template-columns: repeat(8, 1fr); gap: 10px; }
+.shelf-cell {
+  display: flex; flex-direction: column; align-items: center; gap: 5px;
+  padding: 14px 8px; border-radius: var(--r);
+  background: var(--surface); border: 1px solid var(--line);
+}
+.shelf-cell > strong { font-size: 25px; font-weight: 700; line-height: 1; letter-spacing: -.02em; }
+.shelf-cell > small { font-size: 11px; color: var(--muted); margin-top: -3px; }
+.shelf-cell.tone-good { border-color: var(--good); background: var(--good-soft); }
+.shelf-cell.tone-warn { border-color: #f0d2a4; background: #fdf9f2; }
+.shelf-cell.tone-bad  { border-color: #f4c7c7; background: #fdf4f4; }
+.shelf-cell.tone-dead { opacity: .72; }
+@media (max-width: 1040px) { .centre-shelf { grid-template-columns: repeat(4, 1fr); } }
+@media (max-width: 560px)  { .centre-shelf { grid-template-columns: repeat(2, 1fr); } }
+
+.centre-docs { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: var(--s4); }
+.doc-card {
+  display: flex; flex-direction: column; gap: 9px;
+  padding: var(--s5); border-radius: var(--r);
+  background: var(--surface); border: 1px solid var(--line);
+}
+.doc-card strong { display: block; font-size: 15.5px; }
+.doc-card small { display: block; font-size: 12.5px; color: var(--brand); font-weight: 650; }
+.doc-days { font-size: 12.5px; color: var(--ink-2); margin: 0; }
+.doc-slots { display: flex; flex-wrap: wrap; gap: 5px; margin: 0; }
+.doc-slots span {
+  font-size: 11.5px; padding: 3px 8px; border-radius: 7px;
+  background: var(--line-soft); color: var(--ink-2);
+}
+.doc-slots .doc-more { background: none; color: var(--muted); }
+.doc-card .small-button { align-self: flex-start; margin-top: auto; }
+
+.centre-reqs { list-style: none; margin: var(--s4) 0 0; padding: 0; display: grid; gap: 8px; }
+.centre-reqs li {
+  display: flex; align-items: center; flex-wrap: wrap; gap: var(--s4);
+  padding: 11px 14px; border-radius: var(--r-sm);
+  background: var(--line-soft);
+}
+/* "This centre has enough" will not fit beside the town on a phone, so it
+   drops to its own line rather than pushing the page sideways. */
+.centre-reqs .req-mini-body { flex: 1 1 150px; min-width: 0; }
+.centre-reqs .status-tag { margin-left: auto; }
+@media (max-width: 560px) {
+  .centre-reqs li { gap: 10px; }
+  .centre-reqs .status-tag { margin-left: 0; }
+}
+.centre-foot {
+  display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--s4);
+  padding-top: var(--s5); border-top: 1px solid var(--line-soft);
+}
+@media (max-width: 900px) {
+  .centre-head { grid-template-columns: 1fr; }
+}
 
 /* Action icons must not wrap onto their own line under a name. */
 .dt-table td .ca { white-space: nowrap; }
@@ -3164,11 +3610,33 @@ input[type="file"] { padding: 9px; font-size: 13.5px; background: var(--line-sof
 
 /* Profile: the form and the QR side by side, rather than the QR stranded
    below a long form on a wide screen. */
+/* POINT 12: both columns the same height. `align-items: start` let the
+   short one stop halfway down the tall one, which is what made the page
+   look unfinished. */
 .profile-layout {
-  display: grid; gap: 20px; align-items: start;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 320px);
+  display: grid; gap: 20px; align-items: stretch;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 340px);
 }
-.profile-layout .form-card { margin: 0; }
+.profile-layout .form-card { margin: 0; max-width: none; }
+.profile-layout .qr-box {
+  margin-top: 0; display: flex; flex-direction: column; align-items: center;
+  text-align: center;
+}
+.qr-carries {
+  width: 100%; margin-top: auto; padding-top: var(--s4);
+  border-top: 1px solid var(--line); text-align: left;
+}
+.qr-carries dl { margin: 8px 0 0; display: grid; gap: 8px; }
+.qr-carries dl > div {
+  display: flex; justify-content: space-between; align-items: baseline; gap: 12px;
+}
+.qr-carries dt { font-size: 12.5px; color: var(--muted); font-weight: 600; flex: none; }
+.qr-carries dd {
+  margin: 0; font-size: 13.5px; font-weight: 600; color: var(--ink);
+  text-align: right; overflow-wrap: anywhere;
+}
+.qr-missing { color: var(--red); font-weight: 650; }
+.qr-note { font-size: 12px; color: var(--muted); margin: var(--s4) 0 0; line-height: 1.5; }
 @media (max-width: 900px) { .profile-layout { grid-template-columns: 1fr; } }
 
 /* Directory: the answer line and per-row figure when a blood group is chosen. */
@@ -3181,3 +3649,83 @@ input[type="file"] { padding: 9px; font-size: 13.5px; background: var(--line-sof
 .stock-summary strong { color: var(--ink); font-weight: 750; }
 .stock-answer { display: inline-flex; align-items: center; gap: 9px; justify-content: flex-end; }
 .stock-answer > strong { font-size: 16px; }
+
+
+/* ===========================================================================
+   MODAL (components/Modal.jsx)
+   =========================================================================== */
+
+.modal-backdrop {
+  position: fixed; inset: 0; z-index: 300;
+  display: grid; place-items: center; padding: 20px;
+  background: rgba(15, 10, 20, .55);
+  backdrop-filter: blur(3px);
+  animation: modal-fade .16s ease-out;
+}
+@keyframes modal-fade { from { opacity: 0; } to { opacity: 1; } }
+
+.modal {
+  width: min(500px, 100%); max-height: calc(100vh - 40px); overflow-y: auto;
+  background: var(--surface); border-radius: 18px;
+  box-shadow: 0 30px 70px -22px rgba(15, 23, 42, .55);
+  animation: modal-rise .22s cubic-bezier(.2, .9, .3, 1);
+}
+.modal:focus { outline: none; }
+@keyframes modal-rise {
+  from { opacity: 0; transform: translateY(14px) scale(.985); }
+  to { opacity: 1; transform: none; }
+}
+
+.modal-head {
+  display: flex; align-items: flex-start; gap: 13px;
+  padding: 22px 22px 16px;
+}
+.modal-head h2 { margin: 0; font-size: 19px; line-height: 1.3; }
+.modal-head p { margin: 5px 0 0; font-size: 13.5px; color: var(--muted); line-height: 1.55; }
+.modal-head > div { flex: 1; min-width: 0; }
+
+.modal-icon {
+  flex: none; display: grid; place-items: center;
+  width: 42px; height: 42px; border-radius: 12px;
+  background: var(--brand-soft); color: var(--brand);
+}
+.modal.tone-good .modal-icon { background: #e7f6ee; color: #0b6b3d; }
+.modal.tone-warn .modal-icon { background: #fdf1df; color: #8a4b08; }
+
+.modal-x {
+  flex: none; display: grid; place-items: center;
+  width: 32px; height: 32px; border-radius: 9px;
+  border: 0; background: none; color: var(--muted); cursor: pointer;
+}
+.modal-x:hover { background: var(--line-soft); color: var(--ink); }
+
+.modal-body { padding: 0 22px 4px; font-size: 14.5px; line-height: 1.6; color: var(--ink-2); }
+.modal-body p { margin: 0 0 12px; }
+.modal-foot {
+  display: flex; flex-wrap: wrap; gap: 9px; justify-content: flex-end;
+  padding: 16px 22px 22px;
+}
+.modal-foot .btn-primary, .modal-foot .btn-secondary { margin: 0; }
+
+/* A read-back of what was just saved, so the dialog confirms the detail
+   rather than only the fact. */
+.modal-summary {
+  display: grid; gap: 9px; margin: 0 0 14px;
+  padding: 14px 16px; border-radius: 12px;
+  background: var(--line-soft);
+}
+.modal-summary div { display: flex; align-items: center; justify-content: space-between; gap: 14px; }
+.modal-summary dt, .modal-summary .k {
+  font-size: 11.5px; text-transform: uppercase; letter-spacing: .05em;
+  font-weight: 700; color: var(--muted);
+}
+.modal-summary dd, .modal-summary .v { margin: 0; font-size: 14px; font-weight: 600; color: var(--ink); text-align: right; }
+
+@media (max-width: 560px) {
+  .modal { border-radius: 16px; }
+  .modal-foot { justify-content: stretch; }
+  .modal-foot > * { flex: 1; text-align: center; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .modal-backdrop, .modal { animation: none; }
+}

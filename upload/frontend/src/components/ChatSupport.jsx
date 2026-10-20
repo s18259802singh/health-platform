@@ -21,6 +21,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import api from '../api/axios';
+import { useTour } from '../context/TourContext';
 
 const PHONE = '1910';                       // India's national blood helpline
 const EMAIL = 'support@lifelink.example';
@@ -58,6 +59,8 @@ export default function ChatSupport() {
   const [unread, setUnread] = useState(0);
   const [stale, setStale] = useState(false);   // server is a version behind
   const [slow, setSlow] = useState(false);     // free host waking up
+  // Both float in the same corner, so only one of them is ever on screen.
+  const { open: tourOpen } = useTour() || {};
   const seenRef = useRef(0);
   const bodyRef = useRef(null);
   const inputRef = useRef(null);
@@ -99,6 +102,9 @@ export default function ChatSupport() {
     seenRef.current = msgs.filter((m) => m.from === 'admin').length;
     setUnread(0);
   }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Opening the tour puts a panel exactly where this one sits; step aside.
+  useEffect(() => { if (tourOpen) setOpen(false); }, [tourOpen]);
 
   useEffect(() => {
     if (!open) return undefined;
@@ -181,6 +187,8 @@ export default function ChatSupport() {
   const waiting = started && msgs[msgs.length - 1]?.from === 'visitor';
 
   // ----------------------------------------------------------------- view --
+
+  if (tourOpen) return null;
 
   return (
     <>

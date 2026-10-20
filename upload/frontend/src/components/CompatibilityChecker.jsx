@@ -41,7 +41,10 @@ export default function CompatibilityChecker({ onFilterDonors }) {
               if (onFilterDonors) onFilterDonors(next, next ? canReceiveFrom(next) : []);
             }}
           >
-            {g}
+            {/* Through BloodGroup, so these eight buttons carry the same drop
+                and the same group colour as every other group on the site.
+                They were the one place a group appeared as bare text. */}
+            <BloodGroup group={g} variant="bare" />
           </button>
         ))}
       </div>

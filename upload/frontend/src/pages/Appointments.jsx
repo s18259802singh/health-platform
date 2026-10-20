@@ -1,7 +1,7 @@
 // Book a new appointment, and view/cancel your existing ones.
 
 import { useEffect, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import api from '../api/axios';
 import SearchSelect from '../components/SearchSelect';
 import DataTable from '../components/DataTable';
@@ -95,9 +95,27 @@ export default function Appointments() {
     }
   };
 
+  // The soonest appointment still ahead of this member, for the panel beside
+  // the form — which is the question anyone opening this page has first.
+  const nextUp = myAppointments
+    .filter((a) => a.status !== 'cancelled' && a.appointmentDate >= today())
+    .sort((a, b) => String(a.appointmentDate).localeCompare(String(b.appointmentDate)))[0];
+
+  const chosenHospital = hospitals.find((h) => h._id === form.values.hospitalId);
+
   return (
     <div className="page">
-      <h1 className="page-h1">Book a Doctor Appointment</h1>
+      <div className="page-head">
+        <div>
+          <p className="app-eyebrow">Appointments</p>
+          <h1 className="page-h1">Book a doctor</h1>
+          <p>
+            Pick a hospital, then one of its doctors, then an open slot. The
+            hospital confirms it, and everything you book stays on this page.
+          </p>
+        </div>
+      </div>
+
       {prefilled && (
         <p className="compat-active-banner">
           Carried over from your search — just pick a date and confirm.
@@ -109,8 +127,14 @@ export default function Appointments() {
         </p>
       )}
 
+      {/* POINT 8: the form used to sit alone in the middle of the page with
+          empty margins either side. It now leads the left column, and the
+          column beside it answers what the form cannot: when your next one
+          is, and what happens after you press the button. */}
+      <div className="book-layout">
       <div className="form-card" ref={form.formRef}>
         <form onSubmit={form.submit} noValidate>
+          <div className="field-pair">
           <Field label="Hospital" htmlFor="hospitalId" required error={form.errorFor('hospitalId')}>
             <SearchSelect
               id="hospitalId"
@@ -134,7 +158,9 @@ export default function Appointments() {
               options={[{ value: '', label: 'Select a doctor' }, ...doctors.map((d) => ({ value: d._id, label: `${d.name} — ${d.specialization}` }))]}
             />
           </Field>
+          </div>
 
+          <div className="field-pair">
           <Field label="Date" htmlFor="appointmentDate" required error={form.errorFor('appointmentDate')}>
             <input id="appointmentDate" type="date" min={today()} {...form.field('appointmentDate')} />
           </Field>
@@ -150,11 +176,70 @@ export default function Appointments() {
               options={[{ value: '', label: 'Select a time slot' }, ...(selectedDoctor?.availableTimeSlots || []).map((t) => ({ value: t, label: t }))]}
             />
           </Field>
+          </div>
 
           <button type="submit" disabled={form.busy}>
             {form.busy ? 'Booking…' : 'Book appointment'}
           </button>
         </form>
+      </div>
+
+      <aside className="book-aside">
+        {nextUp ? (
+          <section className="aside-card accent">
+            <span className="tile-label">Your next appointment</span>
+            <strong className="aside-date">
+              {new Date(`${nextUp.appointmentDate}T00:00:00`)
+                .toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'long' })}
+            </strong>
+            <p className="aside-line">{nextUp.appointmentTime}</p>
+            <p className="aside-line">
+              {nextUp.doctorId?.name || 'Your doctor'}
+              {nextUp.doctorId?.specialization ? ` · ${nextUp.doctorId.specialization}` : ''}
+            </p>
+            <p className="aside-line muted-note">{nextUp.doctorId?.hospitalId?.name || ''}</p>
+            <StatusTag status={nextUp.status}
+                       label={nextUp.status === 'pending' ? 'Awaiting confirmation' : undefined} />
+          </section>
+        ) : (
+          <section className="aside-card">
+            <span className="tile-label">Your next appointment</span>
+            <p className="aside-line">
+              Nothing booked yet. Anything you book appears here and in the
+              list below.
+            </p>
+          </section>
+        )}
+
+        <section className="aside-card">
+          <span className="tile-label">How it works</span>
+          <ol className="aside-steps">
+            <li><strong>You book</strong> a doctor and a slot on this page.</li>
+            <li><strong>The hospital confirms</strong> it, usually within a day — the status below changes from amber to green.</li>
+            <li><strong>You turn up</strong> with photo ID. Cancel here any time before the date.</li>
+          </ol>
+        </section>
+
+        {chosenHospital ? (
+          <section className="aside-card">
+            <span className="tile-label">Where you are going</span>
+            <strong className="aside-place">{chosenHospital.name}</strong>
+            <p className="aside-line muted-note">{chosenHospital.address}</p>
+            <Link className="small-button ghost" to={`/hospitals/${chosenHospital._id}`}>
+              Open this centre
+            </Link>
+          </section>
+        ) : (
+          <section className="aside-card">
+            <span className="tile-label">Not sure which hospital?</span>
+            <p className="aside-line">
+              Find the closest one to you, with the doctors who treat what you
+              came about.
+            </p>
+            <Link className="small-button ghost" to="/near-me">Find care near me</Link>
+          </section>
+        )}
+      </aside>
       </div>
 
       <div className="section-header"><h3>My appointments</h3></div>

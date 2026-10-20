@@ -1,6 +1,7 @@
 // Hospitals & blood banks: full CRUD including per-group stock levels.
 
 import { useEffect, useState } from 'react';
+import BloodGroup from '../../components/BloodGroup';
 import adminApi from '../../api/adminApi';
 import DataTable from '../../components/DataTable';
 import ContactActions from '../../components/ContactActions';
@@ -267,7 +268,7 @@ export default function Hospitals() {
             <div className="adm-units" id="availableBloodUnits">
               {(form.values.availableBloodUnits || []).map((u) => (
                 <label key={u.bloodGroup} className="adm-unit">
-                  <span>{u.bloodGroup}</span>
+                  <span><BloodGroup group={u.bloodGroup} variant="bare" /></span>
                   <input type="number" min="0" max="9999" step="1" inputMode="numeric"
                          value={u.units}
                          onChange={(e) => setUnits(u.bloodGroup, e.target.value)} />

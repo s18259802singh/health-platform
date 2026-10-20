@@ -42,9 +42,15 @@ export function Reveal({ children, delay = 0, className = '', as: Tag = 'div', .
 
 // Counts a figure up once it is on screen. Eases out, so it settles rather
 // than stopping dead, and lands exactly on the real value.
-export function Counter({ value = 0, duration = 1100, className = '' }) {
+// POINT 6: it used to start the count at a literal 0, so every figure on the
+// home page said "no donors, no donations, no units" for the first beat. It
+// now starts a third of the way up - still visibly counting, never claiming
+// the register is empty - and settles faster.
+const START_AT = 0.34;
+
+export function Counter({ value = 0, duration = 850, className = '' }) {
   const ref = useRef(null);
-  const [n, setN] = useState(() => (reduced() ? value : 0));
+  const [n, setN] = useState(() => (reduced() ? value : Math.round(value * START_AT)));
 
   useEffect(() => {
     if (reduced()) { setN(value); return undefined; }
@@ -58,7 +64,7 @@ export function Counter({ value = 0, duration = 1100, className = '' }) {
       const step = (t) => {
         const p = Math.min(1, (t - t0) / duration);
         const eased = 1 - (1 - p) ** 3;
-        setN(Math.round(value * eased));
+        setN(Math.round(value * (START_AT + (1 - START_AT) * eased)));
         if (p < 1) raf = requestAnimationFrame(step);
       };
       raf = requestAnimationFrame(step);

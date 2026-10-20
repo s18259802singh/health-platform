@@ -56,7 +56,19 @@ export default function Stories() {
         />
       </div>
 
-      {loading && <p className="hint">Loading stories…</p>}
+      {/* POINT 5: cards of the right shape rather than a line of text. */}
+      {loading && (
+        <div className="bento" aria-hidden="true">
+          {[0, 1, 2].map((i) => (
+            <article className="tile t-4 story-card is-skeleton" key={i}>
+              <span className="sk sk-card-photo" />
+              <span className="sk sk-line w-40" />
+              <span className="sk sk-line w-60" />
+              <span className="sk sk-line w-30" />
+            </article>
+          ))}
+        </div>
+      )}
 
       {featured.length > 0 && (
         <div className="bento">
@@ -86,6 +98,12 @@ export default function Stories() {
         <div className="bento">
           {rest.map((s, i) => (
             <article className="tile lift t-4 story-card" key={s._id}>
+              {/* POINT 10: these cards had no image, so the wall was three
+                  illustrated stories followed by five blocks of grey text.
+                  Scene photography only - never a face against an invented
+                  testimonial; see lib/photos.js for why. */}
+              <Photo photo={photoFor(s._id)} className="card-photo" ratio="16 / 9"
+                     sizes="(max-width: 760px) 100vw, 380px" />
               <div className="story-card-head">
                 <span className={`story-avatar ${avatarTint(s.name)}`} aria-hidden="true">{initials(s.name)}</span>
                 <div>
@@ -101,7 +119,16 @@ export default function Stories() {
         </div>
       )}
 
-      <LoadMore shown={batch.shown} total={batch.total} hasMore={batch.hasMore} onMore={batch.more} label="more stories" />
+      {/* POINT 10: the count used to describe only the lower grid, so a page
+          holding 8 stories said "Showing 5 of 5". The featured ones at the
+          top are stories too, and they are already on screen. */}
+      <LoadMore
+        shown={featured.length + batch.shown}
+        total={featured.length + batch.total}
+        hasMore={batch.hasMore}
+        onMore={batch.more}
+        label="stories"
+      />
 
       {!loading && shown.length === 0 && <p className="hint">No stories published yet.</p>}
     </div>

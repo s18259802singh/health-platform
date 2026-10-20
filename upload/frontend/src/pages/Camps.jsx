@@ -6,6 +6,7 @@ import api from '../api/axios';
 import { LoadMore, useLoadMore } from '../components/Pagination';
 import SearchSelect from '../components/SearchSelect';
 import Photo from '../components/Photo';
+import Figure from '../components/Figure';
 import { photoFor } from '../lib/photos';
 
 const dayLabel = (iso) => {
@@ -56,11 +57,20 @@ export default function Camps() {
         </div>
       </div>
 
+      {/* POINT 6: these four read "0" until the camps arrived. */}
       <div className="stat-strip">
-        <div className="stat-chip accent"><strong>{filtered.length}</strong><span>camps listed</span></div>
-        <div className="stat-chip"><strong>{Math.max(0, totalSlots - taken)}</strong><span>slots still open</span></div>
-        <div className="stat-chip"><strong>{taken}</strong><span>donors registered</span></div>
-        <div className="stat-chip"><strong>{cities.length}</strong><span>cities covered</span></div>
+        <div className="stat-chip accent">
+          <strong><Figure value={filtered.length} ready={!loading} /></strong><span>camps listed</span>
+        </div>
+        <div className="stat-chip">
+          <strong><Figure value={Math.max(0, totalSlots - taken)} ready={!loading} /></strong><span>slots still open</span>
+        </div>
+        <div className="stat-chip">
+          <strong><Figure value={taken} ready={!loading} /></strong><span>donors registered</span>
+        </div>
+        <div className="stat-chip">
+          <strong><Figure value={cities.length} ready={!loading} /></strong><span>cities covered</span>
+        </div>
       </div>
 
       <div className="search-bar">
@@ -81,7 +91,24 @@ export default function Camps() {
         />
       </div>
 
-      {loading && <p className="hint">Loading camps…</p>}
+      {/* POINT 5: the page used to show one line of text where the camps
+          were going to be, so it looked broken rather than busy. Cards of
+          the right shape, greyed, read as "nearly there". */}
+      {loading && (
+        <div className="camp-list" aria-hidden="true">
+          {[0, 1, 2].map((i) => (
+            <article className="camp-card is-skeleton" key={i}>
+              <span className="sk sk-photo" />
+              <span className="sk sk-date" />
+              <div className="camp-body">
+                <span className="sk sk-line w-60" />
+                <span className="sk sk-line w-40" />
+                <span className="sk sk-line w-30" />
+              </div>
+            </article>
+          ))}
+        </div>
+      )}
 
       <div className="camp-list">
         {shown.map((c) => {
