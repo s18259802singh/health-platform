@@ -78,7 +78,21 @@ const registerUser = async (req, res) => {
     res.status(201).json({
       message: 'Registration successful',
       token,
-      user: { id: user._id, name: user.name, email: user.email, role: user.role, qrCodePath: user.qrCodePath },
+      // bloodGroup and location travel with the session because the member
+      // area is built around them: the dashboard filters open requests to the
+      // ones this group can answer, and shows the group itself. Without them
+      // the dashboard said "Your group: -" and listed every open request
+      // regardless of whether the member could help.
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        bloodGroup: user.bloodGroup,
+        location: user.location,
+        isDonor: user.isDonor,
+        qrCodePath: user.qrCodePath,
+      },
     });
   } catch (error) {
     res.status(500).json({ message: 'Server error during registration', error: error.message });
@@ -108,7 +122,21 @@ const loginUser = async (req, res) => {
     res.json({
       message: 'Login successful',
       token,
-      user: { id: user._id, name: user.name, email: user.email, role: user.role, qrCodePath: user.qrCodePath },
+      // bloodGroup and location travel with the session because the member
+      // area is built around them: the dashboard filters open requests to the
+      // ones this group can answer, and shows the group itself. Without them
+      // the dashboard said "Your group: -" and listed every open request
+      // regardless of whether the member could help.
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        bloodGroup: user.bloodGroup,
+        location: user.location,
+        isDonor: user.isDonor,
+        qrCodePath: user.qrCodePath,
+      },
     });
   } catch (error) {
     res.status(500).json({ message: 'Server error during login', error: error.message });

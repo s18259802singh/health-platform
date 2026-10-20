@@ -3,6 +3,8 @@
 // Read (list + search) is open to any logged-in user.
 
 const Hospital = require('../models/Hospital');
+const Doctor = require('../models/Doctor');
+const DonationRequest = require('../models/DonationRequest');
 const { rules, check, fail } = require('../utils/validate');
 
 // GET /api/hospitals?search=
@@ -15,6 +17,59 @@ const getHospitals = async (req, res) => {
     const hospitals = await Hospital.find(filter).sort({ name: 1 });
     res.json(hospitals);
   } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
+// GET /api/hospitals/:id
+//
+// ONE CENTRE, AND EVERYTHING ABOUT IT. The directory row used to be a dead
+// end: you could read a name, a phone number and eight stock figures squeezed
+// into one cell, and that was the whole of it. This backs a page per centre -
+// its stock in full, the doctors who hold clinics there, and the open blood
+// requests nearby that it could answer.
+//
+// Public, like /api/availability, because the centre's name, address and
+// recorded stock are public information and somebody looking for blood at
+// 3am should not have to sign in to read it. The doctor list is only attached
+// for a signed-in member, since that is where it lives everywhere else.
+const getHospital = async (req, res) => {
+  try {
+    const hospital = await Hospital.findById(req.params.id);
+    if (!hospital) return res.status(404).json({ message: 'Centre not found' });
+
+    const doctors = req.user
+      ? await Doctor.find({ hospitalId: hospital._id }).select('name specialization availableDays availableTimeSlots')
+      : [];
+
+    // Open requests in the same district or city. Somebody reading a centre's
+    // page is usually either looking for blood or offering it, and this is
+    // the half of the answer the centre's own shelf does not give.
+    //
+    // Matched in JS rather than with a regex in the query: a town is typed by
+    // hand on the request form, so "surat" and "Surat " both have to match,
+    // and a case-insensitive regex per area is both slower and the kind of
+    // thing that behaves differently on every driver. The candidate set is
+    // bounded first, so this never walks the whole collection.
+    const area = [hospital.district, hospital.city]
+      .filter(Boolean)
+      .map((a) => String(a).trim().toLowerCase());
+
+    let nearby = [];
+    if (area.length) {
+      const open = await DonationRequest.find({ status: 'pending' })
+        .select('bloodGroupNeeded unitsNeeded location hospital urgency createdAt')
+        .sort({ createdAt: -1 })
+        .limit(400);
+      nearby = open
+        .filter((r) => area.includes(String(r.location || '').trim().toLowerCase()))
+        .slice(0, 6);
+    }
+
+    res.json({ hospital, doctors, nearbyRequests: nearby });
+  } catch (error) {
+    // A malformed id is a 404 from the reader's point of view, not a crash.
+    if (error.name === 'CastError') return res.status(404).json({ message: 'Centre not found' });
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 };
@@ -98,4 +153,4 @@ const deleteHospital = async (req, res) => {
   }
 };
 
-module.exports = { getHospitals, addHospital, updateHospital, deleteHospital };
+module.exports = { getHospitals, getHospital, addHospital, updateHospital, deleteHospital };
