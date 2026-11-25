@@ -6,6 +6,7 @@ const Hospital = require('../models/Hospital');
 const Doctor = require('../models/Doctor');
 const DonationRequest = require('../models/DonationRequest');
 const { rules, check, fail } = require('../utils/validate');
+const { COMPONENT_KEYS, normaliseComponent } = require('../utils/components');
 
 // GET /api/hospitals?search=
 const getHospitals = async (req, res) => {
@@ -99,9 +100,25 @@ const unitProblems = (units) => {
     if (!Number.isFinite(n) || n < 0 || n > 9999 || n % 1 !== 0) {
       return `Units for ${row?.bloodGroup || 'a blood group'} must be a whole number between 0 and 9999`;
     }
+    // An absent component is whole blood, so only a WRONG one is an error.
+    if (row?.component && !COMPONENT_KEYS.includes(normaliseComponent(row.component))) {
+      return `"${row.component}" is not a blood component`;
+    }
   }
   return '';
 };
+
+// Stock arrives from the console as typed, and from an import as whatever the
+// source called things. One shape goes into the database.
+const cleanUnits = (units) => (Array.isArray(units)
+  ? units
+    .map((row) => ({
+      bloodGroup: row.bloodGroup,
+      component: normaliseComponent(row.component),
+      units: Number(row.units) || 0,
+    }))
+    .filter((row) => row.bloodGroup && row.units > 0)
+  : units);
 
 const addHospital = async (req, res) => {
   try {
@@ -115,6 +132,9 @@ const addHospital = async (req, res) => {
       name: String(req.body.name).trim(),
       address: String(req.body.address).trim(),
       contactNumber: String(req.body.contactNumber || '').trim() || 'N/A',
+      ...(req.body.availableBloodUnits !== undefined
+        ? { availableBloodUnits: cleanUnits(req.body.availableBloodUnits) }
+        : {}),
     });
     res.status(201).json(hospital);
   } catch (error) {
@@ -134,7 +154,11 @@ const updateHospital = async (req, res) => {
     if (unitsMsg) problems.availableBloodUnits = unitsMsg;
     if (Object.keys(problems).length) return fail(res, problems);
 
-    const hospital = await Hospital.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    const patch = { ...req.body };
+    if (patch.availableBloodUnits !== undefined) {
+      patch.availableBloodUnits = cleanUnits(patch.availableBloodUnits);
+    }
+    const hospital = await Hospital.findByIdAndUpdate(req.params.id, patch, { new: true });
     if (!hospital) return res.status(404).json({ message: 'Hospital not found' });
     res.json(hospital);
   } catch (error) {

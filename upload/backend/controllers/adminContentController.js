@@ -92,7 +92,9 @@ const campSchema = (taken) => ({
   ),
   contactNumber: rules.optional(rules.anyPhone),
   description: rules.optional(rules.text({ label: 'Description', max: 2000 })),
-  status: rules.optional(rules.oneOf(['upcoming', 'completed', 'cancelled'], 'Status')),
+  status: rules.optional(
+    rules.oneOf(['pending', 'upcoming', 'completed', 'cancelled', 'rejected'], 'Status'),
+  ),
 });
 
 const CAMP_TEXT = ['title', 'organiser', 'venue', 'city', 'state', 'date',
@@ -138,6 +140,51 @@ const updateCamp = async (req, res) => {
     res.json(camp);
   } catch (error) {
     res.status(400).json({ message: 'Could not update camp', error: error.message });
+  }
+};
+
+// POST /api/admin/camps/:id/approve
+//
+// Turns a public application into a real, listed camp. Nothing an applicant
+// submitted is published until this runs.
+const approveCamp = async (req, res) => {
+  try {
+    const camp = await Camp.findById(req.params.id);
+    if (!camp) return res.status(404).json({ message: 'Camp not found' });
+    if (camp.status !== 'pending' && camp.status !== 'rejected') {
+      return res.status(400).json({ message: 'That camp is already listed' });
+    }
+    // A camp whose date has passed while it sat in the queue must not be
+    // published as upcoming - it would show on the public page as a drive
+    // people could still register for.
+    if (String(camp.date) < new Date().toISOString().slice(0, 10)) {
+      return res.status(400).json({
+        message: 'That date has already passed. Edit the camp to a future date, then approve it.',
+      });
+    }
+    camp.status = 'upcoming';
+    camp.reviewNote = String(req.body?.note || '').trim();
+    await camp.save();
+    res.json(camp);
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
+// POST /api/admin/camps/:id/reject
+const rejectCamp = async (req, res) => {
+  try {
+    const camp = await Camp.findById(req.params.id);
+    if (!camp) return res.status(404).json({ message: 'Camp not found' });
+    if (camp.status !== 'pending') {
+      return res.status(400).json({ message: 'Only a pending application can be turned down' });
+    }
+    camp.status = 'rejected';
+    camp.reviewNote = String(req.body?.note || '').trim();
+    await camp.save();
+    res.json(camp);
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message });
   }
 };
 
@@ -383,6 +430,7 @@ const deleteDonation = async (req, res) => {
 
 module.exports = {
   listCamps, createCamp, updateCamp, deleteCamp, getCampRegistrations,
+  approveCamp, rejectCamp,
   listStories, createStory, updateStory, deleteStory,
   listGuides, createGuide, updateGuide, deleteGuide,
   listDonations, createDonation, deleteDonation,

@@ -50,6 +50,10 @@ router.delete('/doctors/:id', admin.deleteDoctor);
 router.get('/camps', content.listCamps);
 router.post('/camps', content.createCamp);
 router.get('/camps/:id/registrations', content.getCampRegistrations);
+// Public camp applications: nothing somebody applied for is listed until one
+// of these runs.
+router.post('/camps/:id/approve', content.approveCamp);
+router.post('/camps/:id/reject', content.rejectCamp);
 router.put('/camps/:id', content.updateCamp);
 router.delete('/camps/:id', content.deleteCamp);
 

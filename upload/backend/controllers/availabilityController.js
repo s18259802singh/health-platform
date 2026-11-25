@@ -4,10 +4,14 @@
 // numbers only - never any member's personal data.
 
 const Hospital = require('../models/Hospital');
+const {
+  COMPONENTS, normaliseComponent, unitsOf, byComponent,
+} = require('../utils/components');
 
-// Blood "components" map onto whole units in this dataset; the selector is
-// kept because every real blood-bank portal has one and users expect it.
-const COMPONENTS = ['Whole Blood', 'Packed Red Cells', 'Plasma', 'Platelets'];
+// WHAT CHANGED: the component selector used to be decoration. This endpoint
+// accepted no component at all, the browser threw the value away before
+// sending it, and the dropdown sat on the page doing nothing. Stock is now
+// held per component (see models/Hospital.js) and the filter is real.
 
 // GET /api/availability/regions
 // Powers the cascading state -> district selectors without a second round trip.
@@ -31,18 +35,26 @@ const getRegions = async (req, res) => {
       .map(([state, districts]) => ({ state, districts: [...districts].sort() }))
       .sort((a, b) => a.state.localeCompare(b.state));
 
+    // The components travel with the regions so the search page can build
+    // every selector from one request.
     res.json({ states, components: COMPONENTS });
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 };
 
-// GET /api/availability?state=&district=&bloodGroup=&type=&search=
-// Returns one row per blood bank: its stock for the requested group (or the
-// full breakdown when no group is given), plus a simple availability label.
+// GET /api/availability?state=&district=&bloodGroup=&component=&type=&search=
+// Returns one row per blood bank: its stock for the requested group and
+// component (or the full breakdown when neither is given), plus a simple
+// availability label.
 const searchAvailability = async (req, res) => {
   try {
-    const { state = '', district = '', bloodGroup = '', type = '', search = '' } = req.query;
+    const {
+      state = '', district = '', bloodGroup = '', type = '', search = '',
+    } = req.query;
+    // An empty component means "any", which is the right default for someone
+    // who has been told to find blood and not told which part of it.
+    const component = req.query.component ? normaliseComponent(req.query.component) : '';
 
     const filter = {};
     if (state) filter.state = state;
@@ -60,8 +72,8 @@ const searchAvailability = async (req, res) => {
 
     const results = hospitals.map((h) => {
       const stock = h.availableBloodUnits || [];
-      const match = bloodGroup ? stock.find((u) => u.bloodGroup === bloodGroup) : null;
-      const units = bloodGroup ? (match?.units || 0) : stock.reduce((a, u) => a + (u.units || 0), 0);
+      // One figure, narrowed by whichever of the two filters were given.
+      const units = unitsOf(stock, { bloodGroup, component });
 
       let availability = 'none';
       if (units > 10) availability = 'good';
@@ -80,14 +92,21 @@ const searchAvailability = async (req, res) => {
         units,
         availability,
         breakdown: stock,
+        // Per-component totals for this centre, narrowed to the chosen group
+        // if there is one. This is what lets a row say "no platelets here"
+        // without a second request per centre.
+        components: byComponent(
+          bloodGroup ? stock.filter((u) => u.bloodGroup === bloodGroup) : stock,
+        ).map((c) => ({ key: c.key, label: c.label, units: c.units })),
       };
     });
 
-    // When a group was asked for, put the banks that actually have it first.
-    if (bloodGroup) results.sort((a, b) => b.units - a.units);
+    // When a group or component was asked for, put the banks that actually
+    // have it first.
+    if (bloodGroup || component) results.sort((a, b) => b.units - a.units);
 
     res.json({
-      query: { state, district, bloodGroup, type, search },
+      query: { state, district, bloodGroup, component, type, search },
       count: results.length,
       withStock: results.filter((r) => r.units > 0).length,
       totalUnits: results.reduce((a, r) => a + r.units, 0),

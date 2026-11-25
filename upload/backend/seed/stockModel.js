@@ -57,21 +57,48 @@ const capacityFor = (centre) => {
     : Math.round(8 + r * 46);    // 8 - 54 units
 };
 
-// Split a centre's total across the eight groups.
+// How a centre's shelf divides between components.
+//
+// A bag of whole blood is separated within hours of donation, so a real
+// fridge holds mostly red cells, then plasma, then a little of everything
+// else. Platelets last five days, which is exactly why every blood bank is
+// permanently short of them - the share here reflects that rather than
+// splitting the total evenly, because an even split would make the platelet
+// shortage the site keeps talking about disappear from its own data.
+const COMPONENT_SHARE = {
+  whole: 0.18,      // kept unseparated for major trauma
+  prbc: 0.46,
+  plasma: 0.27,
+  platelets: 0.09,
+};
+
+// Split a centre's total across the eight groups, then each group across the
+// four components.
 const stockFor = (centre) => {
   const total = capacityFor(centre);
   if (total === 0) return [];
 
-  const units = GROUPS.map((group) => {
+  const rows = [];
+  GROUPS.forEach((group) => {
     // +/-45% jitter on the national share, so no two centres look alike.
     const jitter = 0.55 + rand01(centre.name, group) * 0.9;
-    return { bloodGroup: group, units: Math.round(total * SHARE[group] * jitter) };
+    const groupTotal = total * SHARE[group] * jitter;
+    if (groupTotal < 0.5) return;
+
+    Object.entries(COMPONENT_SHARE).forEach(([component, share]) => {
+      // A second, independent jitter per component: a centre can be well
+      // stocked with red cells and have no platelets at all, which is the
+      // normal state of affairs and the reason the component filter is worth
+      // having.
+      const cJitter = 0.45 + rand01(centre.name, `${group}:${component}`) * 1.15;
+      const units = Math.round(groupTotal * share * cJitter);
+      if (units > 0) rows.push({ bloodGroup: group, component, units });
+    });
   });
 
-  // Negative groups genuinely run dry. If a centre's share rounds to zero,
-  // leave it at zero rather than nudging it up to one - a real portal shows
-  // those gaps, and they are what makes the search worth running.
-  return units.filter((u) => u.units > 0);
+  // Negative groups genuinely run dry, and so do individual components.
+  // Leaving those gaps in is what makes the search worth running.
+  return rows;
 };
 
-module.exports = { GROUPS, SHARE, stockFor, capacityFor, hash, rand01 };
+module.exports = { GROUPS, SHARE, COMPONENT_SHARE, stockFor, capacityFor, hash, rand01 };

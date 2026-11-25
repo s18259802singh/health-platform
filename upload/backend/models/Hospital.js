@@ -13,9 +13,19 @@ const hospitalSchema = new mongoose.Schema(
     city: { type: String, default: '', trim: true },
     district: { type: String, default: '', trim: true },
     state: { type: String, default: '', trim: true },
+    // Stock is held per blood group AND per component, because a ward
+    // ringing round for platelets is not helped by a count of whole blood.
+    // Rows written before components existed have no component field; they
+    // are read as whole blood (see utils/components.js), so nothing that was
+    // already in the database has to be migrated.
     availableBloodUnits: [
       {
         bloodGroup: String,
+        component: {
+          type: String,
+          enum: ['whole', 'prbc', 'plasma', 'platelets'],
+          default: 'whole',
+        },
         units: Number,
       },
     ],

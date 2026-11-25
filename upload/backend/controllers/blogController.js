@@ -6,12 +6,26 @@ const Blog = require('../models/Blog');
 const { rules, check, fail } = require('../utils/validate');
 
 // GET /api/blogs  (PUBLIC) - newest first, without full content (lighter response)
+//
+// The index shows a reading time against each article, which needs the word
+// count. Sending every article body to draw sixteen short lines would be
+// absurd, so the count is done here and only the minutes travel. 220 words a
+// minute is the usual figure for non-technical prose, rounded up - promising
+// a shorter read than you deliver is the wrong way round. Mirrors
+// readingTime() in frontend/src/lib/richtext.js.
 const getBlogs = async (req, res) => {
   try {
     const blogs = await Blog.find()
-      .select('title excerpt imageUrl author createdAt')
-      .sort({ createdAt: -1 });
-    res.json(blogs);
+      .select('title excerpt imageUrl author createdAt content')
+      .sort({ createdAt: -1 })
+      .lean();
+
+    res.json(blogs.map(({ content, ...b }) => ({
+      ...b,
+      readMinutes: Math.max(1, Math.ceil(
+        String(content || '').trim().split(/\s+/).filter(Boolean).length / 220,
+      )),
+    })));
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
   }

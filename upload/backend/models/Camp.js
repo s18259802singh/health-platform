@@ -18,7 +18,28 @@ const campSchema = new mongoose.Schema(
     contactNumber: { type: String, default: '' },
     description: { type: String, default: '' },
     imageUrl: { type: String, default: '' },       // base64 data URL or remote URL
-    status: { type: String, enum: ['upcoming', 'completed', 'cancelled'], default: 'upcoming' },
+    // 'pending' is a camp somebody has APPLIED to run, not one that is
+    // happening. It is created by the public application form and never
+    // appears in a public listing until an administrator approves it.
+    status: {
+      type: String,
+      enum: ['pending', 'upcoming', 'completed', 'cancelled', 'rejected'],
+      default: 'upcoming',
+    },
+    // Who asked for it, and what they told us. Only set on applications.
+    applicant: {
+      name: { type: String, default: '', trim: true },
+      organisation: { type: String, default: '', trim: true },
+      email: { type: String, default: '', trim: true, lowercase: true },
+      phone: { type: String, default: '', trim: true },
+      expectedDonors: { type: Number, default: 0 },
+      note: { type: String, default: '' },
+      userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+      appliedAt: { type: Date },
+    },
+    // Why an application was turned down, so the console can say more than
+    // "rejected" when somebody asks.
+    reviewNote: { type: String, default: '' },
     // Members who signed up. Stored inline because a camp's list is small and
     // is always read together with the camp itself.
     registrations: [
