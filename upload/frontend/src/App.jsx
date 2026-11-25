@@ -22,6 +22,8 @@ import { TourProvider } from './context/TourContext';
 import SiteLayout from './components/SiteLayout';
 import ProtectedRoute from './components/ProtectedRoute';
 import { prefetchCommon } from './lib/prefetch';
+// Preview-only strip. Renders nothing unless VITE_DEMO=true.
+import DemoBar from './components/DemoBar';
 
 const Home = lazy(() => import('./pages/Home'));
 const Login = lazy(() => import('./pages/Login'));
@@ -88,6 +90,9 @@ export default function App() {
 
   return (
     <Router>
+      {/* Only in the standalone preview build; nothing in production. */}
+      <DemoBar />
+
       {/* Every page below is loaded on demand. The landing page used to ship
           the whole site — all 22 public pages plus the entire admin console —
           in one bundle before it could render a single pixel. */}

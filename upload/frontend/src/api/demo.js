@@ -4,7 +4,19 @@
 // on only by VITE_DEMO=true at build time; the normal production build never
 // imports any of this data.
 
+import { COMPONENTS, unitsOf as unitsIn, byComponent } from '../lib/components';
+import { guideArt } from '../lib/guideArt';
+
 const GROUPS = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
+
+// The pages read err.response.data.message, so a demo failure has to be the
+// same shape a real axios rejection is - otherwise the preview shows a blank
+// screen where the live site shows a message.
+const demoError = (status, message) => {
+  const err = new Error(message);
+  err.response = { status, data: { message } };
+  return err;
+};
 const CITIES = ['Ahmedabad', 'Surat', 'Vadodara', 'Rajkot', 'Bhavnagar', 'Navsari', 'Valsad', 'Junagadh'];
 
 // The wider register the dashboard map draws from. Weights are rough
@@ -43,13 +55,21 @@ const hospitals = Array.from({ length: 38 }, (_, i) => {
     // Weighted by how common each group actually is, so the supply chart
     // shows real scarcity (O negative and AB negative are the thin ones)
     // rather than eight identical bars.
-    availableBloodUnits: GROUPS
-      .map((g, j) => {
-        const weight = [1.00, 0.22, 0.85, 0.18, 0.30, 0.08, 1.35, 0.26][j];
-        const base = ((i * 7 + j * 13) % 17) + 4;
-        return { bloodGroup: g, units: Math.round(base * weight) };
-      })
-      .filter((u) => u.units > 0),
+    // Weighted twice: by how common each group is, and by how a real fridge
+    // divides between components - mostly red cells, and never many
+    // platelets, because platelets keep for five days.
+    availableBloodUnits: GROUPS.flatMap((g, j) => {
+      const weight = [1.00, 0.22, 0.85, 0.18, 0.30, 0.08, 1.35, 0.26][j];
+      const base = ((i * 7 + j * 13) % 17) + 4;
+      const groupTotal = base * weight;
+      return [
+        ['whole', 0.18], ['prbc', 0.46], ['plasma', 0.27], ['platelets', 0.09],
+      ].map(([component, share], k) => ({
+        bloodGroup: g,
+        component,
+        units: Math.round(groupTotal * share * (0.5 + (((i + j * 5 + k * 11) % 13) / 10))),
+      })).filter((u) => u.units > 0);
+    }),
   };
 });
 
@@ -111,7 +131,42 @@ const GUIDE_SEED = {
   ],
 };
 
-const GUIDE_BODY = 'Blood supply is a flow problem rather than a stock problem. Red cells keep for around six weeks under refrigeration and platelets for about five days, which is why donation has to be continuous rather than occasional.\n\nThe criteria used by Indian blood centres are these: aged 18 to 65, weighing at least 45 kg, haemoglobin of 12.5 g/dL or above, and more than 90 days since your last whole blood donation. You should also be generally well on the day.\n\nThese are the thresholds, not the whole decision. The doctor at the centre confirms eligibility on the day and can accept or defer you for reasons not on this list. If you are unsure, go and ask rather than assuming the answer is no.';
+// Written WITH the article markup (lib/richtext.js), because the preview has
+// to show the reading format: the section headings are what fills the index
+// down the left of the page.
+const GUIDE_BODY = `Blood supply is a flow problem rather than a stock problem. Red cells keep for around six weeks under refrigeration and platelets for about five days, which is why donation has to be continuous rather than occasional.
+
+## Who can donate
+
+The criteria used by Indian blood centres are these.
+
+- **Age:** 18 to 65 years
+- **Weight:** at least 45 kg
+- **Haemoglobin:** 12.5 g/dL or above, measured on the day
+- **Interval:** more than 90 days since your last whole blood donation
+
+You should also be generally well on the day.
+
+## These are thresholds, not the whole decision
+
+The doctor at the centre confirms eligibility on the day and can accept or defer you for reasons that are not on this list.
+
+!> If you are unsure, go and ask rather than assuming the answer is no. The screening is free and carries no obligation to donate.
+
+## What happens to the bag
+
+[photo: lab]
+
+A centrifuge separates the unit into red cells, plasma and platelets within hours of the donation, and the three go to completely different wards.
+
+> One donation, separated this way, can help up to three patients.
+
+## Afterwards
+
+1. Stay at the refreshment table for a quarter of an hour.
+2. Drink more than usual for the rest of the day.
+3. Put your next eligible date in the calendar before you leave.
+`;
 
 const guides = [];
 GCAT.forEach((cat) => GUIDE_SEED[cat].forEach(([title, summary], i) => guides.push({
@@ -133,6 +188,24 @@ const board = NAMES.map((n, i) => {
     tier: donations >= 25 ? 'Platinum' : donations >= 15 ? 'Gold' : donations >= 8 ? 'Silver' : donations >= 3 ? 'Bronze' : 'Donor',
   };
 });
+
+// Open and answered requests. Module level rather than inside the router,
+// because a centre's own page needs the ones in its town.
+const requests = Array.from({ length: 18 }, (_, i) => ({
+  _id: `rq${i}`,
+  bloodGroupNeeded: GROUPS[(i * 5) % 8],
+  unitsNeeded: (i % 3) + 1,
+  component: ['whole', 'prbc', 'platelets', 'plasma'][i % 4],
+  hospital: ['New Civil Hospital', 'Sterling Hospital', 'Civil Hospital', 'Apollo Hospital', 'Red Cross Centre'][i % 5],
+  location: REGISTER[i % REGISTER.length][0],
+  requesterId: {
+    name: NAMES[i % NAMES.length],
+    phone: `09${700000000 + i * 131}`,
+    location: REGISTER[i % REGISTER.length][0],
+  },
+  status: i % 4 === 3 ? 'fulfilled' : 'pending',
+  createdAt: new Date(Date.now() - (i * 7 + 2) * 36e5),
+}));
 
 const TIERS = [
   { min: 25, label: 'Platinum', note: '25+ donations' },
@@ -186,10 +259,35 @@ const doctorsFor = (hospitalId, i = 0) => [0, 1, 2].map((k) => ({
   availableTimeSlots: DOC_SLOTS[k % 3],
 }));
 
+const BLOG_BODY = `Platelets are the fragment of blood that stops bleeding, and they are the component a blood bank is most often short of.
+
+## Five days, and the clock starts at donation
+
+Red cells keep for about six weeks under refrigeration. Plasma, frozen, keeps for a year. Platelets last roughly **five days**.
+
+!> A platelet shortage cannot be answered by people donating more last week. It can only be answered by somebody donating this week.
+
+## Who is waiting for them
+
+[photo: testing]
+
+- Patients on chemotherapy, who often cannot make their own
+- Dengue patients with a falling count
+- Major trauma and surgery, alongside red cells
+
+> A haematology ward does not ring round asking for blood. It rings round asking for platelets.
+
+## What this means for a donor
+
+1. A steady rhythm is worth more than an occasional large gesture.
+2. Keep your number current on the register, so a centre can reach you in the five days that matter.
+3. If you are asked to come in at short notice, that is why.
+`;
+
 const blogs = [
-  { _id: 'b1', title: 'Why platelet donors are needed every single week', excerpt: 'Platelets last about five days, which changes everything about how supply works.', author: 'LifeLink Team', imageUrl: '', createdAt: new Date(Date.now() - 4 * 864e5).toISOString(), content: GUIDE_BODY },
-  { _id: 'b2', title: 'What the haemoglobin finger-prick is actually checking', excerpt: 'The test that decides whether you donate today, explained in a minute.', author: 'Dr A. Mehta', imageUrl: '', createdAt: new Date(Date.now() - 13 * 864e5).toISOString(), content: GUIDE_BODY },
-  { _id: 'b3', title: 'How a blood bank decides which unit goes where', excerpt: 'Crossmatching, shelf life and the logic behind the fridge.', author: 'LifeLink Team', imageUrl: '', createdAt: new Date(Date.now() - 26 * 864e5).toISOString(), content: GUIDE_BODY },
+  { _id: 'b1', title: 'Why platelet donors are needed every single week', excerpt: 'Platelets last about five days, which changes everything about how supply works.', author: 'LifeLink Team', imageUrl: guideArt('education', 0), createdAt: new Date(Date.now() - 4 * 864e5).toISOString(), content: BLOG_BODY, readMinutes: 3 },
+  { _id: 'b2', title: 'What the haemoglobin finger-prick is actually checking', excerpt: 'The test that decides whether you donate today, explained in a minute.', author: 'Dr A. Mehta', imageUrl: guideArt('eligibility', 1), createdAt: new Date(Date.now() - 13 * 864e5).toISOString(), content: GUIDE_BODY, readMinutes: 2 },
+  { _id: 'b3', title: 'How a blood bank decides which unit goes where', excerpt: 'Crossmatching, shelf life and the logic behind the fridge.', author: 'LifeLink Team', imageUrl: guideArt('preparation', 2), createdAt: new Date(Date.now() - 26 * 864e5).toISOString(), content: GUIDE_BODY, readMinutes: 2 },
 ];
 
 // The board shows the top 18; the totals describe the whole register behind
@@ -219,16 +317,18 @@ function resolve(url, config = {}) {
     }
     const results = list.map((h) => {
       const stock = h.availableBloodUnits || [];
-      const match = p.bloodGroup ? stock.find((u) => u.bloodGroup === p.bloodGroup) : null;
-      const units = p.bloodGroup ? (match?.units || 0) : stock.reduce((a, u) => a + u.units, 0);
+      const units = unitsIn(stock, { bloodGroup: p.bloodGroup, component: p.component });
       return {
         _id: h._id, name: h.name, address: h.address, city: h.city, district: h.district,
         state: h.state, contactNumber: h.contactNumber, type: h.type, units,
         availability: units > 10 ? 'good' : units > 3 ? 'limited' : units > 0 ? 'critical' : 'none',
         breakdown: stock,
+        components: byComponent(
+          p.bloodGroup ? stock.filter((u) => u.bloodGroup === p.bloodGroup) : stock,
+        ).map((c) => ({ key: c.key, label: c.label, units: c.units })),
       };
     });
-    if (p.bloodGroup) results.sort((a, b) => b.units - a.units);
+    if (p.bloodGroup || p.component) results.sort((a, b) => b.units - a.units);
     return {
       query: p, count: results.length,
       withStock: results.filter((r) => r.units > 0).length,
@@ -240,11 +340,22 @@ function resolve(url, config = {}) {
   switch (seg[0]) {
     case 'availability':
       if (seg[1] === 'regions') {
-        return { states: [{ state: 'Gujarat', districts: [...CITIES].sort() }], components: ['Whole Blood', 'Packed Red Cells', 'Plasma', 'Platelets'] };
+        return { states: [{ state: 'Gujarat', districts: [...CITIES].sort() }], components: COMPONENTS };
       }
       return availability();
 
     case 'camps':
+      // An application in the demo gets the same receipt the real API sends,
+      // and goes no further - there is no console to approve it in.
+      if (seg[1] === 'apply') {
+        return {
+          message: 'Application received',
+          reference: `D${String(Date.now()).slice(-5)}`,
+          title: p.title || 'Your camp',
+          date: p.date || '',
+          city: p.city || '',
+        };
+      }
       if (seg[1] === 'mine') return [camps[0], camps[2]];
       if (seg[1]) return camps.find((c) => c._id === seg[1]) || camps[0];
       return p.upcoming === 'true' ? camps.filter((c) => c.status === 'upcoming') : camps;
@@ -280,7 +391,20 @@ function resolve(url, config = {}) {
       }
       return [];
 
-    case 'hospitals': return hospitals;
+    case 'hospitals':
+      // One centre's own page.
+      if (seg[1]) {
+        const centre = hospitals.find((h) => h._id === seg[1]);
+        if (!centre) throw demoError(404, 'Centre not found');
+        return {
+          hospital: centre,
+          doctors: doctorsFor(centre._id, hospitals.indexOf(centre)),
+          nearbyRequests: requests
+            .filter((r) => r.status === 'pending' && r.location === centre.city)
+            .slice(0, 6),
+        };
+      }
+      return hospitals;
     case 'donors': {
       // Mirror the real endpoint's filters, otherwise clicking a city on the
       // dashboard map appears to do nothing in the demo build.
@@ -295,18 +419,7 @@ function resolve(url, config = {}) {
     case 'blogs': return seg[1] ? (blogs.find((b) => b._id === seg[1]) || blogs[0]) : blogs;
     case 'stats': return GROUPS.map((g, i) => ({ group: g, donors: [29, 8, 27, 14, 10, 12, 40, 13][i], pendingRequests: [1, 0, 0, 2, 1, 0, 0, 3][i] }));
     case 'donation-requests': {
-      const all = Array.from({ length: 18 }, (_, i) => ({
-        _id: `rq${i}`,
-        bloodGroupNeeded: GROUPS[(i * 5) % 8],
-        location: `${['New Civil Hospital', 'Sterling Hospital', 'Civil Hospital', 'Apollo Hospital', 'Red Cross Centre'][i % 5]}, ${REGISTER[i % REGISTER.length][0]}`,
-        requesterId: {
-          name: NAMES[i % NAMES.length],
-          phone: `09${700000000 + i * 131}`,
-          location: REGISTER[i % REGISTER.length][0],
-        },
-        status: i % 4 === 3 ? 'fulfilled' : 'pending',
-        createdAt: new Date(Date.now() - (i * 7 + 2) * 36e5),
-      }));
+      const all = requests;
       const want = p.status;
       return want ? all.filter((r) => r.status === want) : all;
     }
@@ -405,6 +518,59 @@ function resolve(url, config = {}) {
       return [];
   }
 }
+
+// ------------------------------------------------------- the admin's view
+// The console needs two lists the member side never asks for as a whole:
+// every appointment, and the support inbox. They are built here so both
+// stand-ins work from the same fixtures and cannot drift apart.
+const adminAppointments = Array.from({ length: 24 }, (_, i) => {
+  const h = hospitals[i % hospitals.length];
+  const doc = doctorsFor(h._id, i)[i % 3];
+  return {
+    _id: `ap${i}`,
+    appointmentDate: iso(((i * 5) % 30) - 8),
+    appointmentTime: ['09:00 AM', '11:00 AM', '12:00 PM', '4:00 PM'][i % 4],
+    status: ['pending', 'confirmed', 'confirmed', 'cancelled'][i % 4],
+    userId: { name: NAMES[i % NAMES.length], phone: `09${700000000 + i * 311}` },
+    doctorId: { _id: doc._id, name: doc.name, specialization: doc.specialization, hospitalId: { _id: h._id, name: h.name } },
+    createdAt: new Date(Date.now() - i * 2 * 864e5).toISOString(),
+  };
+});
+
+const adminSupport = Array.from({ length: 5 }, (_, i) => ({
+  _id: `sup${i}`,
+  name: NAMES[(i * 3) % NAMES.length],
+  email: `visitor${i}@example.com`,
+  subject: [
+    'Can I donate after a tattoo?',
+    'My certificate has not arrived',
+    'Wrong blood group on my profile',
+    'Is the Surat camp still running?',
+    'How do I delete my account?',
+  ][i],
+  status: i < 2 ? 'open' : 'closed',
+  createdAt: new Date(Date.now() - (i * 11 + 2) * 36e5).toISOString(),
+  lastMessageAt: new Date(Date.now() - (i * 9 + 1) * 36e5).toISOString(),
+  messages: [
+    { from: 'visitor', body: 'Hello, I had a question about donating.', at: new Date(Date.now() - (i * 11 + 2) * 36e5).toISOString() },
+    ...(i < 2 ? [] : [{ from: 'admin', byName: 'LifeLink team', body: 'Answered by phone, closing this off.', at: new Date(Date.now() - (i * 9 + 1) * 36e5).toISOString() }]),
+  ],
+}));
+
+// Everything the admin stand-in seeds itself from. See api/adminDemo.js.
+export const demoState = () => ({
+  hospitals,
+  doctors: hospitals.flatMap((h, i) => doctorsFor(h._id, i)).slice(0, 60),
+  camps,
+  stories,
+  guides,
+  blogs,
+  requests,
+  donors,
+  myDonations,
+  appointments: adminAppointments,
+  support: adminSupport,
+});
 
 const reply = (url, config) => new Promise((res) => {
   // A touch of latency so loading states are visible in the demo.

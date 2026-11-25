@@ -13,6 +13,7 @@ import StatusTag from '../components/StatusTag';
 import ContactActions from '../components/ContactActions';
 import PageLoader from '../components/PageLoader';
 import BloodGroup from '../components/BloodGroup';
+import { COMPONENTS, componentOptions, componentOf, unitsOf as unitsIn } from '../lib/components';
 import SearchSelect from '../components/SearchSelect';
 
 const GROUPS = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
@@ -31,7 +32,9 @@ export default function Availability() {
   const [filters, setFilters] = useState({
     state: '', district: '',
     bloodGroup: params.get('group') || '',
-    component: 'Whole Blood',
+    // '' is "any component", the honest default for somebody who has been
+    // told to find blood and not told which part of it.
+    component: params.get('component') || '',
     type: '',
     search: params.get('q') || '',
   });
@@ -44,7 +47,7 @@ export default function Availability() {
   useEffect(() => {
     api.get('/availability/regions')
       .then((res) => setRegions(res.data))
-      .catch(() => setRegions({ states: [], components: ['Whole Blood'] }));
+      .catch(() => setRegions({ states: [], components: COMPONENTS }));
   }, []);
 
   const districts = useMemo(
@@ -57,8 +60,10 @@ export default function Availability() {
     setLoading(true);
     setSearched(true);
     try {
-      const { component, ...params } = filters;
-      const { data: res } = await api.get('/availability', { params });
+      // The component used to be stripped out here, which is why the
+      // dropdown above did nothing for so long. Stock is now held per
+      // component and the server filters on it.
+      const { data: res } = await api.get('/availability', { params: filters });
       setData(res);
       setError('');
     } catch (err) {
@@ -76,7 +81,8 @@ export default function Availability() {
   useEffect(() => {
     const t = setTimeout(run, filters.search ? 350 : 0);
     return () => clearTimeout(t);
-  }, [filters.state, filters.district, filters.bloodGroup, filters.type, filters.search]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [filters.state, filters.district, filters.bloodGroup, filters.component,
+    filters.type, filters.search]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const set = (key, value) => setFilters((f) => ({
     ...f,
@@ -135,7 +141,8 @@ export default function Availability() {
           <SearchSelect
             value={filters.component}
             onChange={(e) => set('component', e.target.value)}
-            options={(regions.components || ['Whole Blood']).map((c) => ({ value: c, label: c }))}
+            placeholder="All components"
+            options={componentOptions()}
           />
         </label>
 
@@ -172,12 +179,62 @@ export default function Availability() {
           <button
             type="button"
             className="small-button portal-reset"
-            onClick={() => setFilters({ state: '', district: '', bloodGroup: '', component: 'Whole Blood', type: '', search: '' })}
+            onClick={() => setFilters({ state: '', district: '', bloodGroup: '', component: '', type: '', search: '' })}
           >
             Clear filters
           </button>
         )}
       </form>
+
+      {/* COMPONENT TABS.
+          eRaktKosh puts its components behind tabs, and it is the right
+          shape for this: four numbers, one of which is the one you came for.
+          Ours carry the running total for the search as it stands and double
+          as the filter, and each says who the component is actually for -
+          which the government portal leaves you to know already. */}
+      {data && (
+        <div className="comp-tabs" role="tablist" aria-label="Blood component">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={!filters.component}
+            className={`comp-tab ${!filters.component ? 'on' : ''}`}
+            onClick={() => set('component', '')}
+          >
+            <span className="comp-tab-name">All components</span>
+            <strong><Figure value={data.totalUnits} ready={!loading} /></strong>
+            <small>everything on the shelf</small>
+          </button>
+
+          {COMPONENTS.map((c) => {
+            const units = (data.results || []).reduce(
+              (a, r) => a + ((r.components || []).find((x) => x.key === c.key)?.units || 0), 0,
+            );
+            return (
+              <button
+                key={c.key}
+                type="button"
+                role="tab"
+                aria-selected={filters.component === c.key}
+                className={`comp-tab ${filters.component === c.key ? 'on' : ''}`}
+                onClick={() => set('component', filters.component === c.key ? '' : c.key)}
+                title={c.use}
+              >
+                <span className="comp-tab-name">{c.label}</span>
+                <strong><Figure value={units} ready={!loading} /></strong>
+                <small>keeps {c.shelf}</small>
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {filters.component && (
+        <p className="comp-note">
+          <strong>{componentOf(filters.component).label}.</strong>{' '}
+          {componentOf(filters.component).use}
+        </p>
+      )}
 
       {data && (
         <div className="bento">
@@ -186,7 +243,11 @@ export default function Availability() {
             <strong className="tile-value sm"><Figure value={data.count} ready={!loading} /></strong>
           </div>
           <div className="tile mint t-4 center pad-sm">
-            <span className="tile-label">With stock{filters.bloodGroup ? ` of ${filters.bloodGroup}` : ''}</span>
+            <span className="tile-label">
+              With stock
+              {filters.bloodGroup ? ` of ${filters.bloodGroup}` : ''}
+              {filters.component ? ` ${componentOf(filters.component).short.toLowerCase()}` : ''}
+            </span>
             <strong className="tile-value sm"><Figure value={data.withStock} ready={!loading} /></strong>
           </div>
           <div className="tile rose t-4 center pad-sm">
@@ -252,9 +313,14 @@ export default function Availability() {
                 <br /><small className="muted-note">{r.address}</small>
                 {!filters.bloodGroup && r.breakdown?.length > 0 && (
                   <div className="portal-breakdown">
-                    {r.breakdown.filter((b) => b.units > 0).map((b) => (
-                      <span key={b.bloodGroup}><BloodGroup group={b.bloodGroup} variant="bare" />{b.units}</span>
-                    ))}
+                    {/* A group now has up to four rows, one per component.
+                        Without adding them up first, O- appeared four times
+                        in this cell with a different number each time. */}
+                    {GROUPS.map((g) => ({ g, n: unitsIn(r.breakdown, { bloodGroup: g, component: filters.component }) }))
+                      .filter((x) => x.n > 0)
+                      .map((x) => (
+                        <span key={x.g}><BloodGroup group={x.g} variant="bare" />{x.n}</span>
+                      ))}
                   </div>
                 )}
               </>
@@ -267,11 +333,28 @@ export default function Availability() {
             render: (r) => (r.type === 'blood_bank' ? 'Blood bank' : 'Hospital') },
           {
             key: 'units',
-            header: filters.bloodGroup ? `${filters.bloodGroup} units` : 'Total units',
+            header: [
+              filters.bloodGroup || 'Total',
+              filters.component ? componentOf(filters.component).short.toLowerCase() : 'units',
+            ].join(' '),
             defaultDir: 'desc',
             align: 'right',
-            width: '110px',
-            render: (r) => <strong className="portal-units">{r.units}</strong>,
+            width: '200px',
+            render: (r) => (
+              <>
+                <strong className="portal-units">{r.units}</strong>
+                {/* With no component chosen, say how the total splits, so a
+                    ward looking for platelets can see at a glance that a
+                    centre holding 60 units has four of them. */}
+                {!filters.component && r.components?.some((c) => c.units > 0) && (
+                  <span className="portal-compsplit">
+                    {r.components.filter((c) => c.units > 0).map((c) => (
+                      <span key={c.key}>{componentOf(c.key).short} {c.units}</span>
+                    ))}
+                  </span>
+                )}
+              </>
+            ),
           },
           {
             key: 'availability',

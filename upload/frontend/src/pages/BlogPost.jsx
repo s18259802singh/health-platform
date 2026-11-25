@@ -17,71 +17,16 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import api from '../api/axios';
-import Photo from '../components/Photo';
 import PageLoader from '../components/PageLoader';
-import { PHOTOS, photoFor } from '../lib/photos';
-import { parseArticle, inlineParts, outlineOf, readingTime } from '../lib/richtext';
+import PieceRow from '../components/PieceRow';
+import { ArticleBody, ArticleIndex } from '../components/ArticleBody';
+import { parseArticle, outlineOf, readingTime } from '../lib/richtext';
 
 const dateLong = (d) =>
   new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
 
 const initials = (name) => String(name || '?')
   .split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0].toUpperCase()).join('');
-
-function Inline({ text }) {
-  return (
-    <>
-      {inlineParts(text).map((part, i) => (
-        part.t === 'b'
-          ? <strong key={i}>{part.v}</strong>
-          : <span key={i}>{part.v}</span>
-      ))}
-    </>
-  );
-}
-
-function Block({ block, headingId }) {
-  switch (block.type) {
-    case 'h2':
-      return <h2 id={headingId}><Inline text={block.text} /></h2>;
-    case 'h3':
-      return <h3><Inline text={block.text} /></h3>;
-    case 'ul':
-      return (
-        <ul className="article-list">
-          {block.items.map((it, i) => <li key={i}><Inline text={it} /></li>)}
-        </ul>
-      );
-    case 'ol':
-      return (
-        <ol className="article-steps">
-          {block.items.map((it, i) => <li key={i}><Inline text={it} /></li>)}
-        </ol>
-      );
-    case 'quote':
-      return (
-        <blockquote className="article-quote">
-          <p><Inline text={block.text} /></p>
-        </blockquote>
-      );
-    case 'callout':
-      return (
-        <aside className="article-callout">
-          <span aria-hidden="true">●</span>
-          <p><Inline text={block.text} /></p>
-        </aside>
-      );
-    case 'photo':
-      return (
-        <figure className="article-figure">
-          <Photo photo={PHOTOS[block.key]} ratio="16 / 9" sizes="(max-width: 860px) 100vw, 680px" />
-          <figcaption>{PHOTOS[block.key]?.alt}</figcaption>
-        </figure>
-      );
-    default:
-      return <p><Inline text={block.text} /></p>;
-  }
-}
 
 export default function BlogPost() {
   const { id } = useParams();
@@ -117,7 +62,6 @@ export default function BlogPost() {
   // The first paragraph does the work of a standfirst when the article has no
   // excerpt of its own.
   const deck = blog.excerpt || blocks.find((b) => b.type === 'p')?.text || '';
-  let h2Index = 0;
 
   return (
     <div className="page blog-post">
@@ -144,20 +88,14 @@ export default function BlogPost() {
         <img className="blog-post-image" src={blog.imageUrl} alt="" />
       )}
 
-      {/* ------------------------------------------------- body + side rail */}
+      {/* The section headings run down the LEFT, beside the text, with the
+          one you are reading marked. A reader can see the shape of the
+          piece and jump into it without scrolling to find out what is in
+          it. */}
       <div className="article-layout">
-        <article className="article-body">
-          {blocks.map((b, i) => {
-            if (b.type === 'h2') { h2Index += 1; }
-            return (
-              <Block
-                key={i}
-                block={b}
-                headingId={b.type === 'h2' ? `s${h2Index}` : undefined}
-              />
-            );
-          })}
+        <ArticleIndex outline={outline} />
 
+        <ArticleBody blocks={blocks}>
           <div className="article-end">
             <p>
               <strong>LifeLink is free to use.</strong> Find a camp near you, or
@@ -168,49 +106,28 @@ export default function BlogPost() {
               <Link className="small-button ghost" to="/availability">Check availability</Link>
             </div>
           </div>
-        </article>
-
-        <aside className="article-rail">
-          {outline.length > 1 && (
-            <nav className="article-toc" aria-label="In this article">
-              <span className="tile-label">In this article</span>
-              <ol>
-                {outline.map((o) => (
-                  <li key={o.id}><a href={`#${o.id}`}>{o.text}</a></li>
-                ))}
-              </ol>
-            </nav>
-          )}
-          <div className="article-aside-card">
-            <Photo photo={photoFor(blog._id)} ratio="4 / 3" sizes="260px" />
-            <p>
-              Every article here is written for people deciding whether to
-              donate, not for clinicians. If something is unclear, the guides
-              go into more detail.
-            </p>
-            <Link className="tile-link" to="/guides">Open the guide library →</Link>
-          </div>
-        </aside>
+        </ArticleBody>
       </div>
 
       {/* ------------------------------------------------------ keep reading */}
       {more.length > 0 && (
         <section className="article-more">
           <div className="section-header"><h3>Keep reading</h3></div>
-          <div className="blog-grid">
+          {/* The same title-and-subtitle rows the index page uses, so
+              finishing one article leads into the next the same way. */}
+          <ul className="piece-list">
             {more.map((b) => (
-              <article className="blog-card" key={b._id}>
-                {b.imageUrl
-                  ? <img className="blog-card-image" src={b.imageUrl} alt="" loading="lazy" />
-                  : <Photo photo={photoFor(b._id)} className="blog-card-image" ratio="16 / 9" />}
-                <div className="blog-card-body">
-                  <h4><Link to={`/blogs/${b._id}`}>{b.title}</Link></h4>
-                  <p className="blog-excerpt">{b.excerpt}</p>
-                  <Link className="blog-readmore" to={`/blogs/${b._id}`}>Read →</Link>
-                </div>
-              </article>
+              <PieceRow
+                key={b._id}
+                to={`/blogs/${b._id}`}
+                title={b.title}
+                subtitle={b.excerpt}
+                imageUrl={b.imageUrl}
+                photoKey={b._id}
+                meta={b.readMinutes ? <i>{b.readMinutes} min read</i> : null}
+              />
             ))}
-          </div>
+          </ul>
         </section>
       )}
     </div>

@@ -7,6 +7,7 @@ import { LoadMore, useLoadMore } from '../components/Pagination';
 import SearchSelect from '../components/SearchSelect';
 import Photo from '../components/Photo';
 import Figure from '../components/Figure';
+import CampApplication from '../components/CampApplication';
 import { photoFor } from '../lib/photos';
 
 const dayLabel = (iso) => {
@@ -24,6 +25,9 @@ export default function Camps() {
   const [loading, setLoading] = useState(true);
   const [city, setCity] = useState('');
   const [when, setWhen] = useState('upcoming');
+  // Applying to run one. Open to signed-out visitors by design - see
+  // components/CampApplication.jsx.
+  const [applying, setApplying] = useState(false);
 
   useEffect(() => {
     setLoading(true);
@@ -55,7 +59,14 @@ export default function Camps() {
             ahead guarantees your slot and cuts the queue.
           </p>
         </div>
+        {/* The page used to be read-only: camps could only be created in the
+            console, so an organisation that wanted to run one had no way in. */}
+        <button type="button" className="btn-primary" onClick={() => setApplying(true)}>
+          Apply to run a camp
+        </button>
       </div>
+
+      <CampApplication open={applying} onClose={() => setApplying(false)} />
 
       {/* POINT 6: these four read "0" until the camps arrived. */}
       <div className="stat-strip">
@@ -161,6 +172,26 @@ export default function Camps() {
       {!loading && filtered.length === 0 && (
         <p className="hint">No camps listed for that filter yet. Try switching to all camps.</p>
       )}
+
+      <section className="host-band">
+        <div>
+          <h3>Thinking of running one?</h3>
+          <p>
+            Workplaces, colleges, societies and residents' associations can all
+            host a drive. A centre brings the staff, the beds and the equipment;
+            you bring the hall and the people. Most camps collect between 50 and
+            300 units in a day.
+          </p>
+          <ul className="aside-points">
+            <li>No account needed to apply</li>
+            <li>A coordinator rings you to fix the date and the staffing</li>
+            <li>Once approved it is listed here and members can book a slot</li>
+          </ul>
+        </div>
+        <button type="button" className="btn-primary" onClick={() => setApplying(true)}>
+          Apply to run a camp
+        </button>
+      </section>
     </div>
   );
 }

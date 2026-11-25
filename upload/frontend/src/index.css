@@ -1487,6 +1487,125 @@ input[type="file"] { padding: 9px; font-size: 13.5px; background: var(--line-sof
 }
 .adm-markup-help p { margin: 10px 0 0; font-size: 12px; opacity: .75; }
 
+/* The preview strip. Only ever rendered in the standalone demo build, which
+   is why it is allowed to be this loud: its whole job is to say that the
+   locked pages are locked rather than missing. */
+.demo-bar {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 10px 14px;
+  padding: 9px 20px;
+  background: #241017; color: #f3e3ee;
+  font-size: 13.5px; position: relative; z-index: 120;
+}
+.demo-bar-tag {
+  flex: none; padding: 3px 9px; border-radius: 5px;
+  background: var(--brand); color: #fff;
+  font-size: 10.5px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase;
+}
+.demo-bar p { margin: 0; flex: 1; min-width: 220px; opacity: .88; line-height: 1.4; }
+.demo-bar-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.demo-bar button {
+  padding: 6px 13px; border-radius: 7px; cursor: pointer;
+  border: 1px solid rgba(255, 255, 255, .28); background: rgba(255, 255, 255, .08);
+  color: #fff; font-family: inherit; font-size: 12.5px; font-weight: 650;
+}
+.demo-bar button:hover { background: rgba(255, 255, 255, .17); border-color: rgba(255, 255, 255, .45); }
+@media (max-width: 640px) {
+  .demo-bar { padding: 9px 16px; font-size: 12.5px; }
+  .demo-bar p { min-width: 100%; }
+}
+
+/* ======================================================================
+   TITLE-AND-SUBTITLE INDEX ROWS
+   Used by the blog index, the guide library and "keep reading". A list of
+   articles should read like a list: the title, and one line saying what it
+   covers. Picture cards put the image first and the title fourth.
+   ====================================================================== */
+.piece-list { list-style: none; margin: 0 0 var(--s5); padding: 0; }
+.piece-list li { border-bottom: 1px solid var(--line); }
+.piece-list li:first-child { border-top: 1px solid var(--line); }
+
+/* Three columns: picture, writing, meta. The row uses the whole width of
+   the page - a title and one line of subtitle left most of a 1400px row
+   empty, which is what made the listing look unfinished. */
+.piece-list a {
+  display: grid; grid-template-columns: 190px minmax(0, 1fr) auto;
+  align-items: center; gap: var(--s5);
+  padding: 16px 16px 16px 0;
+  color: inherit; text-decoration: none;
+  transition: background .15s ease, padding-left .15s ease;
+}
+.piece-list a:hover, .piece-list a:focus-visible {
+  background: var(--brand-soft); padding-left: 14px;
+}
+
+/* The thumbnail. Small on purpose: it is there to tell the rows apart and
+   give the eye something to run down, not to be the row. */
+.piece-thumb {
+  display: block; overflow: hidden; border-radius: var(--r-sm);
+  background: var(--line-soft); border: 1px solid var(--line);
+  aspect-ratio: 16 / 10;
+}
+.piece-thumb img, .piece-thumb .photo {
+  display: block; width: 100%; height: 100%; object-fit: cover; border-radius: 0;
+}
+.piece-thumb .photo { border: 0; }
+
+.piece-text { min-width: 0; }
+.piece-list strong {
+  display: block; font-size: 18px; font-weight: 650; line-height: 1.35;
+  letter-spacing: -.015em; color: var(--ink);
+}
+.piece-list a:hover strong { color: var(--brand); }
+/* The subtitle. One line of what the piece covers, and the thing people
+   actually scan - so it is a readable size, not caption-sized. */
+.piece-list small {
+  display: block; margin-top: 6px; max-width: 76ch;
+  font-size: 14.5px; line-height: 1.55; color: var(--ink-2);
+}
+
+/* Out on the far edge, so the right-hand side of the row is used too. */
+.piece-meta {
+  display: grid; justify-items: end; gap: 3px; text-align: right;
+  font-size: 11.5px; letter-spacing: .04em; text-transform: uppercase;
+  font-weight: 650; color: var(--muted); white-space: nowrap;
+}
+.piece-meta b { font-weight: 700; color: var(--ink-2); }
+.piece-meta i { font-style: normal; }
+
+.piece-list li.is-skeleton {
+  display: grid; grid-template-columns: 190px minmax(0, 1fr);
+  align-items: center; gap: var(--s5); padding: 16px 0;
+}
+.sk-thumb { aspect-ratio: 16 / 10; border-radius: var(--r-sm); }
+.piece-list li.is-skeleton .sk-line:last-child { margin-bottom: 0; }
+
+/* On a phone the picture sits beside the text at about a third the size -
+   dropping it above the title would turn a scannable list into a column of
+   cards, which is the thing this layout replaced. The meta moves under the
+   subtitle rather than fighting for a third column. */
+@media (max-width: 860px) {
+  .piece-list a {
+    grid-template-columns: 96px minmax(0, 1fr);
+    gap: var(--s4); align-items: start;
+  }
+  .piece-list strong { font-size: 16px; }
+  .piece-list small { font-size: 13.5px; }
+  .piece-meta {
+    grid-column: 2; grid-row: 2; justify-items: start; text-align: left;
+    grid-auto-flow: column; gap: 10px; margin-top: 7px;
+  }
+  .piece-list li.is-skeleton { grid-template-columns: 96px minmax(0, 1fr); }
+}
+
+/* The category headings that group the guide library. */
+.piece-group { margin-bottom: var(--s6); }
+.piece-group-head { margin-bottom: var(--s3); }
+.piece-group-head h2 {
+  margin: 0; font-size: 13px; font-weight: 700; letter-spacing: .08em;
+  text-transform: uppercase; color: var(--brand);
+}
+.piece-group-head p { margin: 4px 0 0; font-size: 14px; color: var(--muted); }
+
 /* ======================================================================
    THE ARTICLE PAGE  (point 11)
    It was a 760px column of identical paragraphs. It is now a masthead, a
@@ -1523,9 +1642,12 @@ input[type="file"] { padding: 9px; font-size: 13.5px; background: var(--line-sof
   border: 1px solid var(--line);
 }
 
+/* The index sits on the LEFT of the text, not in a right-hand rail. You
+   read left to right, so the list of what is coming belongs on the side you
+   start from - and on a long piece it is the first thing worth seeing. */
 .article-layout {
-  display: grid; gap: var(--s6) var(--gap); align-items: start;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 260px);
+  display: grid; gap: var(--s6) var(--s6); align-items: start;
+  grid-template-columns: minmax(0, 230px) minmax(0, 1fr);
 }
 
 /* The body. 68 characters is the width prose is comfortable at; the old page
@@ -1540,6 +1662,10 @@ input[type="file"] { padding: 9px; font-size: 13.5px; background: var(--line-sof
   font-size: clamp(21px, 2.4vw, 26px); line-height: 1.25; letter-spacing: -.02em;
   color: var(--ink); margin: 1.8em 0 .55em; scroll-margin-top: 90px;
 }
+/* The index moves focus to the heading it sends you to; that should not
+   draw a focus ring, since the reader did not tab to it. */
+.article-body h2:focus { outline: none; }
+.article-body h2:focus-visible { outline: 2px solid var(--brand); outline-offset: 4px; }
 .article-body h2::before {
   content: ''; display: block; width: 42px; height: 3px; border-radius: 2px;
   background: var(--red); margin-bottom: 14px;
@@ -1595,31 +1721,81 @@ input[type="file"] { padding: 9px; font-size: 13.5px; background: var(--line-sof
 .article-end p { margin: 0 0 var(--s4); }
 .article-end-links { display: flex; flex-wrap: wrap; gap: var(--s3); }
 
-/* The rail: the article's own sections, and a way onward. */
-.article-rail { display: grid; gap: var(--s4); position: sticky; top: 84px; }
-.article-toc {
-  padding: var(--s4) var(--s5); border-radius: var(--r);
-  background: var(--line-soft);
+/* ---------------------------------------------- the section index, left
+   Every heading in the piece as one line, with a rule running down the
+   side and a marker against the section currently on screen. Sticky, so
+   it stays with you: the point of it is to answer "how much is left, and
+   is the part I want further down?" without scrolling to find out. */
+.article-index {
+  position: sticky; top: 84px; min-width: 0;
+  max-height: calc(100vh - 110px); overflow: auto;
+  padding-left: var(--s4); border-left: 2px solid var(--line);
 }
-.article-toc ol { margin: 9px 0 0; padding-left: 18px; display: grid; gap: 7px; }
-.article-toc a { font-size: 13.5px; color: var(--ink-2); text-decoration: none; line-height: 1.4; }
-.article-toc a:hover { color: var(--red); }
-.article-aside-card {
-  padding: var(--s5); border-radius: var(--r);
-  background: var(--surface); border: 1px solid var(--line);
+.article-index-label {
+  display: block; margin-bottom: 12px;
+  font-size: 11px; font-weight: 700; letter-spacing: .08em;
+  text-transform: uppercase; color: var(--muted);
 }
-.article-aside-card .photo { margin-bottom: var(--s4); }
-.article-aside-card p { font-size: 13px; color: var(--muted); line-height: 1.55; margin: 0 0 var(--s3); }
+.article-index ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+.article-index a {
+  display: flex; gap: 9px; align-items: baseline;
+  padding: 7px 10px 7px 0; border-radius: 0 8px 8px 0;
+  font-size: 13.5px; line-height: 1.4; color: var(--ink-2); text-decoration: none;
+  transition: color .15s ease, background .15s ease;
+}
+.article-index a i {
+  flex: none; font-style: normal; font-size: 10.5px; font-weight: 700;
+  color: var(--muted); font-variant-numeric: tabular-nums;
+}
+.article-index a:hover { color: var(--brand); }
+.article-index a:hover i { color: var(--brand); }
+
+/* Where you are. The bar sits on the rule itself, so the index reads as a
+   progress line down the piece rather than a plain list of links. */
+.article-index li { position: relative; }
+.article-index li.is-here::before {
+  content: ''; position: absolute;
+  left: calc(var(--s4) * -1 - 2px); top: 4px; bottom: 4px;
+  width: 2px; background: var(--brand); border-radius: 2px;
+}
+.article-index li.is-here a { color: var(--brand); font-weight: 650; }
+.article-index li.is-here a i { color: var(--brand); }
+
+/* A plain byline, for the guides - no avatar, just the reading time. */
+.article-byline.plain { gap: 0; }
+.article-byline.plain small { font-size: 12.5px; color: var(--muted); }
 
 .article-more { margin-top: var(--s7, 48px); }
 .blog-card-body h4 { font-size: 16.5px; margin: 0 0 8px; line-height: 1.35; }
 .blog-card-body h4 a { color: var(--ink); text-decoration: none; }
 .blog-card-body h4 a:hover { color: var(--red); }
 
+/* On a narrow screen the index goes above the text and lies flat, as a
+   row of chips you can swipe - a sticky column down the side of a phone
+   would eat the width the prose needs. */
 @media (max-width: 980px) {
-  .article-layout { grid-template-columns: 1fr; }
-  .article-rail { position: static; }
+  .article-layout { grid-template-columns: 1fr; gap: var(--s5); }
   .article-body { max-width: none; }
+  .article-index {
+    position: static; max-height: none; overflow: visible;
+    padding: var(--s4) 0 var(--s4) 0;
+    border-left: 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line);
+    /* A grid item defaults to min-width:auto, so the scrolling chip row
+       below would push the whole layout wider than the screen instead of
+       scrolling inside it. */
+    min-width: 0;
+  }
+  .article-index ol {
+    grid-auto-flow: column; grid-auto-columns: max-content;
+    gap: 7px; overflow-x: auto; padding-bottom: 4px;
+    scrollbar-width: thin; max-width: 100%;
+  }
+  .article-index a {
+    padding: 7px 13px; border-radius: 99px;
+    border: 1px solid var(--line); background: var(--surface); white-space: nowrap;
+  }
+  .article-index li.is-here::before { display: none; }
+  .article-index li.is-here a { border-color: var(--brand); background: var(--brand-soft); }
 }
 
 /* ------------------------------------------------------------ emergency */
@@ -3479,21 +3655,178 @@ input[type="file"] { padding: 9px; font-size: 13.5px; background: var(--line-sof
   .fig-wait, .sk { animation: none; background: var(--line-soft); }
 }
 
+/* The applications queue in the console. Deliberately loud: an application
+   nobody notices is a camp that quietly never happens. */
+.adm-queue { margin-bottom: 18px; border-color: #f0d2a4; }
+.adm-queue-head { margin-bottom: 14px; }
+.adm-queue-head h3 { margin: 0 0 3px; font-size: 16.5px; }
+.adm-queue-head p { margin: 0; font-size: 13px; color: var(--adm-muted, #5a6477); }
+.adm-queue-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.adm-queue-list li {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px 16px;
+  align-items: center; padding: 13px 15px; border-radius: 10px;
+  background: #fdf9f2; border: 1px solid #f0d2a4;
+}
+.adm-queue-main { min-width: 0; display: grid; gap: 2px; }
+.adm-queue-main strong { font-size: 15px; }
+.adm-queue-main small { font-size: 12.5px; color: var(--adm-muted, #5a6477); }
+.adm-queue-who { font-weight: 600; }
+.adm-queue-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; }
+.adm-queue-note {
+  grid-column: 1 / -1; margin: 2px 0 0; padding-top: 8px;
+  border-top: 1px dashed #f0d2a4; font-size: 13px; font-style: italic;
+  color: var(--adm-muted, #5a6477);
+}
+@media (max-width: 860px) {
+  .adm-queue-list li { grid-template-columns: 1fr; }
+  .adm-queue-actions { justify-content: flex-start; }
+}
+
+/* Apply to run a camp: the invitation at the foot of the camps page, and
+   the few bits its form needs. */
+.host-band {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
+  gap: var(--s5); margin-top: var(--s6);
+  padding: var(--s5) var(--s6); border-radius: var(--r-lg);
+  background: var(--brand-soft); border: 1px solid var(--brand-line);
+}
+.host-band h3 { margin: 0 0 6px; font-size: 19px; }
+.host-band p { margin: 0 0 var(--s4); max-width: 62ch; font-size: 14.5px; color: var(--ink-2); }
+.host-band .aside-points { font-size: 13px; }
+.page-head .btn-primary { flex: none; align-self: flex-start; }
+.time-pair { display: flex; align-items: center; gap: 8px; }
+.time-pair input { min-width: 0; }
+.time-pair span { font-size: 13px; color: var(--muted); flex: none; }
+.camp-apply-intro { margin-top: 0; }
+.section-header.sm { margin: var(--s5) 0 var(--s3); }
+.section-header.sm h4 {
+  margin: 0; font-size: 12.5px; font-weight: 700; letter-spacing: .06em;
+  text-transform: uppercase; color: var(--muted);
+}
+@media (max-width: 760px) {
+  .host-band { flex-direction: column; align-items: stretch; }
+}
+
+/* ====================================================================== *
+ *  BLOOD COMPONENTS
+ *  A donated bag is separated into red cells, plasma and platelets within
+ *  hours, and the three go to different wards. eRaktKosh puts its components
+ *  behind tabs and that is the right shape - four figures, one of which is
+ *  the one you came for. These are ours, in our own colours: no new palette,
+ *  the brand tokens that are already on every other control.
+ * ====================================================================== */
+.comp-tabs {
+  display: grid; grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px; margin: 0 0 var(--s5);
+}
+.comp-tab {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 2px;
+  padding: 12px 14px; border-radius: var(--r);
+  border: 1px solid var(--line); background: var(--surface);
+  font-family: inherit; text-align: left; cursor: pointer;
+  transition: border-color .15s ease, background .15s ease, box-shadow .15s ease;
+}
+.comp-tab:hover { border-color: var(--brand-line); background: var(--brand-soft); }
+.comp-tab.on {
+  border-color: var(--brand); background: var(--brand-soft);
+  box-shadow: inset 0 -3px 0 var(--brand);
+}
+.comp-tab-name {
+  font-size: 12px; font-weight: 700; letter-spacing: .04em;
+  text-transform: uppercase; color: var(--muted);
+}
+.comp-tab.on .comp-tab-name { color: var(--brand); }
+.comp-tab > strong {
+  font-size: 23px; font-weight: 700; line-height: 1.1; letter-spacing: -.02em;
+}
+.comp-tab > small { font-size: 11.5px; color: var(--muted); }
+/* A component a centre holds none of is still worth showing - "no platelets
+   here" is an answer. It is just not the one to lead with. */
+.comp-tab.is-empty > strong { color: var(--muted); }
+@media (max-width: 1040px) { .comp-tabs { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 680px)  { .comp-tabs { grid-template-columns: repeat(2, 1fr); } }
+
+/* The line under the tabs saying who the chosen component is actually for. */
+.comp-note {
+  margin: calc(var(--s4) * -1) 0 var(--s5);
+  padding: 10px 14px; border-radius: 10px;
+  background: var(--line-soft); font-size: 13.5px; color: var(--ink-2);
+  line-height: 1.5;
+}
+.comp-note strong { color: var(--ink); }
+
+/* How a total divides, shown inline in a table cell. */
+/* Two columns rather than a wrapping row: at a table cell's width a flex row
+   put each of the four on its own line and made every row twice as tall. */
+.portal-compsplit, .place-comp-split {
+  display: grid; grid-template-columns: repeat(2, auto); gap: 2px 10px;
+  justify-content: end; margin-top: 4px; font-size: 11px; color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.portal-compsplit > span, .place-comp-split > span { white-space: nowrap; }
+.place-comp-split { padding-top: 4px; border-top: 1px dashed var(--line); width: 100%; }
+
+/* Same thing inside a shelf cell on the centre page. */
+.shelf-split {
+  display: flex; flex-wrap: wrap; justify-content: center; gap: 2px 8px;
+  margin-top: 4px; padding-top: 6px; border-top: 1px dashed var(--line);
+  width: 100%; font-size: 10.5px; color: var(--muted);
+}
+.shelf-split b { color: var(--ink-2); font-weight: 700; }
+
+/* The full group x component matrix, folded away by default. */
+.shelf-table-wrap { margin-top: var(--s5); }
+.shelf-table-wrap summary {
+  cursor: pointer; font-size: 13.5px; font-weight: 650; color: var(--brand);
+  padding: 8px 0;
+}
+.shelf-table-wrap summary:hover { text-decoration: underline; }
+.shelf-table { margin-top: var(--s3); }
+.shelf-table th { white-space: nowrap; }
+.shelf-table td { font-variant-numeric: tabular-nums; }
+.shelf-table .ta-right { text-align: right; }
+.shelf-table-foot td { background: var(--line-soft); }
+
 /* ------------------------------------------------- booking, two columns
    POINT 8. The form was centred in a single column with a third of the
    screen empty on either side. The column beside it is not filler: it is
    what the form cannot tell you - when your next appointment is, what
    happens after you submit, and where you are actually going. */
 .book-layout {
-  display: grid; gap: var(--gap); align-items: start;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 320px);
+  /* stretch, not start: the two columns end level, the way the profile
+     page does. Anything else leaves one side hanging below the other. */
+  display: grid; gap: var(--gap); align-items: stretch;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 340px);
   margin-bottom: var(--s6);
 }
 /* The card fills the left column rather than keeping its own 560px cap,
    which otherwise left a visible hole between it and the rail. The fields
    inside pair up so they stay a readable width. */
 .book-layout .form-card { margin: 0; max-width: none; }
-.book-aside { display: grid; gap: var(--s4); }
+/* The cards share out the column's full height, so none of them reads as
+   a leftover strip at the bottom. */
+.book-aside { display: grid; gap: var(--s4); align-content: stretch; }
+.book-layout .form-card { display: flex; flex-direction: column; }
+.book-layout .form-card form { display: flex; flex-direction: column; flex: 1; }
+/* The submit button keeps its own width; the form is a flex column now, and
+   without this it stretches across the whole card. */
+.book-layout .form-card form > button[type="submit"] { align-self: flex-start; }
+.book-foot {
+  margin-top: auto; padding-top: var(--s5); max-width: 62ch;
+  border-top: 1px solid var(--line-soft);
+}
+.book-foot .aside-points { font-size: 13px; margin-top: 9px; }
+.book-foot .form-foot { margin: var(--s4) 0 0; font-size: 12.5px; }
+.aside-points {
+  list-style: none; margin: 4px 0 0; padding: 0; display: grid; gap: 7px;
+  font-size: 12.5px; color: var(--ink-2); line-height: 1.45;
+}
+.aside-points li { position: relative; padding-left: 16px; }
+.aside-points li::before {
+  content: ''; position: absolute; left: 2px; top: .52em;
+  width: 5px; height: 5px; border-radius: 50%; background: var(--brand);
+}
+.aside-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: auto; padding-top: var(--s3); }
 .aside-card {
   display: flex; flex-direction: column; align-items: flex-start; gap: 7px;
   padding: var(--s5); border-radius: var(--r);

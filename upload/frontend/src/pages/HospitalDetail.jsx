@@ -20,6 +20,7 @@ import StatusTag from '../components/StatusTag';
 import ContactActions from '../components/ContactActions';
 import PageLoader from '../components/PageLoader';
 import { GROUPS } from '../lib/blood';
+import { COMPONENTS, componentOf, stockTable, unitsOf as unitsIn, byComponent } from '../lib/components';
 
 // Low is not a fixed number of bags — it depends what you are looking at. Ten
 // units of a common group is thin; ten of AB- is a good day. Keeping one
@@ -39,13 +40,98 @@ export default function HospitalDetail() {
   const { user } = useAuth();
   const [data, setData] = useState(null);
   const [error, setError] = useState('');
+  // '' is every component added together, which is what the shelf summary
+  // showed before components existed.
+  const [comp, setComp] = useState('');
 
+  // WHY THIS LOADS TWO DIFFERENT WAYS
+  //
+  // The quick way is GET /api/hospitals/:id, which returns the centre, its
+  // doctors and the open requests nearby in one call.
+  //
+  // But the frontend and the backend deploy separately - Vercel rebuilds in a
+  // minute, Render takes several, and either can be updated without the
+  // other. For the window in between, this page would be a dead end showing
+  // "Could not load this centre", which is exactly what it did.
+  //
+  // So if that endpoint is not there, it rebuilds the same page from the
+  // endpoints that have always existed. Everything it needs is already
+  // published somewhere: the centre itself from the availability search
+  // (public) or the directory (members), the doctors from /doctors, and the
+  // open requests from /donation-requests. Slower by a request or two, and
+  // completely invisible to the reader.
   useEffect(() => {
+    let cancelled = false;
     setData(null);
     setError('');
+
+    const sameArea = (place, centre) => {
+      const area = [centre.district, centre.city].filter(Boolean)
+        .map((a) => String(a).trim().toLowerCase());
+      return area.includes(String(place || '').trim().toLowerCase());
+    };
+
+    // Stock arrives as availableBloodUnits from the directory and as
+    // breakdown from the availability search. One shape from here on.
+    const normalise = (c) => ({
+      ...c,
+      availableBloodUnits: c.availableBloodUnits || c.breakdown || [],
+    });
+
+    const viaOlderApi = async () => {
+      // The centre. The availability search is public and carries every
+      // centre with its stock, so it works signed out too.
+      let centre = null;
+      try {
+        const { data: list } = await api.get('/availability');
+        centre = (list.results || []).find((c) => String(c._id) === String(id)) || null;
+      } catch { /* fall through to the members' directory */ }
+
+      if (!centre) {
+        const { data: list } = await api.get('/hospitals');
+        centre = (list || []).find((c) => String(c._id) === String(id)) || null;
+      }
+      if (!centre) {
+        const err = new Error('not found');
+        err.notFound = true;
+        throw err;
+      }
+
+      // The extras are a bonus: if either call fails, the page still has the
+      // centre, which is the part that matters.
+      const [doctors, nearbyRequests] = await Promise.all([
+        api.get('/doctors', { params: { hospitalId: id } })
+          .then((r) => r.data).catch(() => []),
+        api.get('/donation-requests', { params: { status: 'pending' } })
+          .then((r) => (r.data || []).filter((x) => sameArea(x.location, centre)).slice(0, 6))
+          .catch(() => []),
+      ]);
+
+      return { hospital: normalise(centre), doctors, nearbyRequests };
+    };
+
     api.get(`/hospitals/${id}`)
-      .then((res) => setData(res.data))
-      .catch((err) => setError(err.response?.data?.message || 'Could not load this centre.'));
+      .then((res) => ({ ...res.data, hospital: normalise(res.data.hospital) }))
+      .catch((err) => {
+        // A 404 carrying our own message really is a missing centre. A 404
+        // with no message is Express saying the route does not exist, which
+        // means the backend is simply older than this page.
+        if (err.response?.data?.message) {
+          const stop = new Error(err.response.data.message);
+          stop.notFound = true;
+          throw stop;
+        }
+        return viaOlderApi();
+      })
+      .then((payload) => { if (!cancelled) setData(payload); })
+      .catch((err) => {
+        if (cancelled) return;
+        setError(err.notFound
+          ? 'That centre is not in the register. It may have been removed.'
+          : 'Could not load this centre. Check your connection and try again.');
+      });
+
+    return () => { cancelled = true; };
   }, [id]);
 
   if (error) {
@@ -60,9 +146,14 @@ export default function HospitalDetail() {
 
   const { hospital: h, doctors = [], nearbyRequests = [] } = data;
   const stock = h.availableBloodUnits || [];
-  const byGroup = Object.fromEntries(stock.map((u) => [u.bloodGroup, u.units || 0]));
-  const total = stock.reduce((a, u) => a + (u.units || 0), 0);
+  // {group: {component: units}} - the matrix the shelf is drawn from.
+  const table = stockTable(stock);
+  const byGroup = Object.fromEntries(
+    GROUPS.map((g) => [g, unitsIn(stock, { bloodGroup: g, component: comp })]),
+  );
+  const total = unitsIn(stock, { component: comp });
   const held = GROUPS.filter((g) => (byGroup[g] || 0) > 0);
+  const compTotals = byComponent(stock);
   const callable = h.contactNumber && h.contactNumber !== 'N/A';
   const place = [h.name, h.address, h.district, h.state].filter(Boolean).join(', ');
   const isBank = h.type === 'blood_bank';
@@ -102,7 +193,9 @@ export default function HospitalDetail() {
         </div>
 
         <div className="centre-stat-card">
-          <span className="tile-label">Units on the shelf</span>
+          <span className="tile-label">
+            {comp ? `${componentOf(comp).label} held` : 'Units on the shelf'}
+          </span>
           <strong className="centre-total">{total}</strong>
           <StatusTag {...level(total)} />
           <p className="muted-note">
@@ -118,7 +211,46 @@ export default function HospitalDetail() {
 
       {/* ------------------------------------------------------------- shelf */}
       <section className="centre-section">
-        <div className="section-header"><h3>What is on the shelf</h3></div>
+        <div className="section-header">
+          <h3>What is on the shelf</h3>
+          {comp && (
+            <button type="button" className="tile-link link-button" onClick={() => setComp('')}>
+              Show every component
+            </button>
+          )}
+        </div>
+
+        {/* The component tabs. A bag of whole blood is separated into red
+            cells, plasma and platelets within hours, and those three go to
+            completely different wards - so "45 units" is not an answer to
+            anybody who was sent here for platelets. */}
+        <div className="comp-tabs" role="tablist" aria-label="Blood component">
+          <button
+            type="button" role="tab" aria-selected={!comp}
+            className={`comp-tab ${!comp ? 'on' : ''}`}
+            onClick={() => setComp('')}
+          >
+            <span className="comp-tab-name">All components</span>
+            <strong>{compTotals.reduce((a, c) => a + c.units, 0)}</strong>
+            <small>everything held here</small>
+          </button>
+          {compTotals.map((c) => (
+            <button
+              key={c.key}
+              type="button" role="tab" aria-selected={comp === c.key}
+              className={`comp-tab ${comp === c.key ? 'on' : ''} ${c.units === 0 ? 'is-empty' : ''}`}
+              onClick={() => setComp(comp === c.key ? '' : c.key)}
+              title={c.use}
+            >
+              <span className="comp-tab-name">{c.label}</span>
+              <strong>{c.units}</strong>
+              <small>keeps {c.shelf}</small>
+            </button>
+          ))}
+        </div>
+
+        {comp && <p className="comp-note"><strong>{componentOf(comp).label}.</strong> {componentOf(comp).use}</p>}
+
         <div className="centre-shelf">
           {GROUPS.map((g) => {
             const n = byGroup[g] || 0;
@@ -129,10 +261,66 @@ export default function HospitalDetail() {
                 <strong>{n}</strong>
                 <small>{n === 1 ? 'unit' : 'units'}</small>
                 <StatusTag tone={l.tone} label={l.label} size="sm" />
+                {/* With no component chosen, each cell shows how its total
+                    divides, so the gaps are visible without tabbing through
+                    all four. */}
+                {!comp && n > 0 && (
+                  <span className="shelf-split">
+                    {COMPONENTS.map((c) => {
+                      const v = table[g]?.[c.key] || 0;
+                      return v > 0
+                        ? <span key={c.key}>{c.short} <b>{v}</b></span>
+                        : null;
+                    })}
+                  </span>
+                )}
               </div>
             );
           })}
         </div>
+
+        {/* The whole matrix, for anyone who wants to read it as a table
+            rather than eight cards - and the shape a blood bank's own stock
+            sheet takes. */}
+        <details className="shelf-table-wrap">
+          <summary>See the full stock table</summary>
+          <div className="dt-scroll">
+            <table className="dt-table shelf-table">
+              <thead>
+                <tr>
+                  <th>Group</th>
+                  {COMPONENTS.map((c) => <th key={c.key} className="ta-right">{c.label}</th>)}
+                  <th className="ta-right">Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                {GROUPS.map((g) => {
+                  const rowTotal = unitsIn(stock, { bloodGroup: g });
+                  return (
+                    <tr key={g}>
+                      <td data-label="Group"><BloodGroup group={g} variant="badge" /></td>
+                      {COMPONENTS.map((c) => (
+                        <td key={c.key} className="ta-right" data-label={c.label}>
+                          {table[g]?.[c.key] || <span className="muted-note">—</span>}
+                        </td>
+                      ))}
+                      <td className="ta-right" data-label="Total"><strong>{rowTotal}</strong></td>
+                    </tr>
+                  );
+                })}
+                <tr className="shelf-table-foot">
+                  <td data-label="Group"><strong>All groups</strong></td>
+                  {compTotals.map((c) => (
+                    <td key={c.key} className="ta-right" data-label={c.label}><strong>{c.units}</strong></td>
+                  ))}
+                  <td className="ta-right" data-label="Total">
+                    <strong>{compTotals.reduce((a, c) => a + c.units, 0)}</strong>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </details>
       </section>
 
       {/* ----------------------------------------------------------- doctors */}

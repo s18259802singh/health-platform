@@ -181,6 +181,19 @@ export default function Appointments() {
           <button type="submit" disabled={form.busy}>
             {form.busy ? 'Booking…' : 'Book appointment'}
           </button>
+
+          <div className="book-foot">
+            <span className="tile-label">On the day</span>
+            <ul className="aside-points">
+              <li><strong>Bring photo ID.</strong> The hospital checks it against the booking.</li>
+              <li><strong>Arrive about ten minutes early</strong> so reception can find you.</li>
+              <li><strong>Cancelling is free</strong>, from the list below, any time before the date.</li>
+            </ul>
+            <p className="form-foot">
+              Nothing is charged through LifeLink. The hospital holds the slot
+              and confirms it.
+            </p>
+          </div>
         </form>
       </div>
 
@@ -234,9 +247,17 @@ export default function Appointments() {
             <span className="tile-label">Not sure which hospital?</span>
             <p className="aside-line">
               Find the closest one to you, with the doctors who treat what you
-              came about.
+              came about and what each centre has on the shelf.
             </p>
-            <Link className="small-button ghost" to="/near-me">Find care near me</Link>
+            <ul className="aside-points">
+              <li>Share your location, or just type your town</li>
+              <li>Sorted by how far away each one is</li>
+              <li>Opens that centre's own page, with its full stock</li>
+            </ul>
+            <div className="aside-actions">
+              <Link className="small-button ghost" to="/near-me">Find care near me</Link>
+              <Link className="small-button ghost" to="/hospitals">Browse all centres</Link>
+            </div>
           </section>
         )}
       </aside>

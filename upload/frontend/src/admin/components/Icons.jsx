@@ -34,6 +34,8 @@ export const IconMenu = make(<><path d="M4 7h16" /><path d="M4 12h16" /><path d=
 export const IconChart = make(<><path d="M4 20V10" /><path d="M10 20V4" /><path d="M16 20v-7" /><path d="M22 20H2" /></>);
 export const IconBook = make(<><path d="M4 4.5A1.5 1.5 0 0 1 5.5 3H19v15H5.5A1.5 1.5 0 0 0 4 19.5Z" /><path d="M4 19.5A1.5 1.5 0 0 1 5.5 18H19v3H5.5A1.5 1.5 0 0 1 4 19.5Z" /><path d="M8 7.5h7" /><path d="M8 11h7" /></>);
 export const IconQuote = make(<><path d="M9 7.5C6.5 8.4 5 10.6 5 13.2V17h5v-5.2H7.6c.1-1.3.7-2.3 1.9-2.9Z" /><path d="M19 7.5c-2.5.9-4 3.1-4 5.7V17h5v-5.2h-2.4c.1-1.3.7-2.3 1.9-2.9Z" /></>);
+// An in-tray: the queue of camp applications waiting on a decision.
+export const IconInbox = make(<><path d="M3.5 13h4l1.5 3h6l1.5-3h4" /><path d="M5.6 4.5h12.8a2 2 0 0 1 1.85 1.25L22.5 13v5a2 2 0 0 1-2 2h-17a2 2 0 0 1-2-2v-5l2.25-7.25A2 2 0 0 1 5.6 4.5Z" /></>);
 export const IconAward = make(<><circle cx="12" cy="9" r="5.2" /><path d="m8.2 13.4-1.4 7 5.2-2.6 5.2 2.6-1.4-7" /></>);
 
 // Support inbox: a speech bubble, matching the public site's chat button.

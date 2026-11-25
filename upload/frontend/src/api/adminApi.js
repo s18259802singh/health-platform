@@ -4,20 +4,26 @@
 // vice versa.
 
 import axios from 'axios';
-import { API_BASE_URL } from './axios';
+import { API_BASE_URL, DEMO } from './axios';
+import adminDemo from './adminDemo';
 
 export const ADMIN_TOKEN_KEY = 'lifelink.admin.token';
 export const ADMIN_KEY = 'lifelink.admin';
 
-const adminApi = axios.create({ baseURL: API_BASE_URL });
+const realAdminApi = axios.create({ baseURL: API_BASE_URL });
 
-adminApi.interceptors.request.use((config) => {
+// The standalone preview has no backend. Without this the console's sign-in
+// form could never be satisfied and the whole back half of the product was
+// invisible to anyone reviewing a preview link. See api/adminDemo.js.
+const adminApi = DEMO ? adminDemo : realAdminApi;
+
+realAdminApi.interceptors.request.use((config) => {
   const token = localStorage.getItem(ADMIN_TOKEN_KEY);
   if (token) config.headers.Authorization = `Bearer ${token}`;
   return config;
 });
 
-adminApi.interceptors.response.use(
+realAdminApi.interceptors.response.use(
   (res) => res,
   (error) => {
     const status = error.response?.status;

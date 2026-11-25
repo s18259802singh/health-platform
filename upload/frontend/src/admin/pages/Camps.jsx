@@ -10,7 +10,7 @@ import Field from '../../components/Field';
 import Modal, { ConfirmDialog } from '../components/Modal';
 import { useToast } from '../components/Toast';
 import { PageHeader, Card, Spinner, TableWrap, StatCard, formatDate } from '../components/ui';
-import { IconPlus, IconEdit, IconTrash, IconUsers, IconCalendar, IconCheck } from '../components/Icons';
+import { IconPlus, IconEdit, IconTrash, IconUsers, IconCalendar, IconCheck, IconInbox } from '../components/Icons';
 import useForm from '../../lib/useForm';
 import { rules } from '../../lib/validate';
 
@@ -75,6 +75,12 @@ export default function Camps() {
   const [confirm, setConfirm] = useState(null);
   const [deleting, setDeleting] = useState(false);
   const [roster, setRoster] = useState(null);
+  // Public applications waiting on a decision. See the Camps page and
+  // components/CampApplication.jsx.
+  const [reviewing, setReviewing] = useState(null);
+  const [reviewNote, setReviewNote] = useState('');
+  const [reviewBusy, setReviewBusy] = useState('');
+  const [reviewError, setReviewError] = useState('');
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -156,6 +162,23 @@ export default function Camps() {
     }
   };
 
+  // ------------------------------------------------------- applications --
+  const decide = async (camp, action) => {
+    setReviewBusy(action);
+    setReviewError('');
+    try {
+      await adminApi.post(`/admin/camps/${camp._id}/${action}`, { note: reviewNote.trim() });
+      setReviewing(null);
+      setReviewNote('');
+      load();
+    } catch (err) {
+      setReviewError(err.response?.data?.message || 'Could not save that. Try again.');
+    } finally {
+      setReviewBusy('');
+    }
+  };
+
+  const pending = items.filter((c) => c.status === 'pending');
   const upcoming = items.filter((c) => c.status === 'upcoming');
   const totalRegistered = items.reduce((a, c) => a + (c.registrations?.length || 0), 0);
 
@@ -173,7 +196,73 @@ export default function Camps() {
         <StatCard icon={<IconCalendar />} label="Upcoming" value={upcoming.length} tone="accent" />
         <StatCard icon={<IconUsers />} label="Total registrations" value={totalRegistered} />
         <StatCard icon={<IconCheck />} label="Completed" value={items.filter((c) => c.status === 'completed').length} />
+        <StatCard icon={<IconInbox />} label="Applications waiting" value={pending.length}
+                  tone={pending.length ? 'warn' : undefined} />
       </div>
+
+      {/* APPLICATIONS FROM THE PUBLIC SITE.
+          Nothing an outside organisation submits is listed until somebody
+          here approves it, so this queue has to be impossible to miss -
+          an application sitting unseen is a camp that quietly never happens. */}
+      {pending.length > 0 && (
+        <Card className="adm-queue">
+          <div className="adm-queue-head">
+            <h3>
+              {pending.length} camp application{pending.length === 1 ? '' : 's'} waiting
+            </h3>
+            <p>Submitted from the public Camps page. Nothing is listed until you approve it.</p>
+          </div>
+          <ul className="adm-queue-list">
+            {pending.map((c) => (
+              <li key={c._id}>
+                <div className="adm-queue-main">
+                  <strong>{c.title}</strong>
+                  <small>
+                    {c.organiser} · {c.venue}, {c.city}
+                    {c.state ? `, ${c.state}` : ''}
+                  </small>
+                  <small>
+                    {c.date
+                      ? new Date(`${c.date}T00:00:00`).toLocaleDateString('en-GB', {
+                        weekday: 'short', day: 'numeric', month: 'long', year: 'numeric',
+                      })
+                      : 'No date'}
+                    {' · '}{c.startTime} – {c.endTime}
+                    {c.applicant?.expectedDonors ? ` · ~${c.applicant.expectedDonors} donors expected` : ''}
+                  </small>
+                  {c.applicant?.name && (
+                    <small className="adm-queue-who">
+                      {c.applicant.name}
+                      {c.applicant.phone ? ` · ${c.applicant.phone}` : ''}
+                      {c.applicant.email ? ` · ${c.applicant.email}` : ''}
+                    </small>
+                  )}
+                  {String(c.date) < new Date().toISOString().slice(0, 10) && (
+                    <StatusTag tone="bad" size="sm" label="That date has passed — edit it first" />
+                  )}
+                </div>
+                <div className="adm-queue-actions">
+                  <ContactActions size="sm" name={c.applicant?.name || c.organiser}
+                                  phone={c.applicant?.phone || c.contactNumber}
+                                  email={c.applicant?.email} />
+                  <button type="button" className="adm-btn ghost small" onClick={() => openEdit(c)}>
+                    Edit
+                  </button>
+                  <button type="button" className="adm-btn ghost small"
+                          onClick={() => { setReviewing({ camp: c, action: 'reject' }); setReviewNote(''); setReviewError(''); }}>
+                    Turn down
+                  </button>
+                  <button type="button" className="adm-btn primary small"
+                          onClick={() => { setReviewing({ camp: c, action: 'approve' }); setReviewNote(''); setReviewError(''); }}>
+                    Approve &amp; list
+                  </button>
+                </div>
+                {c.applicant?.note && <p className="adm-queue-note">“{c.applicant.note}”</p>}
+              </li>
+            ))}
+          </ul>
+        </Card>
+      )}
 
       <Card className="has-table">
         <DataTable
@@ -192,9 +281,11 @@ export default function Camps() {
               key: 'status',
               label: 'Status',
               options: [
+                { value: 'pending', label: 'Application waiting' },
                 { value: 'upcoming', label: 'Upcoming' },
                 { value: 'completed', label: 'Completed' },
                 { value: 'cancelled', label: 'Cancelled' },
+                { value: 'rejected', label: 'Turned down' },
               ],
             },
             { key: 'city', label: 'City', options: [...new Set(items.map((c) => c.city).filter(Boolean))].sort() },
@@ -349,9 +440,11 @@ export default function Camps() {
 
           <Field label="Status" htmlFor="status">
             <select id="status" {...form.field('status')}>
+              <option value="pending">Application waiting</option>
               <option value="upcoming">Upcoming</option>
               <option value="completed">Completed</option>
               <option value="cancelled">Cancelled</option>
+              <option value="rejected">Turned down</option>
             </select>
           </Field>
 
@@ -386,6 +479,46 @@ export default function Camps() {
               </TableWrap>
             )
         )}
+      </Modal>
+
+      {/* Approving publishes somebody else's event on your site, and turning
+          one down is a message to a real person who offered to help - both
+          deserve a deliberate second click and a note. */}
+      <Modal
+        open={!!reviewing}
+        tone={reviewing?.action === 'approve' ? 'good' : 'brand'}
+        title={reviewing?.action === 'approve' ? 'Approve and list this camp?' : 'Turn this application down?'}
+        subtitle={reviewing?.camp?.title}
+        onClose={() => setReviewing(null)}
+        footer={(
+          <>
+            <button type="button" className="adm-btn ghost" onClick={() => setReviewing(null)}>
+              Cancel
+            </button>
+            <button
+              type="button"
+              className={`adm-btn ${reviewing?.action === 'approve' ? 'primary' : 'danger'}`}
+              disabled={!!reviewBusy}
+              onClick={() => decide(reviewing.camp, reviewing.action)}
+            >
+              {reviewBusy
+                ? 'Saving…'
+                : reviewing?.action === 'approve' ? 'Approve and list it' : 'Turn it down'}
+            </button>
+          </>
+        )}
+      >
+        {reviewError && <p className="form-status is-error">{reviewError}</p>}
+        <p className="hint">
+          {reviewing?.action === 'approve'
+            ? 'It appears on the public Camps page straight away and members can start booking slots. Check the date and venue first — you can still edit it afterwards.'
+            : 'It stays in the list marked "Turned down" so there is a record of it. Nothing is sent automatically — ring or email them yourself.'}
+        </p>
+        <Field label="Note for your own records" htmlFor="review-note" optional
+               hint="Who you spoke to, what was agreed, or why it was turned down.">
+          <textarea id="review-note" rows={3} value={reviewNote}
+                    onChange={(e) => setReviewNote(e.target.value)} />
+        </Field>
       </Modal>
 
       <ConfirmDialog
